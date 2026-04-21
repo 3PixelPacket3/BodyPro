@@ -8,7 +8,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // --- FIREBASE CLOUD CONFIGURATION ---
-// Replace these with the specific keys from your new Firebase Console setup
 const firebaseConfig = {
   apiKey: "AIzaSyAzypNcFKXffht__mmpQdPOMJEzr4mhWgs",
   authDomain: "bodypro-dbe6d.firebaseapp.com",
