@@ -72,11 +72,48 @@
     .telemetry-item .lbl { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-top: 4px; }
 
     /* Water Tracker */
-    .water-tracker { display: flex; align-items: center; justify-content: space-between; background: var(--bg-base); padding: 15px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); }
-    .water-controls { display: flex; gap: 10px; }
+    .water-tracker { display: flex; align-items: center; justify-content: space-between; background: var(--bg-base); padding: 15px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); flex-wrap: wrap; gap: 15px;}
+    .water-controls { display: flex; gap: 10px; align-items: center; }
     .water-btn { background: var(--bg-surface-elevated); border: 1px solid var(--border-color); color: var(--text-main); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
     .water-btn:hover { background: var(--primary); border-color: var(--primary); }
     .water-btn:active { transform: scale(0.9); }
+
+    /* Modals for Manual Telemetry */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: var(--bg-surface);
+      width: 90%;
+      max-width: 500px;
+      border-radius: var(--border-radius-md);
+      border: 1px solid var(--border-color);
+      padding: 25px;
+      transform: translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: translateY(0);
+    }
   </style>
 </head>
 <body>
@@ -109,7 +146,7 @@
         <span>Social</span>
       </a>
       <a href="settings.html" class="nav-item">
-        <i class="fa-solid fa-users"></i>
+        <i class="fa-solid fa-user"></i>
         <span>Profile</span>
       </a>
     </nav>
@@ -158,26 +195,66 @@
         </div>
       </div>
 
-      <div class="card" style="border-top: 4px solid var(--primary);">
+      <div class="card" style="border-top: 4px solid var(--warning);">
         <div class="card-header">
-          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-stopwatch text-primary"></i> Live Telemetry</h3>
-          <span class="text-muted" style="font-size: 0.75rem; font-weight: 600;"><i class="fa-solid fa-link"></i> WATCH SYNCED</span>
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-bed text-warning"></i> Sleep Telemetry</h3>
+          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openModal('sleepModal')"><i class="fa-solid fa-pen"></i> Log Data</button>
         </div>
         
         <div class="telemetry-grid">
           <div class="telemetry-item">
-            <i class="fa-solid fa-bed text-warning"></i>
-            <div class="val" id="sleepScore">85</div>
-            <div class="lbl">Sleep Score</div>
+            <i class="fa-regular fa-clock text-warning"></i>
+            <div class="val" id="sleepDuration">--</div>
+            <div class="lbl">Duration</div>
           </div>
           <div class="telemetry-item">
-            <i class="fa-solid fa-heart-pulse text-danger"></i>
-            <div class="val" id="restingHR">58</div>
+            <i class="fa-solid fa-moon text-primary"></i>
+            <div class="val" id="sleepDeep">--</div>
+            <div class="lbl">Deep</div>
+          </div>
+          <div class="telemetry-item">
+            <i class="fa-solid fa-eye text-accent"></i>
+            <div class="val" id="sleepRem">--</div>
+            <div class="lbl">REM</div>
+          </div>
+          <div class="telemetry-item">
+            <i class="fa-solid fa-bed-pulse text-main"></i>
+            <div class="val" id="sleepRestfulness">--</div>
+            <div class="lbl">Restfulness</div>
+          </div>
+          <div class="telemetry-item">
+            <i class="fa-solid fa-stopwatch text-muted"></i>
+            <div class="val" id="sleepLatency">--</div>
+            <div class="lbl">Latency</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--primary);">
+        <div class="card-header">
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-heart-pulse text-primary"></i> Daily Vitals & Activity</h3>
+          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openModal('vitalsModal')"><i class="fa-solid fa-pen"></i> Update</button>
+        </div>
+        
+        <div class="telemetry-grid">
+          <div class="telemetry-item">
+            <i class="fa-solid fa-shoe-prints text-accent"></i>
+            <div class="val" id="stepCount">0</div>
+            <div class="lbl">Steps</div>
+          </div>
+          <div class="telemetry-item">
+            <i class="fa-solid fa-stairs text-primary"></i>
+            <div class="val" id="floorCount">0</div>
+            <div class="lbl">Floors</div>
+          </div>
+          <div class="telemetry-item">
+            <i class="fa-solid fa-heart-crack text-danger"></i>
+            <div class="val" id="restingHR">--</div>
             <div class="lbl">Resting HR</div>
           </div>
           <div class="telemetry-item">
-            <i class="fa-solid fa-bolt text-accent"></i>
-            <div class="val" id="activeCals">450</div>
+            <i class="fa-solid fa-bolt text-warning"></i>
+            <div class="val" id="activeCals">0</div>
             <div class="lbl">Active Cals</div>
           </div>
         </div>
@@ -188,13 +265,15 @@
           <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-clipboard-list"></i> Today's Protocol</h3>
           <a href="fitness.html" style="font-size: 0.85rem; font-weight: 600;">Start <i class="fa-solid fa-play"></i></a>
         </div>
-        <div style="background: var(--bg-base); padding: 15px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 15px;">
-          <div style="background: var(--bg-surface-elevated); padding: 15px; border-radius: var(--border-radius-sm); color: var(--text-main);">
-            <i class="fa-solid fa-dumbbell" style="font-size: 1.5rem;"></i>
-          </div>
-          <div>
-            <h4 style="margin: 0;">Resistance & Conditioning</h4>
-            <p class="text-muted" style="font-size: 0.85rem; margin-top: 4px; font-weight: 600;">Lifting: ~90m | Cardio: ~20m</p>
+        <div id="todayProtocolContainer">
+          <div style="background: var(--bg-base); padding: 15px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 15px;">
+            <div style="background: var(--bg-surface-elevated); padding: 15px; border-radius: var(--border-radius-sm); color: var(--text-main);">
+              <i class="fa-solid fa-dumbbell" style="font-size: 1.5rem;"></i>
+            </div>
+            <div>
+              <h4 style="margin: 0;" id="protocolTitle">Resistance & Conditioning</h4>
+              <p class="text-muted" style="font-size: 0.85rem; margin-top: 4px; font-weight: 600;" id="protocolDesc">Lifting: ~90m | Cardio: ~20m</p>
+            </div>
           </div>
         </div>
       </div>
@@ -211,6 +290,7 @@
           </div>
           <div class="water-controls">
             <button class="water-btn" id="btnSubWater"><i class="fa-solid fa-minus"></i></button>
+            <input type="number" id="customWaterInput" value="8" style="width: 70px; padding: 8px; text-align: center; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface-elevated); color: var(--text-main); font-weight: bold; font-family: monospace; font-size: 1.1rem;">
             <button class="water-btn" id="btnAddWater"><i class="fa-solid fa-plus"></i></button>
           </div>
         </div>
@@ -221,20 +301,16 @@
     <div class="fab-container" id="fabContainer">
       <div class="fab-menu">
         <div class="fab-item">
-          <span class="fab-label">Log Weight</span>
-          <button class="fab-mini"><i class="fa-solid fa-scale-unbalanced"></i></button>
+          <span class="fab-label">Log Weight / Biometrics</span>
+          <button class="fab-mini" onclick="window.location.href='settings.html'"><i class="fa-solid fa-scale-unbalanced"></i></button>
         </div>
         <div class="fab-item">
           <span class="fab-label">Start Workout</span>
-          <button class="fab-mini"><i class="fa-solid fa-dumbbell"></i></button>
+          <button class="fab-mini" onclick="window.location.href='fitness.html'"><i class="fa-solid fa-dumbbell"></i></button>
         </div>
         <div class="fab-item">
-          <span class="fab-label">Scan Barcode</span>
-          <button class="fab-mini"><i class="fa-solid fa-barcode"></i></button>
-        </div>
-        <div class="fab-item">
-          <span class="fab-label">Quick Add Calories</span>
-          <button class="fab-mini"><i class="fa-solid fa-plus"></i></button>
+          <span class="fab-label">Quick Add Food</span>
+          <button class="fab-mini" onclick="window.location.href='nutrition.html'"><i class="fa-solid fa-utensils"></i></button>
         </div>
       </div>
       <button class="fab" id="mainFab">
@@ -244,12 +320,89 @@
 
   </div>
 
+  <div class="modal-overlay" id="sleepModal">
+    <div class="modal-content">
+      <h3 style="margin-top: 0;"><i class="fa-solid fa-bed text-warning"></i> Log Sleep Data</h3>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group">
+          <label>Bed Time</label>
+          <input type="time" id="inputBedTime">
+        </div>
+        <div class="form-group">
+          <label>Wake Time</label>
+          <input type="time" id="inputWakeTime">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group">
+          <label class="text-primary">Deep Sleep (hrs)</label>
+          <input type="number" id="inputDeepSleep" step="0.1" placeholder="e.g. 1.5">
+        </div>
+        <div class="form-group">
+          <label class="text-accent">REM Sleep (hrs)</label>
+          <input type="number" id="inputRemSleep" step="0.1" placeholder="e.g. 2.0">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group">
+          <label>Restfulness Score (0-100)</label>
+          <input type="number" id="inputRestfulness" min="0" max="100" placeholder="e.g. 85">
+        </div>
+        <div class="form-group">
+          <label>Latency (Mins to fall asleep)</label>
+          <input type="number" id="inputLatency" placeholder="e.g. 15">
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+        <button class="btn" id="btnSaveSleep">Save Sleep Log</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="vitalsModal">
+    <div class="modal-content">
+      <h3 style="margin-top: 0;"><i class="fa-solid fa-heart-pulse text-primary"></i> Log Daily Vitals</h3>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group">
+          <label class="text-accent">Steps</label>
+          <input type="number" id="inputSteps" placeholder="e.g. 10000">
+        </div>
+        <div class="form-group">
+          <label class="text-primary">Floors Climbed</label>
+          <input type="number" id="inputFloors" placeholder="e.g. 12">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group">
+          <label class="text-danger">Resting HR (BPM)</label>
+          <input type="number" id="inputRestingHR" placeholder="e.g. 58">
+        </div>
+        <div class="form-group">
+          <label class="text-warning">Active Calories</label>
+          <input type="number" id="inputActiveCals" placeholder="e.g. 450">
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+        <button class="btn" id="btnSaveVitals">Save Vitals</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Handle Date Display
     const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', dateOptions);
 
-    // Basic FAB interaction logic
+    // Basic UI Modal & FAB interaction logic
     const fabContainer = document.getElementById('fabContainer');
     const mainFab = document.getElementById('mainFab');
 
@@ -257,12 +410,19 @@
       fabContainer.classList.toggle('active');
     });
 
-    // Close FAB if clicked outside
     document.addEventListener('click', (e) => {
       if (!fabContainer.contains(e.target) && fabContainer.classList.contains('active')) {
         fabContainer.classList.remove('active');
       }
     });
+
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.add('active');
+    }
+
+    function closeModals() {
+      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    }
   </script>
 
   <script type="module" src="data-store.js"></script>
