@@ -72,7 +72,7 @@
 
     /* History Log List */
     .history-list {
-      max-height: 300px;
+      max-height: 400px;
       overflow-y: auto;
       margin-top: 15px;
     }
@@ -84,6 +84,8 @@
       padding: 12px 15px;
       border-bottom: 1px solid var(--border-color);
       background: var(--bg-base);
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s;
     }
 
     .history-item:last-child {
@@ -92,6 +94,7 @@
 
     .history-item:hover {
       background: var(--bg-surface-elevated);
+      border-color: var(--primary);
     }
 
     .history-icon {
@@ -120,6 +123,46 @@
       text-align: right;
       font-size: 0.85rem;
       font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: var(--bg-surface);
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: var(--border-radius-md);
+      border: 1px solid var(--border-color);
+      padding: 25px;
+      transform: translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: translateY(0);
     }
   </style>
 </head>
@@ -137,7 +180,7 @@
         <span>Nutrition</span>
       </a>
       <a href="recipes.html" class="nav-item">
-        <i class="fa-solid fa-users"></i>
+        <i class="fa-solid fa-book-open"></i>
         <span>Recipes</span>
       </a>
       <a href="fitness.html" class="nav-item">
@@ -153,7 +196,7 @@
         <span>Social</span>
       </a>
       <a href="settings.html" class="nav-item">
-        <i class="fa-solid fa-users"></i>
+        <i class="fa-solid fa-user"></i>
         <span>Profile</span>
       </a>
     </nav>
@@ -199,7 +242,7 @@
 
       <div class="card" style="border-top: 4px solid var(--accent);">
         <div class="chart-header">
-          <h3><i class="fa-solid fa-chart-pie text-accent"></i> Macro Adherence</h3>
+          <h3><i class="fa-solid fa-chart-column text-accent"></i> Caloric Adherence</h3>
           <div class="chart-filters">
             <select id="macroRangeSelect">
               <option value="7">7 Days</option>
@@ -214,13 +257,42 @@
         </div>
       </div>
 
+      <div class="card" style="border-top: 4px solid var(--text-main);">
+        <div class="chart-header">
+          <h3><i class="fa-solid fa-chart-pie"></i> Average Macro Split</h3>
+          <p class="text-muted" style="font-size: 0.8rem; margin: 0;">(Last 7 Days)</p>
+        </div>
+        
+        <div class="chart-container" style="height: 200px;">
+          <canvas id="macroDistChart"></canvas>
+        </div>
+      </div>
+
       <div class="card" style="border-top: 4px solid var(--warning);">
         <div class="chart-header">
-          <h3><i class="fa-solid fa-bed text-warning"></i> Sleep Quality</h3>
+          <h3><i class="fa-solid fa-bed text-warning"></i> Sleep Quality Score</h3>
+          <div class="chart-filters">
+            <select id="sleepRangeSelect">
+              <option value="7">7 Days</option>
+              <option value="14">14 Days</option>
+              <option value="30">30 Days</option>
+            </select>
+          </div>
         </div>
         
         <div class="chart-container">
           <canvas id="sleepChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--primary);">
+        <div class="chart-header">
+          <h3><i class="fa-solid fa-droplet text-primary"></i> Hydration Volume</h3>
+          <p class="text-muted" style="font-size: 0.8rem; margin: 0;">(fl oz per day)</p>
+        </div>
+        
+        <div class="chart-container" style="height: 200px;">
+          <canvas id="hydrationChart"></canvas>
         </div>
       </div>
 
@@ -236,6 +308,42 @@
 
     </main>
   </div>
+
+  <div class="modal-overlay" id="activityDetailModal">
+    <div class="modal-content">
+      <h3 style="margin-top: 0; margin-bottom: 5px;" id="actDetailTitle">Activity Details</h3>
+      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px;" id="actDetailDate"></p>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+        <div style="background: var(--bg-base); padding: 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); text-align: center;">
+          <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Duration</div>
+          <div style="font-weight: 800; color: var(--primary);" id="actDetailDuration">--</div>
+        </div>
+        <div style="background: var(--bg-base); padding: 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); text-align: center;">
+          <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Cals Burned</div>
+          <div style="font-weight: 800; color: var(--accent);" id="actDetailCals">--</div>
+        </div>
+      </div>
+
+      <div style="background: var(--bg-base); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); padding: 10px; max-height: 250px; overflow-y: auto; margin-bottom: 15px;" id="actDetailSets">
+        </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-ghost" style="flex: 1;" onclick="closeModals()">Close</button>
+        <button class="btn btn-ghost" style="color: var(--danger); border-color: var(--danger); flex: 1;" id="btnDeleteActivity">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openActivityModal() {
+      document.getElementById('activityDetailModal').classList.add('active');
+    }
+
+    function closeModals() {
+      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    }
+  </script>
 
   <script type="module" src="data-store.js"></script>
   <script type="module" src="analytics.js"></script>
