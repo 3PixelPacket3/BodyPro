@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BodyPro | Calibration & Profile</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    .settings-group {
+      margin-bottom: 25px;
+    }
+
+    .settings-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .setting-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .supp-manager-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 15px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      padding: 15px;
+      background: var(--bg-base);
+    }
+
+    .supp-manager-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .supp-manager-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .supp-manager-item span {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .danger-zone {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px dashed var(--danger);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <nav class="app-nav">
+      <a href="dashboard.html" class="nav-item">
+        <i class="fa-solid fa-house"></i>
+        <span>Home</span>
+      </a>
+      <a href="nutrition.html" class="nav-item">
+        <i class="fa-solid fa-utensils"></i>
+        <span>Nutrition</span>
+      </a>
+      <a href="fitness.html" class="nav-item">
+        <i class="fa-solid fa-dumbbell"></i>
+        <span>Fitness</span>
+      </a>
+      <a href="analytics.html" class="nav-item">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Analytics</span>
+      </a>
+      <a href="social.html" class="nav-item">
+        <i class="fa-solid fa-users"></i>
+        <span>Social</span>
+      </a>
+    </nav>
+
+    <main class="main-content">
+      
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
+        <div>
+          <h2 style="margin-bottom: 5px;">System Calibration</h2>
+          <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Profile & Preferences</p>
+        </div>
+        <button class="btn btn-ghost" style="padding: 8px 15px; font-size: 0.85rem;" onclick="window.location.href='dashboard.html'">
+          <i class="fa-solid fa-arrow-left"></i> Dashboard
+        </button>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--primary);">
+        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-bullseye text-primary"></i> Target Protocols</h3>
+        
+        <div class="setting-row">
+          <div class="form-group" style="margin: 0;">
+            <label>Weekly Weight Goal (lbs)</label>
+            <input type="number" id="setWeightGoal" step="0.5" placeholder="-1.5">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label>Workout Days / Week</label>
+            <input type="number" id="setWorkoutDays" min="1" max="7" placeholder="6">
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="form-group" style="margin: 0;">
+            <label>Target Resistance (Mins)</label>
+            <input type="number" id="setLiftMins" placeholder="90">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label>Target Conditioning (Mins)</label>
+            <input type="number" id="setCardioMins" placeholder="20">
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--accent);">
+        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-chart-pie text-accent"></i> Nutritional Baselines</h3>
+        
+        <div class="setting-row">
+          <div class="form-group" style="margin: 0;">
+            <label>Daily Calories</label>
+            <input type="number" id="setCals" placeholder="2200">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="text-primary">Protein (g)</label>
+            <input type="number" id="setProt" placeholder="200">
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div class="form-group" style="margin: 0;">
+            <label class="text-warning">Carbs (g)</label>
+            <input type="number" id="setCarb" placeholder="150">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="text-danger">Fats (g)</label>
+            <input type="number" id="setFat" placeholder="88">
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--warning);">
+        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-pills text-warning"></i> Supplement Matrix</h3>
+        
+        <div class="supp-manager-list" id="suppListContainer">
+          <p class="text-muted" style="margin:0; font-size: 0.85rem;">Loading protocols...</p>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="newSuppName" placeholder="e.g. Fish Oil" style="flex: 1;">
+          <button class="btn btn-ghost" id="btnAddSupp" style="width: auto; padding: 0 20px;"><i class="fa-solid fa-plus"></i></button>
+        </div>
+      </div>
+
+      <div style="margin-top: 25px;">
+        <button class="btn" id="btnSaveSettings" style="width: 100%;"><i class="fa-solid fa-hard-drive"></i> Save Calibration</button>
+      </div>
+
+      <div class="danger-zone">
+        <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--danger);"><i class="fa-solid fa-shield-halved"></i> Security & Access</h3>
+        <button class="btn btn-ghost" id="btnLogout" style="width: 100%; border-color: var(--danger); color: var(--danger);"><i class="fa-solid fa-right-from-bracket"></i> Terminate Session</button>
+      </div>
+
+    </main>
+  </div>
+
+  <script type="module" src="data-store.js"></script>
+  <script type="module" src="settings.js"></script>
+</body>
+</html>
