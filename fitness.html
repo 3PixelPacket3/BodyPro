@@ -7,13 +7,20 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <style>
+<style>
     /* Fitness Specific Styles */
     .timer-dashboard {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 15px;
       margin-bottom: 20px;
+    }
+
+    /* NEW Mobile Grid Logic: Stacks timers vertically on smaller screens */
+    @media (max-width: 600px) {
+      .timer-dashboard {
+        grid-template-columns: 1fr;
+      }
     }
 
     .timer-card {
@@ -194,8 +201,7 @@
       justify-content: space-between;
       align-items: center;
     }
-
-  </style>
+</style>
 </head>
 <body>
 
