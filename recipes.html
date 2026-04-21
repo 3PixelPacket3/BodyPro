@@ -6,6 +6,7 @@
   <title>BodyPro | Culinary Builder</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
     /* Recipe Specific Styles */
@@ -126,6 +127,8 @@
       background: var(--bg-surface);
       width: 90%;
       max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
       border-radius: var(--border-radius-md);
       border: 1px solid var(--border-color);
       padding: 25px;
@@ -136,6 +139,24 @@
     .modal-overlay.active .modal-content {
       transform: translateY(0);
     }
+
+    #reader {
+      width: 100%;
+      border-radius: var(--border-radius-sm);
+      overflow: hidden;
+      margin-top: 15px;
+      border: 2px dashed var(--border-color);
+    }
+    #reader button {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    #reader a { color: var(--primary); }
   </style>
 </head>
 <body>
@@ -152,7 +173,7 @@
         <span>Nutrition</span>
       </a>
       <a href="recipes.html" class="nav-item active">
-        <i class="fa-solid fa-users"></i>
+        <i class="fa-solid fa-book-open"></i>
         <span>Recipes</span>
       </a>
       <a href="fitness.html" class="nav-item">
@@ -168,7 +189,7 @@
         <span>Social</span>
       </a>
       <a href="settings.html" class="nav-item">
-        <i class="fa-solid fa-users"></i>
+        <i class="fa-solid fa-user"></i>
         <span>Profile</span>
       </a>
     </nav>
@@ -228,7 +249,7 @@
 
         <div class="ingredient-list" id="activeIngredientList">
           <p class="text-muted" id="emptyIngredientMsg" style="text-align: center; padding: 20px; font-size: 0.9rem; margin: 0;">No ingredients added yet.</p>
-          </div>
+        </div>
 
         <div class="macro-summary-box">
           <div class="macro-summary-header">Per Serving Macros</div>
@@ -271,7 +292,10 @@
 
   <div class="modal-overlay" id="ingredientModal">
     <div class="modal-content">
-      <h3 style="margin-top: 0;"><i class="fa-solid fa-plus text-accent"></i> Add Ingredient</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;"><i class="fa-solid fa-plus text-accent"></i> Add Ingredient</h3>
+        <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openScannerFromRecipe()"><i class="fa-solid fa-barcode"></i> Scan</button>
+      </div>
       
       <div class="form-group">
         <label>Ingredient Name</label>
@@ -304,6 +328,19 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="scannerModal">
+    <div class="modal-content">
+      <h3 style="margin-top: 0;"><i class="fa-solid fa-barcode text-primary"></i> Optical Scanner</h3>
+      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 10px;">Center the barcode within the camera feed. OpenFoodFacts telemetry active.</p>
+      
+      <div id="reader"></div>
+
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-ghost" onclick="closeScannerModal()" style="width: 100%;">Close Optics</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Set default date for copier to yesterday
     const yesterday = new Date();
@@ -327,5 +364,5 @@
 
   <script type="module" src="data-store.js"></script>
   <script type="module" src="recipes.js"></script>
-  </body>
+</body>
 </html>
