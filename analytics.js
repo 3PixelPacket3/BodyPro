@@ -3,11 +3,22 @@
 import { auth } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+// --- PROGRESSIVE WEB APP REGISTRATION ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('[BodyPro System] SW Analytics Handshake Successful'))
+            .catch(err => console.error('[BodyPro System] SW Analytics Registration Failed', err));
+    });
+}
+
 // --- DOM Elements ---
 // Selectors
 const weightRangeSelect = document.getElementById('weightRangeSelect');
 const macroRangeSelect = document.getElementById('macroRangeSelect');
 const sleepRangeSelect = document.getElementById('sleepRangeSelect');
+const liftSelect = document.getElementById('liftSelect');
+const volumeRangeSelect = document.getElementById('volumeRangeSelect');
 
 // Weight Stats
 const valCurrentWeight = document.getElementById('valCurrentWeight');
@@ -26,6 +37,8 @@ const btnDeleteActivity = document.getElementById('btnDeleteActivity');
 
 // Chart Contexts
 const ctxWeight = document.getElementById('weightChart').getContext('2d');
+const ctx1RM = document.getElementById('oneRMChart').getContext('2d');
+const ctxVolume = document.getElementById('volumeChart').getContext('2d');
 const ctxMacro = document.getElementById('macroChart').getContext('2d');
 const ctxMacroDist = document.getElementById('macroDistChart').getContext('2d');
 const ctxSleep = document.getElementById('sleepChart').getContext('2d');
@@ -34,6 +47,8 @@ const ctxHydration = document.getElementById('hydrationChart').getContext('2d');
 // --- STATE MANAGEMENT ---
 let userData = null;
 let chartWeightInstance = null;
+let chart1RMInstance = null;
+let chartVolumeInstance = null;
 let chartMacroInstance = null;
 let chartMacroDistInstance = null;
 let chartSleepInstance = null;
@@ -62,7 +77,6 @@ function getPastDates(days) {
     for (let i = days - 1; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        // Correctly format to local YYYY-MM-DD
         const offset = d.getTimezoneOffset() * 60000;
         dates.push((new Date(d - offset)).toISOString().split('T')[0]);
     }
@@ -93,13 +107,15 @@ function calculateMovingAverage(data, windowSize) {
 
 function renderAnalytics() {
     updateWeightChart();
-    updateMacroCharts(); // Handles both the Bar and Doughnut charts
+    update1RMChart();
+    updateVolumeChart();
+    updateMacroCharts();
     updateSleepChart();
     updateHydrationChart();
     renderActivityHistory();
 }
 
-// 1. Body Mass Tracking (Weight)
+// 1. Body Mass Tracking
 function updateWeightChart() {
     const days = parseInt(weightRangeSelect.value) || 30;
     const dateLabels = getPastDates(days);
@@ -121,7 +137,6 @@ function updateWeightChart() {
 
     const movingAvg = calculateMovingAverage(filledWeightData, 7);
 
-    // Update Summary Stats
     const currentWeight = filledWeightData[filledWeightData.length - 1];
     const firstWeight = filledWeightData.find(w => w !== null);
     const recentAvg = movingAvg[movingAvg.length - 1];
@@ -140,12 +155,12 @@ function updateWeightChart() {
     chartWeightInstance = new Chart(ctxWeight, {
         type: 'line',
         data: {
-            labels: dateLabels.map(d => d.substring(5)), // MM-DD
+            labels: dateLabels.map(d => d.substring(5)),
             datasets: [
                 {
                     label: 'Daily Weight (lbs)',
                     data: filledWeightData,
-                    borderColor: '#3b82f6', // primary
+                    borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
                     borderWidth: 2,
                     pointRadius: 3,
@@ -155,7 +170,7 @@ function updateWeightChart() {
                 {
                     label: '7-Day Trend',
                     data: movingAvg,
-                    borderColor: '#10b981', // accent
+                    borderColor: '#10b981',
                     borderWidth: 2,
                     borderDash: [5, 5],
                     pointRadius: 0,
@@ -176,12 +191,111 @@ function updateWeightChart() {
     });
 }
 
-// 2. Macro Adherence & Distribution
+// 2. 1RM Projection Chart (Epley Formula Data)
+function update1RMChart() {
+    const selectedLift = liftSelect.value;
+    const days = 30; // Hardcode to 30 days for trending
+    const dateLabels = getPastDates(days);
+    const ormData = [];
+
+    dateLabels.forEach(date => {
+        // Find workouts on this local date
+        const dayWorkouts = (userData.workouts || []).filter(w => {
+            const localD = new Date(w.timestamp);
+            const offset = localD.getTimezoneOffset() * 60000;
+            return (new Date(localD - offset)).toISOString().split('T')[0] === date;
+        });
+
+        let max1RM = null;
+        dayWorkouts.forEach(wk => {
+            (wk.sets || []).forEach(set => {
+                if (set.exercise === selectedLift && set.est1RM) {
+                    if (max1RM === null || set.est1RM > max1RM) {
+                        max1RM = set.est1RM;
+                    }
+                }
+            });
+        });
+
+        ormData.push(max1RM);
+    });
+
+    if (chart1RMInstance) chart1RMInstance.destroy();
+
+    chart1RMInstance = new Chart(ctx1RM, {
+        type: 'line',
+        data: {
+            labels: dateLabels.map(d => d.substring(5)),
+            datasets: [{
+                label: `Estimated 1RM (lbs)`,
+                data: ormData,
+                borderColor: '#ef4444', // danger
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                borderWidth: 3,
+                pointRadius: 5,
+                pointBackgroundColor: '#ef4444',
+                spanGaps: true,
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top' } }
+        }
+    });
+}
+
+// 3. Volume Load (Tonnage)
+function updateVolumeChart() {
+    const days = parseInt(volumeRangeSelect.value) || 14;
+    const dateLabels = getPastDates(days);
+    const volumeData = [];
+
+    dateLabels.forEach(date => {
+        let dailyVolume = 0;
+        const dayWorkouts = (userData.workouts || []).filter(w => {
+            const localD = new Date(w.timestamp);
+            const offset = localD.getTimezoneOffset() * 60000;
+            return (new Date(localD - offset)).toISOString().split('T')[0] === date;
+        });
+
+        dayWorkouts.forEach(wk => {
+            (wk.sets || []).forEach(set => {
+                if (set.volume) dailyVolume += set.volume;
+            });
+        });
+
+        volumeData.push(dailyVolume);
+    });
+
+    if (chartVolumeInstance) chartVolumeInstance.destroy();
+
+    chartVolumeInstance = new Chart(ctxVolume, {
+        type: 'bar',
+        data: {
+            labels: dateLabels.map(d => d.substring(5)),
+            datasets: [{
+                label: 'Total Tonnage (lbs)',
+                data: volumeData,
+                backgroundColor: '#10b981', // accent
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+// 4. Macro Adherence & Distribution
 function updateMacroCharts() {
     const days = parseInt(macroRangeSelect.value) || 7;
     const dateLabels = getPastDates(days);
     
-    const targetCals = userData.settings.macroTargets.calories || 2200;
+    const targetCals = userData.settings?.macroTargets?.calories || 2200;
     const dailyCalsData = [];
     
     let totalProt = 0, totalCarb = 0, totalFat = 0;
@@ -198,7 +312,6 @@ function updateMacroCharts() {
         dailyCalsData.push(dayCals);
     });
 
-    // Chart 2A: Bar Chart for Adherence
     if (chartMacroInstance) chartMacroInstance.destroy();
     chartMacroInstance = new Chart(ctxMacro, {
         type: 'bar',
@@ -207,23 +320,18 @@ function updateMacroCharts() {
             datasets: [{
                 label: 'Calories Consumed',
                 data: dailyCalsData,
-                backgroundColor: dailyCalsData.map(c => c > targetCals ? '#ef4444' : '#10b981'), // danger vs accent
+                backgroundColor: dailyCalsData.map(c => c > targetCals ? '#ef4444' : '#10b981'),
                 borderRadius: 4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false
-            // Note: Chart.js annotation plugin required for the target line
         }
     });
 
-    // Chart 2B: Doughnut Chart for Macro Distribution
     if (chartMacroDistInstance) chartMacroDistInstance.destroy();
-    
-    // Check if there is actual data to show
     if (totalProt === 0 && totalCarb === 0 && totalFat === 0) {
-        // Fallback placeholder if no data is logged for the timeframe
         totalProt = 1; totalCarb = 1; totalFat = 1; 
     }
 
@@ -233,7 +341,7 @@ function updateMacroCharts() {
             labels: ['Protein', 'Carbs', 'Fats'],
             datasets: [{
                 data: [totalProt, totalCarb, totalFat],
-                backgroundColor: ['#3b82f6', '#f59e0b', '#ef4444'], // primary, warning, danger
+                backgroundColor: ['#3b82f6', '#f59e0b', '#ef4444'],
                 borderWidth: 0,
                 hoverOffset: 4
             }]
@@ -249,7 +357,7 @@ function updateMacroCharts() {
     });
 }
 
-// 3. Sleep Statistics (Real Data Integration)
+// 5. Sleep Statistics
 function updateSleepChart() {
     const days = parseInt(sleepRangeSelect.value) || 7;
     const dateLabels = getPastDates(days);
@@ -257,7 +365,6 @@ function updateSleepChart() {
 
     dateLabels.forEach(date => {
         const sleepData = (userData.sleep_data || []).find(s => s.date === date);
-        // Use real score, or null if not logged to break the line graph accurately
         sleepScores.push(sleepData && sleepData.score ? sleepData.score : null); 
     });
 
@@ -270,11 +377,11 @@ function updateSleepChart() {
             datasets: [{
                 label: 'Restfulness Score',
                 data: sleepScores,
-                borderColor: '#f59e0b', // warning
+                borderColor: '#f59e0b',
                 backgroundColor: 'rgba(245, 158, 11, 0.2)',
                 borderWidth: 3,
                 pointRadius: 4,
-                spanGaps: true, // Connects the line even if a day is missed
+                spanGaps: true,
                 fill: true,
                 tension: 0.3
             }]
@@ -287,9 +394,9 @@ function updateSleepChart() {
     });
 }
 
-// 4. Hydration Consistency
+// 6. Hydration Consistency
 function updateHydrationChart() {
-    const dateLabels = getPastDates(7); // Hardcoded to 7 days for the dashboard view
+    const dateLabels = getPastDates(7);
     const hydrationData = [];
 
     dateLabels.forEach(date => {
@@ -306,7 +413,7 @@ function updateHydrationChart() {
             datasets: [{
                 label: 'Water (fl oz)',
                 data: hydrationData,
-                backgroundColor: '#3b82f6', // primary
+                backgroundColor: '#3b82f6',
                 borderRadius: 4
             }]
         },
@@ -320,7 +427,7 @@ function updateHydrationChart() {
     });
 }
 
-// 5. Activity History List & Modal Logic
+// 7. Activity History List & Modal Logic
 function renderActivityHistory() {
     activityHistoryList.innerHTML = '';
     const workouts = [...(userData.workouts || [])].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 15);
@@ -333,7 +440,6 @@ function renderActivityHistory() {
     workouts.forEach(wk => {
         const item = document.createElement('div');
         item.className = 'history-item';
-        // Add click handler to open the specific workout
         item.onclick = () => window.viewActivity(wk.id);
         
         const totalDuration = Math.round((wk.durationLift + wk.durationCardio) / 60);
@@ -380,7 +486,7 @@ window.viewActivity = function(id) {
                     <div style="font-weight: 600;">${s.exercise}</div>
                     <div class="text-muted">${s.weight} lbs</div>
                     <div class="text-muted">${s.reps} reps</div>
-                    <div class="text-muted">RPE ${s.rpe}</div>
+                    <div class="text-muted">1RM: ${s.est1RM || 0}</div>
                 </div>
             `;
         });
@@ -398,7 +504,7 @@ btnDeleteActivity.addEventListener('click', async () => {
         userData.workouts = userData.workouts.filter(w => w.id !== currentViewActivityId);
         await window.BodyProDataStore.saveData(userData);
         activityDetailModal.classList.remove('active');
-        renderAnalytics(); // Re-render to update the list and potentially the macro/sleep charts if affected
+        renderAnalytics(); 
     }
 });
 
@@ -406,3 +512,5 @@ btnDeleteActivity.addEventListener('click', async () => {
 weightRangeSelect.addEventListener('change', updateWeightChart);
 macroRangeSelect.addEventListener('change', updateMacroCharts);
 if(sleepRangeSelect) sleepRangeSelect.addEventListener('change', updateSleepChart);
+liftSelect.addEventListener('change', update1RMChart);
+volumeRangeSelect.addEventListener('change', updateVolumeChart);
