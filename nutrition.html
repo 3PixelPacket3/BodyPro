@@ -6,6 +6,8 @@
   <title>BodyPro | Nutrition Diary</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
     /* Nutrition Specific Styles */
@@ -184,34 +186,24 @@
       transform: translateY(0);
     }
 
-    .scanner-viewport {
+    /* Override library defaults for a cleaner UI */
+    #reader {
       width: 100%;
-      height: 250px;
-      background: #000;
       border-radius: var(--border-radius-sm);
-      margin: 15px 0;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       overflow: hidden;
+      margin-top: 15px;
       border: 2px dashed var(--border-color);
     }
-
-    .scanner-line {
-      position: absolute;
-      width: 100%;
-      height: 2px;
-      background: var(--danger);
-      box-shadow: 0 0 10px var(--danger);
-      animation: scan 2s infinite linear;
+    #reader button {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
     }
-
-    @keyframes scan {
-      0% { top: 0; }
-      50% { top: 100%; }
-      100% { top: 0; }
-    }
+    #reader a { color: var(--primary); }
   </style>
 </head>
 <body>
@@ -324,7 +316,7 @@
         </div>
         <div class="fab-item">
           <span class="fab-label">Quick Macros</span>
-          <button class="fab-mini" onclick="openQuickAddModal()"><i class="fa-solid fa-bolt"></i></button>
+          <button class="fab-mini" onclick="openQuickAddModal('Snacks')"><i class="fa-solid fa-bolt"></i></button>
         </div>
       </div>
       <button class="fab" id="mainFab" onclick="openScannerModal()">
@@ -336,17 +328,13 @@
 
   <div class="modal-overlay" id="scannerModal">
     <div class="modal-content">
-      <h3 style="margin-top: 0;"><i class="fa-solid fa-barcode text-primary"></i> Scan Product</h3>
-      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 10px;">Position barcode within the frame. OpenFoodFacts database active.</p>
+      <h3 style="margin-top: 0;"><i class="fa-solid fa-barcode text-primary"></i> Optical Scanner</h3>
+      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 10px;">Center the barcode within the camera feed. OpenFoodFacts telemetry active.</p>
       
-      <div class="scanner-viewport" id="interactive">
-        <div class="scanner-line"></div>
-        <p class="text-muted" id="scannerStatus">Initializing Camera...</p>
-      </div>
+      <div id="reader"></div>
 
       <div style="display: flex; gap: 10px; margin-top: 20px;">
-        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
-        <button class="btn" onclick="simulateScan()">Manual Entry Search</button>
+        <button class="btn btn-ghost" onclick="closeScannerModal()" style="width: 100%;">Close Optics</button>
       </div>
     </div>
   </div>
@@ -397,17 +385,9 @@
   </div>
 
   <script>
-    // Basic FAB & Modal UI interactions
+    // Basic UI interactions
     const fabContainer = document.getElementById('fabContainer');
     const mainFab = document.getElementById('mainFab');
-
-    /* FAB toggle is disabled here as the main button is a direct action to scan.
-       Hover on desktop or long press on mobile will still show options if we adjust CSS, 
-       but for dietary logging, scanning is the primary rapid action. */
-
-    function openScannerModal() {
-      document.getElementById('scannerModal').classList.add('active');
-    }
 
     function openQuickAddModal(meal = 'Snacks') {
       document.getElementById('qaMeal').value = meal;
@@ -415,21 +395,16 @@
     }
 
     function openAddFoodModal(meal) {
-      // In a full build, this would route to a food search page. For now, open quick add.
       openQuickAddModal(meal);
     }
 
     function closeModals() {
       document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
     }
-
-    function simulateScan() {
-      alert("OpenFoodFacts API integration point. Redirecting to manual search.");
-      closeModals();
-    }
   </script>
 
   <script type="module" src="data-store.js"></script>
   <script type="module" src="nutrition.js"></script>
-  </body>
+  
+</body>
 </html>
