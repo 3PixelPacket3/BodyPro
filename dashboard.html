@@ -4,38 +4,79 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>BodyPro | Command Center</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#09090b">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <style>
-    /* Dashboard Specific Styles */
-    .greeting-section {
-      margin-bottom: 20px;
+    /* Dashboard Specific Styles & UI Polish */
+    .hero-banner {
+      position: relative;
+      border-radius: var(--border-radius-md);
+      padding: 35px 25px;
+      margin-bottom: 25px;
+      overflow: hidden;
+      background-color: var(--bg-surface-elevated);
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      transition: background-image 0.5s ease-in-out;
     }
-    .greeting-section h2 { font-size: 1.8rem; margin-bottom: 5px; }
-    .greeting-section p { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px; }
 
-    /* Progress Rings (Simplified CSS representation) */
+    .hero-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(135deg, rgba(9, 9, 11, 0.95) 0%, rgba(9, 9, 11, 0.4) 100%);
+      z-index: 1;
+    }
+
+    .greeting-section {
+      position: relative;
+      z-index: 2;
+    }
+    
+    .greeting-section h2 { 
+      font-size: 2rem; 
+      margin-bottom: 5px; 
+      text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+      color: #ffffff;
+    }
+    
+    .greeting-section p { 
+      color: var(--primary); 
+      font-weight: 800; 
+      text-transform: uppercase; 
+      font-size: 0.85rem; 
+      letter-spacing: 2px; 
+      text-shadow: 0 1px 5px rgba(0,0,0,0.8);
+    }
+
+    /* Progress Rings */
     .progress-circle {
       position: relative;
-      width: 120px;
-      height: 120px;
+      width: 130px;
+      height: 130px;
       border-radius: 50%;
       background: conic-gradient(var(--accent) 75%, var(--bg-surface-elevated) 0);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 15px auto;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      margin: 0 auto 20px auto;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 4px 15px rgba(0,0,0,0.3);
     }
     
     .progress-circle::after {
       content: "";
       position: absolute;
-      width: 100px;
-      height: 100px;
+      width: 106px;
+      height: 106px;
       border-radius: 50%;
       background-color: var(--bg-surface);
+      box-shadow: inset 0 4px 10px rgba(0,0,0,0.3);
     }
     
     .progress-content {
@@ -44,8 +85,8 @@
       text-align: center;
     }
     
-    .progress-content span { display: block; font-size: 1.5rem; font-weight: 800; }
-    .progress-content small { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 600; }
+    .progress-content span { display: block; font-size: 1.6rem; font-weight: 800; color: var(--text-main); }
+    .progress-content small { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; }
 
     /* Telemetry Grid */
     .telemetry-grid {
@@ -59,23 +100,29 @@
       background: var(--bg-base);
       border: 1px solid var(--border-color);
       border-radius: var(--border-radius-sm);
-      padding: 12px;
+      padding: 15px 12px;
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      transition: border-color 0.2s, transform 0.2s;
     }
 
-    .telemetry-item i { font-size: 1.5rem; margin-bottom: 8px; }
+    .telemetry-item:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .telemetry-item i { font-size: 1.6rem; margin-bottom: 10px; }
     .telemetry-item .val { font-size: 1.2rem; font-weight: 800; font-family: monospace; }
     .telemetry-item .lbl { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-top: 4px; }
 
     /* Water Tracker */
     .water-tracker { display: flex; align-items: center; justify-content: space-between; background: var(--bg-base); padding: 15px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); flex-wrap: wrap; gap: 15px;}
     .water-controls { display: flex; gap: 10px; align-items: center; }
-    .water-btn { background: var(--bg-surface-elevated); border: 1px solid var(--border-color); color: var(--text-main); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
-    .water-btn:hover { background: var(--primary); border-color: var(--primary); }
+    .water-btn { background: var(--bg-surface-elevated); border: 1px solid var(--border-color); color: var(--text-main); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 1.1rem; }
+    .water-btn:hover { background: var(--primary); border-color: var(--primary); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
     .water-btn:active { transform: scale(0.9); }
 
     /* Modals for Manual Telemetry */
@@ -83,7 +130,7 @@
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(5px);
+      backdrop-filter: blur(8px);
       z-index: 2000;
       display: flex;
       align-items: center;
@@ -109,6 +156,7 @@
       transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       max-height: 90vh;
       overflow-y: auto;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
     }
 
     .modal-overlay.active .modal-content {
@@ -130,7 +178,7 @@
         <span>Nutrition</span>
       </a>
       <a href="recipes.html" class="nav-item">
-        <i class="fa-solid fa-users"></i>
+        <i class="fa-solid fa-book-open"></i>
         <span>Recipes</span>
       </a>
       <a href="fitness.html" class="nav-item">
@@ -153,9 +201,12 @@
 
     <main class="main-content">
       
-      <div class="greeting-section">
-        <h2 id="userGreeting">Loading...</h2>
-        <p id="currentDate">--</p>
+      <div class="hero-banner" id="heroBanner">
+        <div class="hero-overlay"></div>
+        <div class="greeting-section">
+          <h2 id="userGreeting">Initializing...</h2>
+          <p id="currentDate">--</p>
+        </div>
       </div>
 
       <div class="card" style="border-top: 4px solid var(--accent);">
@@ -191,6 +242,25 @@
             <div class="macro-label">Eaten</div>
             <div class="macro-value" id="calsEaten">0</div>
             <div class="macro-target">kcal</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--text-main);">
+        <div class="card-header">
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-clipboard-list"></i> Today's Protocol</h3>
+          <button class="btn btn-ghost" id="btnTimeCrunch" style="padding: 4px 10px; font-size: 0.75rem; border-color: var(--danger); color: var(--danger);"><i class="fa-solid fa-bolt"></i> Time-Crunch</button>
+        </div>
+        <div id="todayProtocolContainer">
+          <div style="background: var(--bg-base); padding: 15px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 15px; transition: all 0.3s;" id="protocolDisplayBox">
+            <div style="background: var(--bg-surface-elevated); padding: 15px; border-radius: var(--border-radius-sm); color: var(--text-main);" id="protocolIconBox">
+              <i class="fa-solid fa-dumbbell" style="font-size: 1.5rem;" id="protocolIcon"></i>
+            </div>
+            <div>
+              <h4 style="margin: 0; transition: color 0.3s;" id="protocolTitle">Resistance & Conditioning</h4>
+              <p class="text-muted" style="font-size: 0.85rem; margin-top: 4px; font-weight: 600; transition: color 0.3s;" id="protocolDesc">Lifting: ~90m | Cardio: ~20m</p>
+            </div>
+            <a href="fitness.html" style="margin-left: auto; background: var(--bg-surface-elevated); padding: 10px 15px; border-radius: var(--border-radius-sm); color: var(--text-main); font-size: 1.2rem;"><i class="fa-solid fa-play"></i></a>
           </div>
         </div>
       </div>
@@ -260,31 +330,13 @@
         </div>
       </div>
 
-      <div class="card" style="border-top: 4px solid var(--text-main);">
-        <div class="card-header">
-          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-clipboard-list"></i> Today's Protocol</h3>
-          <a href="fitness.html" style="font-size: 0.85rem; font-weight: 600;">Start <i class="fa-solid fa-play"></i></a>
-        </div>
-        <div id="todayProtocolContainer">
-          <div style="background: var(--bg-base); padding: 15px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 15px;">
-            <div style="background: var(--bg-surface-elevated); padding: 15px; border-radius: var(--border-radius-sm); color: var(--text-main);">
-              <i class="fa-solid fa-dumbbell" style="font-size: 1.5rem;"></i>
-            </div>
-            <div>
-              <h4 style="margin: 0;" id="protocolTitle">Resistance & Conditioning</h4>
-              <p class="text-muted" style="font-size: 0.85rem; margin-top: 4px; font-weight: 600;" id="protocolDesc">Lifting: ~90m | Cardio: ~20m</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div class="card">
         <h3 style="margin-bottom: 15px; font-size: 1.1rem;"><i class="fa-solid fa-droplet text-primary"></i> Hydration</h3>
         <div class="water-tracker">
           <div style="display: flex; align-items: center; gap: 15px;">
-            <i class="fa-solid fa-glass-water text-primary" style="font-size: 2rem;"></i>
+            <i class="fa-solid fa-glass-water text-primary" style="font-size: 2.2rem;"></i>
             <div>
-              <div style="font-size: 1.5rem; font-weight: 800; font-family: monospace;" id="waterCount">0 <span style="font-size: 0.9rem; color: var(--text-muted);">fl oz</span></div>
+              <div style="font-size: 1.8rem; font-weight: 800; font-family: monospace;" id="waterCount">0 <span style="font-size: 0.9rem; color: var(--text-muted);">fl oz</span></div>
               <div class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Goal: 120 fl oz</div>
             </div>
           </div>
