@@ -1,1 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BodyPro | Culinary Builder</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+  <style>
+    /* Recipe Specific Styles */
+    .recipe-header-inputs {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .ingredient-list {
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      background: var(--bg-base);
+      min-height: 100px;
+      margin-bottom: 15px;
+    }
+
+    .ingredient-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .ingredient-item:last-child {
+      border-bottom: none;
+    }
+
+    .ingredient-details h4 {
+      margin: 0 0 4px 0;
+      font-size: 0.95rem;
+    }
+
+    .ingredient-macros {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 12px;
+    }
+
+    .macro-summary-box {
+      background: var(--bg-surface-elevated);
+      padding: 15px;
+      border-radius: var(--border-radius-sm);
+      margin-top: 20px;
+      border: 1px solid var(--border-color);
+    }
+
+    .macro-summary-header {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 5px;
+    }
+
+    .macro-grid-small {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      text-align: center;
+    }
+
+    .macro-grid-small .val {
+      font-size: 1.1rem;
+      font-weight: 800;
+      font-family: monospace;
+    }
+
+    .macro-grid-small .lbl {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .saved-recipe-item {
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      padding: 15px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: border-color 0.2s;
+    }
+
+    .saved-recipe-item:hover {
+      border-color: var(--primary);
+    }
+
+    /* Modal Adjustments */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: var(--bg-surface);
+      width: 90%;
+      max-width: 500px;
+      border-radius: var(--border-radius-md);
+      border: 1px solid var(--border-color);
+      padding: 25px;
+      transform: translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <nav class="app-nav">
+      <a href="dashboard.html" class="nav-item">
+        <i class="fa-solid fa-house"></i>
+        <span>Home</span>
+      </a>
+      <a href="nutrition.html" class="nav-item active">
+        <i class="fa-solid fa-utensils"></i>
+        <span>Nutrition</span>
+      </a>
+      <a href="fitness.html" class="nav-item">
+        <i class="fa-solid fa-dumbbell"></i>
+        <span>Fitness</span>
+      </a>
+      <a href="analytics.html" class="nav-item">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Analytics</span>
+      </a>
+      <a href="social.html" class="nav-item">
+        <i class="fa-solid fa-users"></i>
+        <span>Social</span>
+      </a>
+    </nav>
+
+    <main class="main-content">
+      
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
+        <div>
+          <h2 style="margin-bottom: 5px;">Culinary Builder</h2>
+          <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Recipe & Meal Management</p>
+        </div>
+        <button class="btn btn-ghost" style="padding: 8px 15px; font-size: 0.85rem;" onclick="window.location.href='nutrition.html'">
+          <i class="fa-solid fa-arrow-left"></i> Back to Diary
+        </button>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--primary);">
+        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-copy text-primary"></i> Meal Copier</h3>
+        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px;">Rapidly duplicate a previous meal into today's diary.</p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+          <div class="form-group" style="margin: 0;">
+            <label>Source Date</label>
+            <input type="date" id="copySourceDate">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label>Meal to Copy</label>
+            <select id="copySourceMeal">
+              <option value="Breakfast">Breakfast</option>
+              <option value="Lunch">Lunch</option>
+              <option value="Dinner">Dinner</option>
+              <option value="Snacks">Snacks</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-ghost" id="btnExecuteCopy" style="width: 100%;"><i class="fa-solid fa-clone"></i> Duplicate to Today</button>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--accent);">
+        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-mortar-pestle text-accent"></i> Create New Recipe</h3>
+        
+        <div class="recipe-header-inputs">
+          <div class="form-group" style="margin: 0;">
+            <label>Recipe Name</label>
+            <input type="text" id="recipeName" placeholder="e.g. High Protein Chili">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label>Total Servings</label>
+            <input type="number" id="recipeServings" value="1" min="1">
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Ingredients</label>
+          <button class="btn btn-ghost" style="padding: 5px 10px; font-size: 0.75rem;" onclick="openIngredientModal()"><i class="fa-solid fa-plus"></i> Add Item</button>
+        </div>
+
+        <div class="ingredient-list" id="activeIngredientList">
+          <p class="text-muted" id="emptyIngredientMsg" style="text-align: center; padding: 20px; font-size: 0.9rem; margin: 0;">No ingredients added yet.</p>
+          </div>
+
+        <div class="macro-summary-box">
+          <div class="macro-summary-header">Per Serving Macros</div>
+          <div class="macro-grid-small">
+            <div>
+              <div class="val" id="recCals">0</div>
+              <div class="lbl">Cals</div>
+            </div>
+            <div>
+              <div class="val text-primary" id="recProt">0g</div>
+              <div class="lbl">Prot</div>
+            </div>
+            <div>
+              <div class="val text-warning" id="recCarb">0g</div>
+              <div class="lbl">Carbs</div>
+            </div>
+            <div>
+              <div class="val text-danger" id="recFat">0g</div>
+              <div class="lbl">Fats</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+          <button class="btn btn-ghost" id="btnClearRecipe" style="flex: 1;">Clear</button>
+          <button class="btn" id="btnSaveRecipe" style="flex: 2;"><i class="fa-solid fa-save"></i> Save Recipe</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-book-bookmark text-primary"></i> My Recipe Vault</h3>
+        
+        <div id="savedRecipesList">
+          <p class="text-muted" style="text-align: center; font-size: 0.9rem;">Loading database...</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="ingredientModal">
+    <div class="modal-content">
+      <h3 style="margin-top: 0;"><i class="fa-solid fa-plus text-accent"></i> Add Ingredient</h3>
+      
+      <div class="form-group">
+        <label>Ingredient Name</label>
+        <input type="text" id="ingName" placeholder="e.g., Ground Turkey (93/7) 4oz">
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group">
+          <label>Calories</label>
+          <input type="number" id="ingCals" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="text-primary">Protein (g)</label>
+          <input type="number" id="ingProt" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="text-warning">Carbs (g)</label>
+          <input type="number" id="ingCarb" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="text-danger">Fats (g)</label>
+          <input type="number" id="ingFat" value="0" min="0">
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-ghost" onclick="closeIngredientModal()">Cancel</button>
+        <button class="btn" id="btnAddIngredientToRecipe">Add to Batch</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Set default date for copier to yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    document.getElementById('copySourceDate').value = yesterday.toISOString().split('T')[0];
+
+    function openIngredientModal() {
+      document.getElementById('ingredientModal').classList.add('active');
+    }
+
+    function closeIngredientModal() {
+      document.getElementById('ingredientModal').classList.remove('active');
+      // Reset fields
+      document.getElementById('ingName').value = '';
+      document.getElementById('ingCals').value = 0;
+      document.getElementById('ingProt').value = 0;
+      document.getElementById('ingCarb').value = 0;
+      document.getElementById('ingFat').value = 0;
+    }
+  </script>
+
+  <script type="module" src="data-store.js"></script>
+  </body>
+</html>
