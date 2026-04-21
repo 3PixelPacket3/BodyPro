@@ -10,12 +10,13 @@ import {
 // --- FIREBASE CLOUD CONFIGURATION ---
 // Replace these with the specific keys from your new Firebase Console setup
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "bodypro-app.firebaseapp.com",
-  projectId: "bodypro-app",
-  storageBucket: "bodypro-app.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAzypNcFKXffht__mmpQdPOMJEzr4mhWgs",
+  authDomain: "bodypro-dbe6d.firebaseapp.com",
+  projectId: "bodypro-dbe6d",
+  storageBucket: "bodypro-dbe6d.firebasestorage.app",
+  messagingSenderId: "349697173130",
+  appId: "1:349697173130:web:c6a1912672aa89fa2b2f73",
+  measurementId: "G-CGWF3TCQL8"
 };
 
 const app = initializeApp(firebaseConfig);
