@@ -19,6 +19,10 @@ const calProgressBar = document.getElementById('calProgressBar');
 
 // Quick Add Elements
 const btnSaveQuickAdd = document.getElementById('btnSaveQuickAdd');
+const qaRecipeSelect = document.getElementById('qaRecipeSelect');
+
+// Macro Calc Elements
+const btnRunMacroCalc = document.getElementById('btnRunMacroCalc');
 
 // --- STATE MANAGEMENT ---
 let userData = null;
@@ -84,7 +88,8 @@ function renderSupplements() {
         const isChecked = completedSupps.includes(supp.name);
         
         const item = document.createElement('div');
-        item.className = 'supp-item';
+        // Apply the 'completed' class if already checked
+        item.className = `supp-item ${isChecked ? 'completed' : ''}`;
         item.innerHTML = `
             <input type="checkbox" id="supp_${index}" ${isChecked ? 'checked' : ''}>
             <label for="supp_${index}">${supp.name}</label>
@@ -92,7 +97,16 @@ function renderSupplements() {
 
         const checkbox = item.querySelector('input');
         checkbox.addEventListener('change', async (e) => {
-            await toggleSupplement(supp.name, e.target.checked);
+            const checked = e.target.checked;
+            
+            // Visual toggle
+            if (checked) {
+                item.classList.add('completed');
+            } else {
+                item.classList.remove('completed');
+            }
+
+            await toggleSupplement(supp.name, checked);
         });
 
         supplementContainer.appendChild(item);
@@ -185,7 +199,13 @@ function renderDiary() {
 
     const pct = Math.min((dailyCals / targetCals) * 100, 100);
     calProgressBar.style.width = `${pct}%`;
-    calProgressBar.style.background = dailyCals > targetCals ? 'var(--danger)' : 'var(--primary)';
+    
+    // Check if over target
+    if (dailyCals > targetCals) {
+        calProgressBar.classList.add('overage');
+    } else {
+        calProgressBar.classList.remove('overage');
+    }
 }
 
 // --- OPTICAL SCANNER & OPENFOODFACTS INTEGRATION ---
@@ -213,17 +233,14 @@ window.closeScannerModal = function() {
 };
 
 async function onScanSuccess(decodedText, decodedResult) {
-    // 1. Halt optical array to prevent duplicate API hits
     if (html5QrCode && html5QrCode.isScanning) {
         await html5QrCode.stop();
     }
     document.getElementById('scannerModal').classList.remove('active');
     
-    // 2. Open manual entry interface and show loading state
-    openQuickAddModal('Snacks');
+    window.openQuickAddModal('Snacks');
     document.getElementById('qaName').value = "Querying Database...";
     
-    // 3. Execute OpenFoodFacts API Request
     try {
         const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
         const data = await response.json();
@@ -232,7 +249,6 @@ async function onScanSuccess(decodedText, decodedResult) {
             const p = data.product;
             const nut = p.nutriments || {};
             
-            // Prioritize serving metrics, fallback to 100g base if unavailable
             const cals = nut['energy-kcal_serving'] || nut['energy-kcal_100g'] || nut['energy-kcal'] || 0;
             const prot = nut['proteins_serving'] || nut['proteins_100g'] || nut['proteins'] || 0;
             const carb = nut['carbohydrates_serving'] || nut['carbohydrates_100g'] || nut['carbohydrates'] || 0;
@@ -254,15 +270,38 @@ async function onScanSuccess(decodedText, decodedResult) {
     }
 }
 
+// --- RECIPE LOADING (QUICK ADD) ---
+qaRecipeSelect.addEventListener('change', (e) => {
+    const recipeId = e.target.value;
+    if (!recipeId) return;
+
+    const recipe = (userData.custom_recipes || []).find(r => r.id === recipeId);
+    if (recipe) {
+        document.getElementById('qaName').value = recipe.name;
+        document.getElementById('qaCals').value = recipe.macrosPerServing.calories;
+        document.getElementById('qaProt').value = recipe.macrosPerServing.protein;
+        document.getElementById('qaCarb').value = recipe.macrosPerServing.carbs;
+        document.getElementById('qaFat').value = recipe.macrosPerServing.fats;
+    }
+});
+
+function populateRecipeDropdown() {
+    qaRecipeSelect.innerHTML = '<option value="">-- Select from Vault --</option>';
+    const recipes = userData.custom_recipes || [];
+    
+    recipes.forEach(recipe => {
+        const opt = document.createElement('option');
+        opt.value = recipe.id;
+        opt.innerText = recipe.name;
+        qaRecipeSelect.appendChild(opt);
+    });
+}
+
 // --- CRUD OPERATIONS ---
 window.openQuickAddModal = function(meal = 'Snacks') {
     document.getElementById('qaMeal').value = meal;
+    populateRecipeDropdown();
     document.getElementById('quickAddModal').classList.add('active');
-};
-
-window.closeModals = function() {
-    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
-    window.closeScannerModal();
 };
 
 btnSaveQuickAdd.addEventListener('click', async () => {
@@ -297,6 +336,7 @@ btnSaveQuickAdd.addEventListener('click', async () => {
     document.getElementById('qaProt').value = 0;
     document.getElementById('qaCarb').value = 0;
     document.getElementById('qaFat').value = 0;
+    qaRecipeSelect.value = '';
     
     window.closeModals();
     renderView();
@@ -312,6 +352,57 @@ window.deleteFoodEntry = async function(id) {
         await window.BodyProDataStore.saveData(userData);
     }
 };
+
+// --- MACRO CALCULATOR (MIFFLIN-ST JEOR) ---
+btnRunMacroCalc.addEventListener('click', () => {
+    const sex = document.getElementById('calcSex').value;
+    const age = parseInt(document.getElementById('calcAge').value);
+    const weightLbs = parseFloat(document.getElementById('calcWeight').value);
+    const heightInches = parseFloat(document.getElementById('calcHeight').value);
+    const activity = parseFloat(document.getElementById('calcActivity').value);
+    const goal = parseInt(document.getElementById('calcGoal').value);
+    
+    if(!age || !weightLbs || !heightInches) {
+        alert("Please provide Age, Weight, and Height for an accurate calculation.");
+        return;
+    }
+    
+    // Conversions
+    const weightKg = weightLbs / 2.20462;
+    const heightCm = heightInches * 2.54;
+    
+    // Mifflin-St Jeor Equation
+    let bmr;
+    if(sex === 'male') {
+        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
+    } else {
+        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
+    }
+    
+    const tdee = bmr * activity;
+    const targetCals = Math.round(tdee + goal);
+    
+    // Precision Macro Split Logic (Fitness/Bodybuilding standard)
+    // Protein: ~1g per lb of bodyweight to preserve/build muscle
+    // Fat: ~25% of total caloric intake
+    // Carbs: Remainder of caloric budget
+    
+    let targetProt = Math.round(weightLbs);
+    let targetFat = Math.round((targetCals * 0.25) / 9);
+    let targetCarb = Math.round((targetCals - (targetProt * 4) - (targetFat * 9)) / 4);
+    
+    // Safety check for extreme deficit states where carbs might hit zero or negative
+    if(targetCarb < 0) {
+        targetCarb = 0;
+        // Re-balance protein slightly if necessary, though extreme deficits are warned against
+        targetProt = Math.round((targetCals - (targetFat * 9)) / 4); 
+    }
+    
+    document.getElementById('calcResultCals').innerText = `${targetCals} kcal`;
+    document.getElementById('calcResultProt').innerText = targetProt;
+    document.getElementById('calcResultCarb').innerText = targetCarb;
+    document.getElementById('calcResultFat').innerText = targetFat;
+});
 
 // --- NAVIGATION LISTENERS ---
 btnPrevDay.addEventListener('click', () => {
