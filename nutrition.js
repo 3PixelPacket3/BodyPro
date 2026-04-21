@@ -1,7 +1,16 @@
-// nutrition.js - BodyPro Dietary Tracking & Optical Scanner Logic
+// nutrition.js - BodyPro Dietary Tracking, Optical Scanner & Offline Cache Logic
 
 import { auth } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+// --- PROGRESSIVE WEB APP REGISTRATION ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('[BodyPro System] Service Worker Registered', reg))
+            .catch(err => console.error('[BodyPro System] SW Registration Failed', err));
+    });
+}
 
 // --- DOM Elements ---
 const currentLogDateEl = document.getElementById('currentLogDate');
@@ -29,12 +38,61 @@ let userData = null;
 let currentViewDate = new Date(); // Defaults to today
 let html5QrCode = null;
 
+// --- OFFLINE FOOD CACHE (IndexedDB) ---
+const FoodCache = {
+    db: null,
+    async init() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('BodyProFoodCache', 1);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains('products')) {
+                    db.createObjectStore('products', { keyPath: 'barcode' });
+                }
+            };
+            request.onsuccess = (e) => {
+                this.db = e.target.result;
+                console.log('[BodyPro Cache] Offline Food Database Initialized');
+                resolve();
+            };
+            request.onerror = (e) => {
+                console.error('[BodyPro Cache] Initialization Error', e.target.error);
+                reject(e.target.error);
+            };
+        });
+    },
+    async get(barcode) {
+        if (!this.db) await this.init();
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction('products', 'readonly');
+            const store = tx.objectStore('products');
+            const request = store.get(barcode);
+            request.onsuccess = () => resolve(request.result ? request.result.data : null);
+            request.onerror = () => reject(request.error);
+        });
+    },
+    async set(barcode, data) {
+        if (!this.db) await this.init();
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction('products', 'readwrite');
+            const store = tx.objectStore('products');
+            const request = store.put({ barcode, data, timestamp: Date.now() });
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+};
+
 // --- THE SECURITY GUARD ---
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
         window.location.replace('login.html');
         return;
     }
+    
+    // Initialize our offline cache system
+    await FoodCache.init();
+    
     await loadDatabase();
     renderView();
 });
@@ -208,7 +266,7 @@ function renderDiary() {
     }
 }
 
-// --- OPTICAL SCANNER & OPENFOODFACTS INTEGRATION ---
+// --- OPTICAL SCANNER & CACHED API INTEGRATION ---
 window.openScannerModal = function() {
     document.getElementById('scannerModal').classList.add('active');
     
@@ -239,9 +297,25 @@ async function onScanSuccess(decodedText, decodedResult) {
     document.getElementById('scannerModal').classList.remove('active');
     
     window.openQuickAddModal('Snacks');
+    
+    // Check Local Cache First
+    const cachedProduct = await FoodCache.get(decodedText);
+    
+    if (cachedProduct) {
+        console.log('[BodyPro Cache] Local Hit for barcode:', decodedText);
+        document.getElementById('qaName').value = cachedProduct.name;
+        document.getElementById('qaCals').value = cachedProduct.cals;
+        document.getElementById('qaProt').value = cachedProduct.prot;
+        document.getElementById('qaCarb').value = cachedProduct.carb;
+        document.getElementById('qaFat').value = cachedProduct.fat;
+        return; // Exit early since we used cache
+    }
+
+    // Cache Miss: Query External Database
     document.getElementById('qaName').value = "Querying Database...";
     
     try {
+        console.log('[BodyPro Cache] Local Miss. Fetching OpenFoodFacts:', decodedText);
         const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
         const data = await response.json();
         
@@ -249,16 +323,23 @@ async function onScanSuccess(decodedText, decodedResult) {
             const p = data.product;
             const nut = p.nutriments || {};
             
-            const cals = nut['energy-kcal_serving'] || nut['energy-kcal_100g'] || nut['energy-kcal'] || 0;
-            const prot = nut['proteins_serving'] || nut['proteins_100g'] || nut['proteins'] || 0;
-            const carb = nut['carbohydrates_serving'] || nut['carbohydrates_100g'] || nut['carbohydrates'] || 0;
-            const fat = nut['fat_serving'] || nut['fat_100g'] || nut['fat'] || 0;
+            const cals = Math.round(nut['energy-kcal_serving'] || nut['energy-kcal_100g'] || nut['energy-kcal'] || 0);
+            const prot = Math.round(nut['proteins_serving'] || nut['proteins_100g'] || nut['proteins'] || 0);
+            const carb = Math.round(nut['carbohydrates_serving'] || nut['carbohydrates_100g'] || nut['carbohydrates'] || 0);
+            const fat = Math.round(nut['fat_serving'] || nut['fat_100g'] || nut['fat'] || 0);
+            const name = p.product_name || "Unknown Product";
             
-            document.getElementById('qaName').value = p.product_name || "Unknown Product";
-            document.getElementById('qaCals').value = Math.round(cals);
-            document.getElementById('qaProt').value = Math.round(prot);
-            document.getElementById('qaCarb').value = Math.round(carb);
-            document.getElementById('qaFat').value = Math.round(fat);
+            // Update UI
+            document.getElementById('qaName').value = name;
+            document.getElementById('qaCals').value = cals;
+            document.getElementById('qaProt').value = prot;
+            document.getElementById('qaCarb').value = carb;
+            document.getElementById('qaFat').value = fat;
+            
+            // Save to Local Cache for next time
+            await FoodCache.set(decodedText, { name, cals, prot, carb, fat });
+            console.log('[BodyPro Cache] Product cached successfully.');
+            
         } else {
             alert("Telemetry negative. Product not found in OpenFoodFacts database. Manual entry required.");
             document.getElementById('qaName').value = "";
@@ -299,7 +380,10 @@ function populateRecipeDropdown() {
 
 // --- CRUD OPERATIONS ---
 window.openQuickAddModal = function(meal = 'Snacks') {
-    document.getElementById('qaMeal').value = meal;
+    // Override default meal if user set a preference
+    const defaultMeal = userData?.settings?.preferences?.defaultMeal || meal;
+    document.getElementById('qaMeal').value = defaultMeal;
+    
     populateRecipeDropdown();
     document.getElementById('quickAddModal').classList.add('active');
 };
