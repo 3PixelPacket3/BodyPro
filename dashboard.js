@@ -3,8 +3,18 @@
 import { auth } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+// --- PROGRESSIVE WEB APP REGISTRATION ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('[BodyPro System] Service Worker Registered', reg))
+            .catch(err => console.error('[BodyPro System] SW Registration Failed', err));
+    });
+}
+
 // --- DOM Elements ---
 const userGreeting = document.getElementById('userGreeting');
+const heroBanner = document.getElementById('heroBanner');
 const calsRemainingEl = document.getElementById('calsRemaining');
 const calsEatenEl = document.getElementById('calsEaten');
 
@@ -29,9 +39,13 @@ const floorCountEl = document.getElementById('floorCount');
 const restingHREl = document.getElementById('restingHR');
 const activeCalsEl = document.getElementById('activeCals');
 
-// Protocol
+// Protocol & Contingency
 const protocolTitle = document.getElementById('protocolTitle');
 const protocolDesc = document.getElementById('protocolDesc');
+const btnTimeCrunch = document.getElementById('btnTimeCrunch');
+const protocolDisplayBox = document.getElementById('protocolDisplayBox');
+const protocolIconBox = document.getElementById('protocolIconBox');
+const protocolIcon = document.getElementById('protocolIcon');
 
 // Water
 const waterCountEl = document.getElementById('waterCount');
@@ -58,6 +72,16 @@ const btnSaveVitals = document.getElementById('btnSaveVitals');
 // --- STATE MANAGEMENT ---
 let currentWater = 0;
 let userData = null;
+let isTimeCrunched = false;
+
+// Array of high-quality, reliable Unsplash images (Bypasses API limits/shutdowns)
+const fitnessImages = [
+    "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1470&auto=format&fit=crop", // Heavy lifting
+    "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1470&auto=format&fit=crop", // Gym atmosphere
+    "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=1469&auto=format&fit=crop", // Weights rack
+    "https://images.unsplash.com/photo-1526506159807-1c6e14996e54?q=80&w=1374&auto=format&fit=crop", // Dumbbells
+    "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?q=80&w=1470&auto=format&fit=crop"  // Functional training
+];
 
 // --- THE SECURITY GUARD ---
 onAuthStateChanged(auth, async (user) => {
@@ -66,9 +90,13 @@ onAuthStateChanged(auth, async (user) => {
         return;
     }
     
-    // Set a personalized, welcoming command center environment
+    // Set personalized greeting & UI
     const displayName = user.displayName || "Joshua"; 
     userGreeting.innerText = `Welcome back, ${displayName}`;
+    
+    // Rotate API Hero Image
+    const randomImage = fitnessImages[Math.floor(Math.random() * fitnessImages.length)];
+    heroBanner.style.backgroundImage = `url('${randomImage}')`;
     
     await initializeDashboard();
 });
@@ -144,6 +172,40 @@ async function initializeDashboard() {
     }
 }
 
+// --- CONTINGENCY GENERATOR (TIME-CRUNCH) ---
+btnTimeCrunch.addEventListener('click', () => {
+    isTimeCrunched = !isTimeCrunched;
+    const settings = userData.settings;
+
+    if (isTimeCrunched) {
+        // Activate Contingency
+        protocolTitle.innerText = "TIME-CRUNCH: Superset Protocol";
+        protocolTitle.style.color = "var(--danger)";
+        protocolDesc.innerText = `Lift: 30m (High Intensity) | Cardio: 15m (HIIT)`;
+        protocolDesc.style.color = "var(--danger)";
+        protocolDisplayBox.style.borderColor = "var(--danger)";
+        protocolIconBox.style.background = "rgba(239, 68, 68, 0.1)"; // Danger transparent
+        protocolIconBox.style.color = "var(--danger)";
+        protocolIcon.className = "fa-solid fa-bolt";
+        btnTimeCrunch.innerHTML = "<i class='fa-solid fa-rotate-left'></i> Revert";
+    } else {
+        // Revert to Standard Baseline
+        const liftMins = settings.goals.targetLiftingMinutes || 90;
+        const cardioMins = settings.goals.targetCardioMinutes || 20;
+        const workoutDays = settings.goals.workoutDaysPerWeek || 6;
+        
+        protocolTitle.innerText = "Resistance & Conditioning";
+        protocolTitle.style.color = "var(--text-main)";
+        protocolDesc.innerText = `Target: ${workoutDays}x / week | Lift: ~${liftMins}m | Cardio: ~${cardioMins}m`;
+        protocolDesc.style.color = "var(--text-muted)";
+        protocolDisplayBox.style.borderColor = "var(--border-color)";
+        protocolIconBox.style.background = "var(--bg-surface-elevated)";
+        protocolIconBox.style.color = "var(--text-main)";
+        protocolIcon.className = "fa-solid fa-dumbbell";
+        btnTimeCrunch.innerHTML = "<i class='fa-solid fa-bolt'></i> Time-Crunch";
+    }
+});
+
 // --- HYDRATION PROTOCOLS ---
 function updateWaterUI() {
     waterCountEl.innerHTML = `${currentWater} <span style="font-size: 0.9rem; color: var(--text-muted);">fl oz</span>`;
@@ -189,7 +251,6 @@ function calculateDuration(bedTime, wakeTime) {
     let bed = new Date(`2000-01-01T${bedTime}`);
     let wake = new Date(`2000-01-01T${wakeTime}`);
     
-    // If wake time is earlier in the day than bed time, assume it crossed midnight
     if (wake < bed) wake.setDate(wake.getDate() + 1);
     
     let diffMs = wake - bed;
@@ -231,7 +292,6 @@ btnSaveSleep.addEventListener('click', async () => {
 
     await window.BodyProDataStore.saveData(userData);
     
-    // Refresh UI & Close Modal
     await initializeDashboard();
     document.getElementById('sleepModal').classList.remove('active');
     btnSaveSleep.disabled = false;
@@ -257,7 +317,6 @@ btnSaveVitals.addEventListener('click', async () => {
 
     await window.BodyProDataStore.saveData(userData);
 
-    // Refresh UI & Close Modal
     await initializeDashboard();
     document.getElementById('vitalsModal').classList.remove('active');
     btnSaveVitals.disabled = false;
