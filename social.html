@@ -1,1 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BodyPro | Community Hub</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+  <style>
+    /* Social Specific Styles */
+    .feed-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .feed-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-md);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feed-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--primary);
+    }
+
+    .feed-item.type-recipe::before { background: var(--accent); }
+    .feed-item.type-workout::before { background: var(--primary); }
+
+    .feed-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+    }
+
+    .feed-user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .feed-avatar {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: var(--bg-surface-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-weight: bold;
+      border: 1px solid var(--border-color);
+    }
+
+    .feed-timestamp {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .feed-content h4 {
+      margin: 0 0 8px 0;
+      font-size: 1.05rem;
+    }
+
+    .feed-content p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .feed-actions {
+      display: flex;
+      gap: 15px;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px dashed var(--border-color);
+    }
+
+    .feed-actions button {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s;
+    }
+
+    .feed-actions button:hover {
+      color: var(--primary);
+    }
+
+    /* Friends List Styles */
+    .friends-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .friend-card {
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .friend-card .friend-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .add-friend-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .add-friend-bar input {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <nav class="app-nav">
+      <a href="dashboard.html" class="nav-item">
+        <i class="fa-solid fa-house"></i>
+        <span>Home</span>
+      </a>
+      <a href="nutrition.html" class="nav-item">
+        <i class="fa-solid fa-utensils"></i>
+        <span>Nutrition</span>
+      </a>
+      <a href="fitness.html" class="nav-item">
+        <i class="fa-solid fa-dumbbell"></i>
+        <span>Fitness</span>
+      </a>
+      <a href="analytics.html" class="nav-item">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Analytics</span>
+      </a>
+      <a href="social.html" class="nav-item active">
+        <i class="fa-solid fa-users"></i>
+        <span>Social</span>
+      </a>
+    </nav>
+
+    <main class="main-content">
+      
+      <div style="margin-bottom: 25px;">
+        <h2 style="margin-bottom: 5px;">Community Hub</h2>
+        <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Activity Feed & Network</p>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--text-main);">
+        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-user-group text-main"></i> Your Network</h3>
+        
+        <div class="add-friend-bar">
+          <input type="text" id="inputFriendId" placeholder="Enter Friend's Connection ID...">
+          <button class="btn btn-ghost" id="btnAddFriend" style="width: auto; padding: 0 20px;">
+            <i class="fa-solid fa-user-plus"></i> Connect
+          </button>
+        </div>
+
+        <div class="friends-list" id="friendsListContainer">
+          <p class="text-muted" style="font-size: 0.9rem; margin: 0;">Loading network connections...</p>
+        </div>
+      </div>
+
+      <h3 style="font-size: 1.1rem; margin: 30px 0 15px 0;"><i class="fa-solid fa-rss text-primary"></i> Live Activity Feed</h3>
+      
+      <div class="feed-container" id="activityFeed">
+        <p class="text-muted" style="text-align: center; padding: 20px; font-size: 0.9rem;">Synchronizing network activity...</p>
+      </div>
+
+    </main>
+  </div>
+
+  <script type="module" src="data-store.js"></script>
+  <script type="module" src="social.js"></script>
+</body>
+</html>
