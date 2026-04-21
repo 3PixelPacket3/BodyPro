@@ -1,1 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BodyPro | Training Hub</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+  <style>
+    /* Fitness Specific Styles */
+    .timer-dashboard {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .timer-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-md);
+      padding: 15px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .timer-card h4 {
+      margin: 0 0 10px 0;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .time-display {
+      font-size: 2rem;
+      font-weight: 800;
+      font-family: monospace;
+      margin-bottom: 10px;
+    }
+
+    .t-lift { color: var(--primary); }
+    .t-cardio { color: var(--accent); }
+
+    .timer-controls {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .timer-controls button {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: var(--border-radius-sm);
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .btn-play { background: var(--bg-surface-elevated); color: var(--text-main); }
+    .btn-play:hover { background: var(--primary); color: white; }
+    .btn-stop { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+    .btn-stop:hover { background: var(--danger); color: white; }
+
+    /* Session Logger */
+    .session-logger {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-md);
+      overflow: hidden;
+    }
+
+    .logger-header {
+      background: var(--bg-surface-elevated);
+      padding: 15px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .exercise-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 10px;
+      padding: 15px;
+      border-bottom: 1px solid var(--border-color);
+      align-items: center;
+    }
+
+    .exercise-row:last-child {
+      border-bottom: none;
+    }
+
+    .exercise-input {
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px;
+      border-radius: var(--border-radius-sm);
+      width: 100%;
+      font-size: 0.9rem;
+    }
+    
+    .exercise-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .add-set-btn {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      color: var(--primary);
+      border: none;
+      border-top: 1px solid var(--border-color);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .add-set-btn:hover {
+      background: var(--bg-surface-elevated);
+    }
+
+    /* Telemetry Input */
+    .telemetry-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <nav class="app-nav">
+      <a href="dashboard.html" class="nav-item">
+        <i class="fa-solid fa-house"></i>
+        <span>Home</span>
+      </a>
+      <a href="nutrition.html" class="nav-item">
+        <i class="fa-solid fa-utensils"></i>
+        <span>Nutrition</span>
+      </a>
+      <a href="fitness.html" class="nav-item active">
+        <i class="fa-solid fa-dumbbell"></i>
+        <span>Fitness</span>
+      </a>
+      <a href="analytics.html" class="nav-item">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Analytics</span>
+      </a>
+      <a href="social.html" class="nav-item">
+        <i class="fa-solid fa-users"></i>
+        <span>Social</span>
+      </a>
+    </nav>
+
+    <main class="main-content">
+      
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
+        <div>
+          <h2 style="margin-bottom: 5px;">Active Protocol</h2>
+          <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;" id="currentWorkoutDate">Loading...</p>
+        </div>
+        <button class="btn btn-ghost" style="padding: 8px 15px; font-size: 0.85rem;" onclick="window.location.href='analytics.html'">
+          <i class="fa-solid fa-clock-rotate-left"></i> History
+        </button>
+      </div>
+
+      <div class="timer-dashboard">
+        <div class="timer-card" style="border-top: 3px solid var(--primary);">
+          <h4><i class="fa-solid fa-weight-hanging text-primary"></i> Resistance</h4>
+          <div class="time-display t-lift" id="displayLift">00:00:00</div>
+          <div class="timer-controls">
+            <button class="btn-play" id="btnToggleLift"><i class="fa-solid fa-play"></i> Start</button>
+            <button class="btn-stop" id="btnResetLift"><i class="fa-solid fa-rotate-left"></i></button>
+          </div>
+        </div>
+
+        <div class="timer-card" style="border-top: 3px solid var(--accent);">
+          <h4><i class="fa-solid fa-person-running text-accent"></i> Conditioning</h4>
+          <div class="time-display t-cardio" id="displayCardio">00:00:00</div>
+          <div class="timer-controls">
+            <button class="btn-play" id="btnToggleCardio"><i class="fa-solid fa-play"></i> Start</button>
+            <button class="btn-stop" id="btnResetCardio"><i class="fa-solid fa-rotate-left"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-tower-broadcast text-warning"></i> Session Telemetry</h3>
+        <div class="telemetry-row">
+          <div class="form-group" style="margin: 0;">
+            <label>Avg Heart Rate (BPM)</label>
+            <input type="number" id="inputAvgHR" placeholder="e.g. 145" style="border-color: var(--border-color);">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label>Total Active Cals</label>
+            <input type="number" id="inputWorkoutCals" placeholder="e.g. 650">
+          </div>
+        </div>
+      </div>
+
+      <h3 style="font-size: 1.1rem; margin: 25px 0 15px 0;"><i class="fa-solid fa-list-check text-primary"></i> Live Log</h3>
+      
+      <div class="session-logger" id="workoutLogger">
+        <div class="logger-header">
+          <input type="text" class="exercise-input" id="workoutTitle" placeholder="Workout Title (e.g. Push Day, Pull, Legs)" style="font-weight: bold; background: transparent; border: none; font-size: 1.1rem; padding: 0;">
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; padding: 10px 15px; background: var(--bg-base); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); border-bottom: 1px solid var(--border-color);">
+          <div>Exercise</div>
+          <div>Lbs</div>
+          <div>Reps</div>
+          <div>RPE</div>
+        </div>
+
+        <div id="setList">
+          </div>
+
+        <button class="add-set-btn" id="btnAddSet">
+          <i class="fa-solid fa-plus"></i> Add Set
+        </button>
+      </div>
+
+      <div style="margin-top: 25px; margin-bottom: 20px;">
+        <button class="btn" id="btnFinishWorkout" style="width: 100%;">
+          <i class="fa-solid fa-check-double"></i> Complete & Save Session
+        </button>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    const options = { weekday: 'long', month: 'short', day: 'numeric' };
+    document.getElementById('currentWorkoutDate').innerText = new Date().toLocaleDateString('en-US', options);
+
+    // Basic UI logic for adding sets (Firebase save logic goes in fitness.js)
+    const btnAddSet = document.getElementById('btnAddSet');
+    const setList = document.getElementById('setList');
+
+    btnAddSet.addEventListener('click', () => {
+      const row = document.createElement('div');
+      row.className = 'exercise-row';
+      row.innerHTML = `
+        <input type="text" class="exercise-input ex-name" placeholder="Movement">
+        <input type="number" class="exercise-input ex-weight" placeholder="0">
+        <input type="number" class="exercise-input ex-reps" placeholder="0">
+        <input type="number" class="exercise-input ex-rpe" placeholder="7" max="10">
+      `;
+      setList.appendChild(row);
+      row.querySelector('.ex-name').focus();
+    });
+
+    // Add one initial row
+    btnAddSet.click();
+  </script>
+
+  <script type="module" src="data-store.js"></script>
+  </body>
+</html>
