@@ -1,1 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BodyPro | Analytics</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <style>
+    /* Analytics Specific Styles */
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .chart-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chart-filters {
+      display: flex;
+      gap: 10px;
+    }
+
+    .chart-filters select {
+      padding: 5px 10px;
+      font-size: 0.8rem;
+      border-radius: var(--border-radius-sm);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      cursor: pointer;
+    }
+
+    .stat-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 15px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 15px;
+    }
+
+    .stat-box {
+      text-align: center;
+      background: var(--bg-base);
+      padding: 10px;
+      border-radius: var(--border-radius-sm);
+      border: 1px solid var(--border-color);
+    }
+
+    .stat-box .lbl {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .stat-box .val {
+      font-size: 1.1rem;
+      font-weight: 800;
+    }
+
+    /* History Log List */
+    .history-list {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 15px;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-base);
+    }
+
+    .history-item:last-child {
+      border-bottom: none;
+    }
+
+    .history-item:hover {
+      background: var(--bg-surface-elevated);
+    }
+
+    .history-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      background: var(--bg-surface-elevated);
+    }
+
+    .history-details h4 {
+      margin: 0 0 4px 0;
+      font-size: 0.95rem;
+    }
+
+    .history-details p {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .history-meta {
+      text-align: right;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <nav class="app-nav">
+      <a href="dashboard.html" class="nav-item">
+        <i class="fa-solid fa-house"></i>
+        <span>Home</span>
+      </a>
+      <a href="nutrition.html" class="nav-item">
+        <i class="fa-solid fa-utensils"></i>
+        <span>Nutrition</span>
+      </a>
+      <a href="fitness.html" class="nav-item">
+        <i class="fa-solid fa-dumbbell"></i>
+        <span>Fitness</span>
+      </a>
+      <a href="analytics.html" class="nav-item active">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Analytics</span>
+      </a>
+      <a href="social.html" class="nav-item">
+        <i class="fa-solid fa-users"></i>
+        <span>Social</span>
+      </a>
+    </nav>
+
+    <main class="main-content">
+      
+      <div style="margin-bottom: 20px;">
+        <h2 style="margin-bottom: 5px;">Data & Analytics</h2>
+        <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Trend Identification & Reports</p>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--primary);">
+        <div class="chart-header">
+          <h3><i class="fa-solid fa-scale-balanced text-primary"></i> Body Mass Tracking</h3>
+          <div class="chart-filters">
+            <select id="weightRangeSelect">
+              <option value="30">30 Days</option>
+              <option value="90">90 Days</option>
+              <option value="180">6 Months</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="chart-container">
+          <canvas id="weightChart"></canvas>
+        </div>
+
+        <div class="stat-summary-grid">
+          <div class="stat-box">
+            <div class="lbl">Current</div>
+            <div class="val" id="valCurrentWeight">-- lbs</div>
+          </div>
+          <div class="stat-box">
+            <div class="lbl">7-Day Avg</div>
+            <div class="val text-primary" id="valAvgWeight">-- lbs</div>
+          </div>
+          <div class="stat-box">
+            <div class="lbl">Net Change</div>
+            <div class="val" id="valNetWeight">-- lbs</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--accent);">
+        <div class="chart-header">
+          <h3><i class="fa-solid fa-chart-pie text-accent"></i> Macro Adherence</h3>
+          <div class="chart-filters">
+            <select id="macroRangeSelect">
+              <option value="7">7 Days</option>
+              <option value="14">14 Days</option>
+              <option value="30">30 Days</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="chart-container">
+          <canvas id="macroChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--warning);">
+        <div class="chart-header">
+          <h3><i class="fa-solid fa-bed text-warning"></i> Sleep Quality</h3>
+        </div>
+        
+        <div class="chart-container">
+          <canvas id="sleepChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="chart-header">
+          <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Activity Log</h3>
+        </div>
+        
+        <div class="history-list" id="activityHistoryList">
+          <p class="text-muted" style="text-align: center; padding: 20px; font-size: 0.9rem;">Initializing secure history...</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script type="module" src="data-store.js"></script>
+  </body>
+</html>
