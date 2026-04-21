@@ -13,7 +13,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 15px;
-      margin-bottom: 25px;
+      margin-bottom: 20px;
     }
 
     .timer-card {
@@ -44,6 +44,7 @@
 
     .t-lift { color: var(--primary); }
     .t-cardio { color: var(--accent); }
+    .t-rest { color: var(--warning); font-size: 2.5rem; }
 
     .timer-controls {
       display: flex;
@@ -72,6 +73,7 @@
       border: 1px solid var(--border-color);
       border-radius: var(--border-radius-md);
       overflow: hidden;
+      margin-bottom: 20px;
     }
 
     .logger-header {
@@ -83,9 +85,10 @@
       align-items: center;
     }
 
+    /* Updated Grid to accommodate delete button */
     .exercise-row {
       display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
+      grid-template-columns: 2fr 1fr 1fr 1fr 40px;
       gap: 10px;
       padding: 15px;
       border-bottom: 1px solid var(--border-color);
@@ -111,6 +114,16 @@
       border-color: var(--primary);
     }
 
+    .btn-remove-set {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: color 0.2s;
+    }
+    .btn-remove-set:hover { color: var(--danger); }
+
     .add-set-btn {
       width: 100%;
       padding: 12px;
@@ -133,6 +146,55 @@
       grid-template-columns: 1fr 1fr;
       gap: 15px;
     }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: var(--bg-surface);
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: var(--border-radius-md);
+      border: 1px solid var(--border-color);
+      padding: 25px;
+      transform: translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: translateY(0);
+    }
+
+    .history-list-item {
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      padding: 15px;
+      border-radius: var(--border-radius-sm);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
   </style>
 </head>
 <body>
@@ -149,7 +211,7 @@
         <span>Nutrition</span>
       </a>
       <a href="recipes.html" class="nav-item">
-        <i class="fa-solid fa-users"></i>
+        <i class="fa-solid fa-book-open"></i>
         <span>Recipes</span>
       </a>
       <a href="fitness.html" class="nav-item active">
@@ -165,7 +227,7 @@
         <span>Social</span>
       </a>
       <a href="settings.html" class="nav-item">
-        <i class="fa-solid fa-users"></i>
+        <i class="fa-solid fa-user"></i>
         <span>Profile</span>
       </a>
     </nav>
@@ -177,7 +239,7 @@
           <h2 style="margin-bottom: 5px;">Active Protocol</h2>
           <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;" id="currentWorkoutDate">Loading...</p>
         </div>
-        <button class="btn btn-ghost" style="padding: 8px 15px; font-size: 0.85rem;" onclick="window.location.href='analytics.html'">
+        <button class="btn btn-ghost" style="padding: 8px 15px; font-size: 0.85rem;" onclick="openHistoryModal()">
           <i class="fa-solid fa-clock-rotate-left"></i> History
         </button>
       </div>
@@ -202,6 +264,34 @@
         </div>
       </div>
 
+      <div class="card" style="border-top: 4px solid var(--warning);">
+        <h3 style="font-size: 1.1rem; margin-bottom: 10px;"><i class="fa-solid fa-stopwatch-20 text-warning"></i> Rest Engine</h3>
+        <div class="time-display t-rest" id="displayRest" style="text-align: center; margin-bottom: 10px;">00:00</div>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+          <button class="btn btn-ghost" onclick="startRestTimer(30)" style="flex: 1;">30s</button>
+          <button class="btn btn-ghost" onclick="startRestTimer(60)" style="flex: 1;">60s</button>
+          <button class="btn btn-ghost" onclick="startRestTimer(90)" style="flex: 1;">90s</button>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <input type="number" id="customRestInput" placeholder="Secs" style="flex: 1;">
+          <button class="btn btn-ghost" onclick="startCustomRest()" style="flex: 1;">Start</button>
+          <button class="btn btn-ghost" style="color: var(--danger); border-color: var(--danger); flex: 1;" onclick="stopRestTimer()">Stop</button>
+        </div>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--text-main);">
+        <div class="card-header">
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-folder-open"></i> Routine Templates</h3>
+          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openTemplatesModal()"><i class="fa-solid fa-gear"></i> Manage</button>
+        </div>
+        <select id="templateSelect" style="margin-bottom: 15px; width: 100%;">
+          <option value="">-- Select Template to Load --</option>
+        </select>
+        <button class="btn btn-ghost" id="btnLoadTemplate" style="width: 100%;"><i class="fa-solid fa-download"></i> Load to Live Session</button>
+      </div>
+
       <div class="card">
         <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-tower-broadcast text-warning"></i> Session Telemetry</h3>
         <div class="telemetry-row">
@@ -223,11 +313,12 @@
           <input type="text" class="exercise-input" id="workoutTitle" placeholder="Workout Title (e.g. Push Day, Pull, Legs)" style="font-weight: bold; background: transparent; border: none; font-size: 1.1rem; padding: 0;">
         </div>
         
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; padding: 10px 15px; background: var(--bg-base); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); border-bottom: 1px solid var(--border-color);">
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 40px; gap: 10px; padding: 10px 15px; background: var(--bg-base); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); border-bottom: 1px solid var(--border-color);">
           <div>Exercise</div>
           <div>Lbs</div>
           <div>Reps</div>
           <div>RPE</div>
+          <div></div>
         </div>
 
         <div id="setList">
@@ -238,7 +329,8 @@
         </button>
       </div>
 
-      <div style="margin-top: 25px; margin-bottom: 20px;">
+      <div style="margin-top: 25px; margin-bottom: 10px;">
+        <button class="btn btn-ghost" id="btnSaveAsTemplate" style="width: 100%; margin-bottom: 15px;"><i class="fa-solid fa-floppy-disk"></i> Save as Template</button>
         <button class="btn" id="btnFinishWorkout" style="width: 100%;">
           <i class="fa-solid fa-check-double"></i> Complete & Save Session
         </button>
@@ -247,29 +339,80 @@
     </main>
   </div>
 
+  <datalist id="presetExercises">
+    </datalist>
+
+  <div class="modal-overlay" id="historyModal">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;"><i class="fa-solid fa-clock-rotate-left text-primary"></i> Session Vault</h3>
+        <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="closeModals()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <div id="historyListContainer">
+        </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="viewSessionModal">
+    <div class="modal-content">
+      <h3 style="margin-top: 0; margin-bottom: 5px;" id="viewSessionTitle">Session Details</h3>
+      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px;" id="viewSessionDate"></p>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+        <div style="background: var(--bg-base); padding: 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); text-align: center;">
+          <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Duration</div>
+          <div style="font-weight: 800; color: var(--primary);" id="viewSessionDuration">--</div>
+        </div>
+        <div style="background: var(--bg-base); padding: 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); text-align: center;">
+          <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Cals Burned</div>
+          <div style="font-weight: 800; color: var(--accent);" id="viewSessionCals">--</div>
+        </div>
+      </div>
+
+      <div style="background: var(--bg-base); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); padding: 10px; max-height: 250px; overflow-y: auto;" id="viewSessionSets">
+        </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-ghost" style="flex: 1;" onclick="closeViewSessionModal()">Close</button>
+        <button class="btn btn-ghost" style="color: var(--danger); border-color: var(--danger); flex: 1;" id="btnDeleteSession">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="templatesModal">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;"><i class="fa-solid fa-folder-open text-accent"></i> My Templates</h3>
+        <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="closeModals()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <div id="templatesListContainer">
+        </div>
+    </div>
+  </div>
+
   <script>
     const options = { weekday: 'long', month: 'short', day: 'numeric' };
     document.getElementById('currentWorkoutDate').innerText = new Date().toLocaleDateString('en-US', options);
 
-    // Basic UI logic for adding sets (Firebase save logic goes in fitness.js)
-    const btnAddSet = document.getElementById('btnAddSet');
-    const setList = document.getElementById('setList');
+    function openHistoryModal() {
+      if(window.renderHistoryVault) window.renderHistoryVault();
+      document.getElementById('historyModal').classList.add('active');
+    }
 
-    btnAddSet.addEventListener('click', () => {
-      const row = document.createElement('div');
-      row.className = 'exercise-row';
-      row.innerHTML = `
-        <input type="text" class="exercise-input ex-name" placeholder="Movement">
-        <input type="number" class="exercise-input ex-weight" placeholder="0">
-        <input type="number" class="exercise-input ex-reps" placeholder="0">
-        <input type="number" class="exercise-input ex-rpe" placeholder="7" max="10">
-      `;
-      setList.appendChild(row);
-      row.querySelector('.ex-name').focus();
-    });
+    function openTemplatesModal() {
+      if(window.renderTemplatesManager) window.renderTemplatesManager();
+      document.getElementById('templatesModal').classList.add('active');
+    }
 
-    // Add one initial row
-    btnAddSet.click();
+    function closeViewSessionModal() {
+      document.getElementById('viewSessionModal').classList.remove('active');
+    }
+
+    function closeModals() {
+      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    }
   </script>
 
   <script type="module" src="data-store.js"></script>
