@@ -3,6 +3,15 @@
 import { auth } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+// --- PROGRESSIVE WEB APP REGISTRATION ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('[BodyPro System] Service Worker Registered', reg))
+            .catch(err => console.error('[BodyPro System] SW Registration Failed', err));
+    });
+}
+
 // --- DOM Elements ---
 // Timers: Resistance & Cardio
 const displayLift = document.getElementById('displayLift');
@@ -64,6 +73,11 @@ onAuthStateChanged(auth, async (user) => {
     populateExerciseDatalist();
     updateTemplateDropdown();
     btnAddSet.click(); // Add initial blank row
+    
+    // Request Notification Permissions for Rest Engine
+    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+    }
 });
 
 // --- CHRONOGRAPH LOGIC ---
@@ -127,12 +141,17 @@ btnResetCardio.addEventListener('click', () => {
     btnToggleCardio.style.background = 'var(--bg-surface-elevated)';
 });
 
-// Rest Timer Engine
+// Rest Timer Engine with Background Notifications
 window.startRestTimer = function(seconds) {
     clearInterval(restTimer);
     restSecondsRemaining = seconds;
     displayRest.innerText = formatTime(restSecondsRemaining);
     displayRest.style.color = 'var(--warning)';
+
+    // Ask for permission if not already granted, just in case
+    if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+    }
 
     restTimer = setInterval(() => {
         restSecondsRemaining--;
@@ -140,7 +159,14 @@ window.startRestTimer = function(seconds) {
             clearInterval(restTimer);
             displayRest.innerText = "00:00";
             displayRest.style.color = 'var(--danger)';
-            // Optional: Play a browser beep sound here if desired
+            
+            // Trigger Native Notification
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("Rest Interval Complete", {
+                    body: "Time to get back to the bar. Prepare for your next set.",
+                    icon: "icon-192.png"
+                });
+            }
         } else {
             displayRest.innerText = formatTime(restSecondsRemaining);
         }
@@ -207,7 +233,6 @@ btnAddSet.addEventListener('click', () => {
         <button class="btn-remove-set" onclick="removeSetRow(this)"><i class="fa-solid fa-trash-can"></i></button>
     `;
     setList.appendChild(row);
-    // Focus the newly added name field
     row.querySelector('.ex-name').focus();
 });
 
@@ -216,7 +241,6 @@ window.removeSetRow = function(btnElement) {
     if (row && setList.children.length > 1) {
         row.remove();
     } else if (setList.children.length === 1) {
-        // Just clear it if it's the last row
         row.querySelector('.ex-name').value = '';
         row.querySelector('.ex-weight').value = '';
         row.querySelector('.ex-reps').value = '';
@@ -251,7 +275,7 @@ btnSaveAsTemplate.addEventListener('click', async () => {
     const newTemplate = {
         id: 'tpl_' + Date.now(),
         title: title,
-        exercises: exercises, // We only save the names for templates, not the specific weights/reps
+        exercises: exercises,
         timestamp: new Date().toISOString()
     };
 
@@ -273,7 +297,7 @@ btnLoadTemplate.addEventListener('click', () => {
     if (!tpl) return;
 
     workoutTitle.value = tpl.title;
-    setList.innerHTML = ''; // Clear current
+    setList.innerHTML = '';
 
     tpl.exercises.forEach(ex => {
         const row = document.createElement('div');
@@ -374,7 +398,7 @@ window.viewSession = function(id) {
                     <div style="font-weight: 600;">${s.exercise}</div>
                     <div class="text-muted">${s.weight} lbs</div>
                     <div class="text-muted">${s.reps} reps</div>
-                    <div class="text-muted">RPE ${s.rpe}</div>
+                    <div class="text-muted">1RM: ${s.est1RM || 0}</div>
                 </div>
             `;
         });
@@ -396,13 +420,13 @@ document.getElementById('btnDeleteSession').addEventListener('click', async () =
     }
 });
 
-// --- SESSION COMPLETION & SAVING ---
+// --- SESSION COMPLETION, 1RM CALCULATION & SAVING ---
 btnFinishWorkout.addEventListener('click', async () => {
     const title = workoutTitle.value.trim() || "Uncategorized Session";
     const avgHR = parseInt(inputAvgHR.value) || 0;
     const activeCals = parseInt(inputWorkoutCals.value) || 0;
     
-    // Harvest the sets
+    // Harvest the sets and calculate progression telemetry
     const sets = [];
     const rows = setList.querySelectorAll('.exercise-row');
     
@@ -413,7 +437,23 @@ btnFinishWorkout.addEventListener('click', async () => {
         const rpe = parseInt(row.querySelector('.ex-rpe').value) || 0;
         
         if (name) {
-            sets.push({ exercise: name, weight, reps, rpe });
+            // Volume Load Calculation
+            const volume = weight * reps;
+            
+            // Epley 1RM Formula
+            let est1RM = weight;
+            if (reps > 1) {
+                est1RM = weight * (1 + (reps / 30));
+            }
+            
+            sets.push({ 
+                exercise: name, 
+                weight: weight, 
+                reps: reps, 
+                rpe: rpe,
+                volume: volume,
+                est1RM: Math.round(est1RM)
+            });
         }
     });
 
