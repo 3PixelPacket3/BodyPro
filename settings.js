@@ -1,29 +1,44 @@
-// settings.js - BodyPro System Calibration & Profile Logic
+// settings.js - BodyPro Profile & Configuration Logic
 
 import { auth } from './data-store.js';
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // --- DOM Elements ---
-// Goals
-const setWeightGoal = document.getElementById('setWeightGoal');
-const setWorkoutDays = document.getElementById('setWorkoutDays');
-const setLiftMins = document.getElementById('setLiftMins');
-const setCardioMins = document.getElementById('setCardioMins');
 
-// Macros
-const setCals = document.getElementById('setCals');
-const setProt = document.getElementById('setProt');
-const setCarb = document.getElementById('setCarb');
-const setFat = document.getElementById('setFat');
+// Section 1: Identity
+const profName = document.getElementById('profName');
+const profAge = document.getElementById('profAge');
+const profSex = document.getElementById('profSex');
+const profHeight = document.getElementById('profHeight');
+const profGoalWeight = document.getElementById('profGoalWeight');
+const profActivity = document.getElementById('profActivity');
+const profObjective = document.getElementById('profObjective');
+const btnSaveIdentity = document.getElementById('btnSaveIdentity');
 
-// Supplements
-const suppListContainer = document.getElementById('suppListContainer');
-const newSuppName = document.getElementById('newSuppName');
-const btnAddSupp = document.getElementById('btnAddSupp');
+// Section 2: Goals
+const goalSleep = document.getElementById('goalSleep');
+const goalSteps = document.getElementById('goalSteps');
+const goalFloors = document.getElementById('goalFloors');
+const goalWater = document.getElementById('goalWater');
+const goalWorkoutDays = document.getElementById('goalWorkoutDays');
+const goalLiftMins = document.getElementById('goalLiftMins');
+const goalCardioMins = document.getElementById('goalCardioMins');
+const btnSaveTargets = document.getElementById('btnSaveTargets');
 
-// Actions
-const btnSaveSettings = document.getElementById('btnSaveSettings');
-const btnLogout = document.getElementById('btnLogout');
+// Section 3: Preferences
+const prefTheme = document.getElementById('prefTheme');
+const prefWeight = document.getElementById('prefWeight');
+const prefFluid = document.getElementById('prefFluid');
+const prefTime = document.getElementById('prefTime');
+const prefMeal = document.getElementById('prefMeal');
+const btnSavePrefs = document.getElementById('btnSavePrefs');
+
+// Section 4: Data Management (Danger Zone)
+const btnExportData = document.getElementById('btnExportData');
+const inputImportData = document.getElementById('inputImportData');
+const btnResetWeek = document.getElementById('btnResetWeek');
+const btnWipeAccount = document.getElementById('btnWipeAccount');
+const btnSignOut = document.getElementById('btnSignOut');
 
 // --- STATE MANAGEMENT ---
 let userData = null;
@@ -34,122 +49,253 @@ onAuthStateChanged(auth, async (user) => {
         window.location.replace('login.html');
         return;
     }
-    userData = await window.BodyProDataStore.getData();
-    populateCalibrationMatrix();
-});
-
-// --- UI INITIALIZATION ---
-function populateCalibrationMatrix() {
-    const settings = userData.settings || {};
-    const goals = settings.goals || {};
-    const macros = settings.macroTargets || {};
-
-    // Populate Goals
-    setWeightGoal.value = goals.weeklyWeightLoss || -1.5;
-    setWorkoutDays.value = goals.workoutDaysPerWeek || 6;
-    setLiftMins.value = goals.targetLiftingMinutes || 90;
-    setCardioMins.value = goals.targetCardioMinutes || 20;
-
-    // Populate Macros
-    setCals.value = macros.calories || 2200;
-    setProt.value = macros.protein || 200;
-    setCarb.value = macros.carbs || 150;
-    setFat.value = macros.fats || 88;
-
-    renderSupplements();
-}
-
-// --- SUPPLEMENT MANAGEMENT ---
-function renderSupplements() {
-    suppListContainer.innerHTML = '';
-    const supps = userData.settings.dailySupplements || [];
-
-    if (supps.length === 0) {
-        suppListContainer.innerHTML = '<p class="text-muted" style="margin:0; font-size: 0.85rem;">No active supplements.</p>';
-        return;
-    }
-
-    supps.forEach((supp, index) => {
-        const item = document.createElement('div');
-        item.className = 'supp-manager-item';
-        item.innerHTML = `
-            <span>${supp.name}</span>
-            <button class="btn btn-ghost" style="padding: 5px 10px; border: none; color: var(--danger);" onclick="removeSupplement(${index})">
-                <i class="fa-solid fa-trash"></i>
-            </button>
-        `;
-        suppListContainer.appendChild(item);
-    });
-}
-
-btnAddSupp.addEventListener('click', () => {
-    const name = newSuppName.value.trim();
-    if (!name) return;
-
-    userData.settings.dailySupplements = userData.settings.dailySupplements || [];
     
-    // Prevent duplicates
-    if (userData.settings.dailySupplements.some(s => s.name.toLowerCase() === name.toLowerCase())) {
-        alert("This supplement is already in your matrix.");
-        return;
-    }
+    userData = await window.BodyProDataStore.getData();
+    
+    // Ensure nested objects exist to prevent null reference errors
+    if (!userData.profile) userData.profile = {};
+    if (!userData.settings) userData.settings = { goals: {}, preferences: {} };
+    if (!userData.settings.goals) userData.settings.goals = {};
+    if (!userData.settings.preferences) userData.settings.preferences = {};
 
-    userData.settings.dailySupplements.push({ name: name, logged: false });
-    newSuppName.value = '';
-    renderSupplements();
+    populateUI(user);
 });
 
-// Attach globally for inline onclick execution
-window.removeSupplement = function(index) {
-    userData.settings.dailySupplements.splice(index, 1);
-    renderSupplements();
-};
+// --- UI POPULATION ---
+function populateUI(user) {
+    // 1. Identity
+    profName.value = user.displayName || userData.profile.displayName || '';
+    profAge.value = userData.profile.age || '';
+    if (userData.profile.sex) profSex.value = userData.profile.sex;
+    profHeight.value = userData.profile.heightInches || '';
+    profGoalWeight.value = userData.profile.goalWeight || '';
+    if (userData.profile.activityLevel) profActivity.value = userData.profile.activityLevel;
+    if (userData.profile.objective) profObjective.value = userData.profile.objective;
 
-// --- SAVE PROTOCOLS ---
-btnSaveSettings.addEventListener('click', async () => {
-    btnSaveSettings.disabled = true;
-    btnSaveSettings.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Encrypting & Saving...';
+    // 2. Goals
+    goalSleep.value = userData.settings.goals.sleepHrs || 7.5;
+    goalSteps.value = userData.settings.goals.steps || 10000;
+    goalFloors.value = userData.settings.goals.floors || 10;
+    goalWater.value = userData.settings.goals.waterOz || 120;
+    goalWorkoutDays.value = userData.settings.goals.workoutDaysPerWeek || 6;
+    goalLiftMins.value = userData.settings.goals.targetLiftingMinutes || 90;
+    goalCardioMins.value = userData.settings.goals.targetCardioMinutes || 20;
 
-    // Harvest Goal Values
-    userData.settings.goals = {
-        weeklyWeightLoss: parseFloat(setWeightGoal.value) || -1.5,
-        workoutDaysPerWeek: parseInt(setWorkoutDays.value) || 6,
-        targetLiftingMinutes: parseInt(setLiftMins.value) || 90,
-        targetCardioMinutes: parseInt(setCardioMins.value) || 20
-    };
+    // 3. Preferences
+    if (userData.settings.preferences.theme) prefTheme.value = userData.settings.preferences.theme;
+    if (userData.settings.preferences.weightUnit) prefWeight.value = userData.settings.preferences.weightUnit;
+    if (userData.settings.preferences.fluidUnit) prefFluid.value = userData.settings.preferences.fluidUnit;
+    if (userData.settings.preferences.timeFormat) prefTime.value = userData.settings.preferences.timeFormat;
+    if (userData.settings.preferences.defaultMeal) prefMeal.value = userData.settings.preferences.defaultMeal;
+}
 
-    // Harvest Macro Values
-    userData.settings.macroTargets = {
-        calories: parseInt(setCals.value) || 2200,
-        protein: parseInt(setProt.value) || 200,
-        carbs: parseInt(setCarb.value) || 150,
-        fats: parseInt(setFat.value) || 88
+// --- MODULE 1: IDENTITY MANAGEMENT ---
+btnSaveIdentity.addEventListener('click', async () => {
+    btnSaveIdentity.disabled = true;
+    btnSaveIdentity.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
+
+    // Update Firebase Auth Profile if name changed
+    if (profName.value.trim() && profName.value.trim() !== auth.currentUser.displayName) {
+        await updateProfile(auth.currentUser, { displayName: profName.value.trim() });
+    }
+
+    userData.profile = {
+        displayName: profName.value.trim(),
+        age: parseInt(profAge.value) || null,
+        sex: profSex.value,
+        heightInches: parseInt(profHeight.value) || null,
+        goalWeight: parseInt(profGoalWeight.value) || null,
+        activityLevel: parseFloat(profActivity.value),
+        objective: profObjective.value
     };
 
     const success = await window.BodyProDataStore.saveData(userData);
-
+    
     if (success) {
-        btnSaveSettings.innerHTML = '<i class="fa-solid fa-check"></i> Calibration Saved';
+        btnSaveIdentity.innerHTML = '<i class="fa-solid fa-check"></i> Identity Secured';
         setTimeout(() => {
-            btnSaveSettings.disabled = false;
-            btnSaveSettings.innerHTML = '<i class="fa-solid fa-hard-drive"></i> Save Calibration';
+            btnSaveIdentity.disabled = false;
+            btnSaveIdentity.innerText = 'Update Identity';
         }, 2000);
-    } else {
-        alert("System Error: Failed to synchronize calibration to the cloud.");
-        btnSaveSettings.disabled = false;
-        btnSaveSettings.innerHTML = '<i class="fa-solid fa-hard-drive"></i> Save Calibration';
     }
 });
 
-// --- SECURITY PROTOCOLS ---
-btnLogout.addEventListener('click', async () => {
-    if (confirm("Are you sure you wish to terminate the secure session?")) {
-        try {
-            await signOut(auth);
-            // The auth state listener at the top will automatically redirect to login.html
-        } catch (error) {
-            console.error("Logout Error:", error);
-            alert("System Error: Failed to securely terminate session.");
-        }
+// --- MODULE 2: TARGETS & GOALS ---
+btnSaveTargets.addEventListener('click', async () => {
+    btnSaveTargets.disabled = true;
+    btnSaveTargets.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+    userData.settings.goals = {
+        sleepHrs: parseFloat(goalSleep.value) || 7.5,
+        steps: parseInt(goalSteps.value) || 10000,
+        floors: parseInt(goalFloors.value) || 10,
+        waterOz: parseInt(goalWater.value) || 120,
+        workoutDaysPerWeek: parseInt(goalWorkoutDays.value) || 6,
+        targetLiftingMinutes: parseInt(goalLiftMins.value) || 90,
+        targetCardioMinutes: parseInt(goalCardioMins.value) || 20
+    };
+
+    const success = await window.BodyProDataStore.saveData(userData);
+    
+    if (success) {
+        btnSaveTargets.innerHTML = '<i class="fa-solid fa-check"></i> Targets Locked';
+        setTimeout(() => {
+            btnSaveTargets.disabled = false;
+            btnSaveTargets.innerText = 'Save Targets';
+        }, 2000);
     }
+});
+
+// --- MODULE 3: SYSTEM PREFERENCES ---
+btnSavePrefs.addEventListener('click', async () => {
+    btnSavePrefs.disabled = true;
+    btnSavePrefs.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Applying...';
+
+    userData.settings.preferences = {
+        theme: prefTheme.value,
+        weightUnit: prefWeight.value,
+        fluidUnit: prefFluid.value,
+        timeFormat: prefTime.value,
+        defaultMeal: prefMeal.value
+    };
+
+    // Apply theme immediately if UI supports it
+    document.documentElement.setAttribute('data-theme', prefTheme.value);
+
+    const success = await window.BodyProDataStore.saveData(userData);
+    
+    if (success) {
+        btnSavePrefs.innerHTML = '<i class="fa-solid fa-check"></i> Preferences Applied';
+        setTimeout(() => {
+            btnSavePrefs.disabled = false;
+            btnSavePrefs.innerText = 'Apply Preferences';
+        }, 2000);
+    }
+});
+
+// --- MODULE 4: DATA MANAGEMENT (DANGER ZONE) ---
+
+// Backup/Export
+btnExportData.addEventListener('click', () => {
+    if (!userData) return alert("System Error: No data available to export.");
+    
+    const dataStr = JSON.stringify(userData, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `BodyPro_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+});
+
+// Import/Restore
+inputImportData.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!confirm("WARNING: Importing a backup will overwrite your current cloud data. Proceed?")) {
+        inputImportData.value = ''; // Reset input
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            if (!importedData.uid) throw new Error("Invalid payload structure.");
+            
+            // Ensure the imported data is linked to the current user's Auth ID
+            importedData.uid = auth.currentUser.uid;
+            
+            const success = await window.BodyProDataStore.saveData(importedData);
+            if (success) {
+                alert("Backup restored successfully. The system will now reload.");
+                window.location.reload();
+            } else {
+                alert("Error synchronizing imported data to the cloud.");
+            }
+        } catch (error) {
+            alert("File corruption detected. Cannot parse JSON backup.");
+            console.error("Import Error:", error);
+        }
+        inputImportData.value = ''; // Reset input
+    };
+    reader.readAsText(file);
+});
+
+// 7-Day Rollback
+btnResetWeek.addEventListener('click', async () => {
+    if (!confirm("WARNING: This will permanently delete all diary entries, workouts, and biometrics logged in the last 7 days. This action cannot be undone. Execute?")) return;
+    
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 7);
+    const cutoffISO = cutoffDate.toISOString().split('T')[0];
+
+    // Filter Arrays
+    if (userData.food_diary) {
+        userData.food_diary = userData.food_diary.filter(f => f.date < cutoffISO);
+    }
+    if (userData.biometrics) {
+        userData.biometrics = userData.biometrics.filter(b => b.date < cutoffISO);
+    }
+    if (userData.sleep_data) {
+        userData.sleep_data = userData.sleep_data.filter(s => s.date < cutoffISO);
+    }
+    if (userData.workouts) {
+        // Workouts use timestamp instead of strict date string
+        userData.workouts = userData.workouts.filter(w => new Date(w.timestamp) < cutoffDate);
+    }
+
+    const success = await window.BodyProDataStore.saveData(userData);
+    if (success) {
+        alert("7-Day Rollback executed successfully.");
+        window.location.reload();
+    }
+});
+
+// Complete Account Wipe
+btnWipeAccount.addEventListener('click', async () => {
+    const confirmationWord = prompt("CRITICAL WARNING: You are about to wipe your entire BodyPro database. Type 'DELETE' to confirm execution.");
+    if (confirmationWord !== 'DELETE') {
+        alert("Wipe aborted.");
+        return;
+    }
+
+    // Reset all arrays while maintaining the core structure and user UID
+    userData = {
+        uid: auth.currentUser.uid,
+        food_diary: [],
+        biometrics: [],
+        sleep_data: [],
+        workouts: [],
+        custom_recipes: [],
+        workout_templates: [],
+        social: { friends: [], pending: [], blocked: [], posts: [] },
+        profile: {},
+        settings: {
+            macroTargets: { calories: 2000, protein: 150, carbs: 200, fats: 65 },
+            goals: {},
+            preferences: {}
+        }
+    };
+
+    const success = await window.BodyProDataStore.saveData(userData);
+    if (success) {
+        alert("Database wiped. System has been factory reset.");
+        window.location.replace('dashboard.html');
+    }
+});
+
+// --- AUTHENTICATION ---
+btnSignOut.addEventListener('click', () => {
+    signOut(auth).then(() => {
+        window.location.replace('login.html');
+    }).catch((error) => {
+        console.error("Sign Out Error", error);
+        alert("Failed to securely disconnect. Please check connection.");
+    });
 });
