@@ -35,6 +35,59 @@
       color: var(--primary);
     }
 
+    /* Enhanced Macro Bar */
+    .macro-bar-container {
+      background: var(--bg-surface-elevated);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+      border: 1px solid var(--border-color);
+    }
+
+    .macro-stats-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-main);
+      margin-bottom: 12px;
+    }
+
+    .macro-progress-wrapper {
+      width: 100%;
+      height: 12px;
+      background: var(--bg-base);
+      border-radius: 50px;
+      overflow: hidden;
+      display: flex;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    .macro-progress-fill {
+      height: 100%;
+      background: var(--primary);
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .macro-progress-fill.overage {
+      background: var(--danger);
+    }
+
+    .macro-breakdown {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    .macro-breakdown-item {
+      background: var(--bg-base);
+      padding: 8px;
+      border-radius: 8px;
+    }
+
     .meal-section {
       margin-bottom: 20px;
       background: var(--bg-surface);
@@ -131,11 +184,22 @@
       border: 1px solid var(--border-color);
       border-radius: var(--border-radius-sm);
       cursor: pointer;
-      transition: border-color 0.2s;
+      transition: all 0.2s;
     }
 
     .supp-item:hover {
       border-color: var(--primary);
+    }
+
+    .supp-item.completed {
+      opacity: 0.5;
+      background: var(--bg-surface-elevated);
+      border-color: var(--border-color);
+    }
+
+    .supp-item.completed label {
+      text-decoration: line-through;
+      color: var(--text-muted);
     }
 
     .supp-item input[type="checkbox"] {
@@ -149,6 +213,7 @@
       flex: 1;
       cursor: pointer;
       font-weight: 600;
+      transition: color 0.2s;
     }
 
     /* Modals */
@@ -175,6 +240,8 @@
       background: var(--bg-surface);
       width: 90%;
       max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
       border-radius: var(--border-radius-md);
       border: 1px solid var(--border-color);
       padding: 25px;
@@ -186,7 +253,6 @@
       transform: translateY(0);
     }
 
-    /* Override library defaults for a cleaner UI */
     #reader {
       width: 100%;
       border-radius: var(--border-radius-sm);
@@ -220,7 +286,7 @@
         <span>Nutrition</span>
       </a>
       <a href="recipes.html" class="nav-item">
-        <i class="fa-solid fa-users"></i>
+        <i class="fa-solid fa-book-open"></i>
         <span>Recipes</span>
       </a>
       <a href="fitness.html" class="nav-item">
@@ -236,7 +302,7 @@
         <span>Social</span>
       </a>
       <a href="settings.html" class="nav-item">
-        <i class="fa-solid fa-users"></i>
+        <i class="fa-solid fa-user"></i>
         <span>Profile</span>
       </a>
     </nav>
@@ -249,20 +315,40 @@
         <button id="btnNextDay"><i class="fa-solid fa-chevron-right"></i></button>
       </div>
 
-      <div class="card" style="padding: 15px;">
-        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">
-          <span>Cals: <span id="sumCals" class="text-main">0</span> / <span id="tarCals">0</span></span>
-          <span class="m-prot">P: <span id="sumProt">0</span>g</span>
-          <span class="m-carb">C: <span id="sumCarb">0</span>g</span>
-          <span class="m-fat">F: <span id="sumFat">0</span>g</span>
+      <div class="card" style="padding: 15px; border-top: 4px solid var(--accent);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-fire text-accent"></i> Macronutrient Status</h3>
+          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openMacroCalcModal()"><i class="fa-solid fa-calculator"></i> Macro Calc</button>
         </div>
-        <div style="width: 100%; height: 6px; background: var(--bg-base); border-radius: 50px; overflow: hidden;">
-          <div id="calProgressBar" style="width: 0%; height: 100%; background: var(--primary); transition: width 0.3s;"></div>
+
+        <div class="macro-bar-container">
+          <div class="macro-stats-header">
+            <span>Calories</span>
+            <span><span id="sumCals" class="text-main">0</span> / <span id="tarCals">0</span> kcal</span>
+          </div>
+          <div class="macro-progress-wrapper">
+            <div id="calProgressBar" class="macro-progress-fill" style="width: 0%;"></div>
+          </div>
+          
+          <div class="macro-breakdown">
+            <div class="macro-breakdown-item">
+              <div class="m-prot" style="font-weight: 800; font-size: 1.1rem;"><span id="sumProt">0</span>g</div>
+              <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Protein</div>
+            </div>
+            <div class="macro-breakdown-item">
+              <div class="m-carb" style="font-weight: 800; font-size: 1.1rem;"><span id="sumCarb">0</span>g</div>
+              <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Carbs</div>
+            </div>
+            <div class="macro-breakdown-item">
+              <div class="m-fat" style="font-weight: 800; font-size: 1.1rem;"><span id="sumFat">0</span>g</div>
+              <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Fats</div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="card">
-        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-pills text-accent"></i> Daily Supplements</h3>
+        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-pills text-primary"></i> Daily Supplements</h3>
         <div class="supp-list" id="supplementContainer">
           <p class="text-muted" style="text-align: center; font-size: 0.9rem;">Loading protocols...</p>
         </div>
@@ -349,7 +435,7 @@
 
   <div class="modal-overlay" id="quickAddModal">
     <div class="modal-content">
-      <h3 style="margin-top: 0;"><i class="fa-solid fa-bolt text-warning"></i> Quick Add</h3>
+      <h3 style="margin-top: 0;"><i class="fa-solid fa-bolt text-warning"></i> Add to Diary</h3>
       
       <div class="form-group">
         <label>Meal</label>
@@ -359,6 +445,13 @@
           <option value="Dinner">Dinner</option>
           <option value="Snacks">Snacks</option>
         </select>
+      </div>
+
+      <div class="form-group" style="padding: 10px; border: 1px dashed var(--accent); border-radius: var(--border-radius-sm); background: rgba(16, 185, 129, 0.05);">
+        <label class="text-accent"><i class="fa-solid fa-book-open"></i> Load Custom Recipe</label>
+        <select id="qaRecipeSelect">
+          <option value="">-- Select from Vault --</option>
+          </select>
       </div>
       
       <div class="form-group">
@@ -392,8 +485,76 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="macroCalcModal">
+    <div class="modal-content">
+      <h3 style="margin-top: 0;"><i class="fa-solid fa-calculator text-primary"></i> Macro Calculator</h3>
+      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px;">Based on the Mifflin-St Jeor equation for accurate basal metabolic rate (BMR) and Total Daily Energy Expenditure (TDEE).</p>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group">
+          <label>Sex</label>
+          <select id="calcSex">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" id="calcAge" placeholder="e.g. 26">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group">
+          <label>Weight (lbs)</label>
+          <input type="number" id="calcWeight" placeholder="e.g. 185">
+        </div>
+        <div class="form-group">
+          <label>Height (inches)</label>
+          <input type="number" id="calcHeight" placeholder="e.g. 69">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Activity Level</label>
+        <select id="calcActivity">
+          <option value="1.2">Sedentary (office job, little/no exercise)</option>
+          <option value="1.375">Light (exercise 1-3 days/week)</option>
+          <option value="1.55">Moderate (exercise 3-5 days/week)</option>
+          <option value="1.725">Active (exercise 6-7 days/week)</option>
+          <option value="1.9">Very Active (physical job or training 2x/day)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Goal</label>
+        <select id="calcGoal">
+          <option value="-500">Cut (-500 cal/day, ~1lb loss/wk)</option>
+          <option value="-250">Mild Cut (-250 cal/day)</option>
+          <option value="0">Maintain Weight</option>
+          <option value="250">Lean Bulk (+250 cal/day)</option>
+          <option value="500">Bulk (+500 cal/day, ~1lb gain/wk)</option>
+        </select>
+      </div>
+
+      <div style="background: var(--bg-base); padding: 15px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); margin-bottom: 15px; text-align: center;">
+        <h4 style="margin: 0 0 10px 0; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Recommended Targets</h4>
+        <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary);" id="calcResultCals">-- kcal</div>
+        <div style="display: flex; justify-content: center; gap: 15px; margin-top: 10px; font-size: 0.9rem; font-weight: 600;">
+          <span class="m-prot"><span id="calcResultProt">--</span>g P</span>
+          <span class="m-carb"><span id="calcResultCarb">--</span>g C</span>
+          <span class="m-fat"><span id="calcResultFat">--</span>g F</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+        <button class="btn" id="btnRunMacroCalc">Calculate</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Basic UI interactions
     const fabContainer = document.getElementById('fabContainer');
     const mainFab = document.getElementById('mainFab');
 
@@ -404,6 +565,10 @@
 
     function openAddFoodModal(meal) {
       openQuickAddModal(meal);
+    }
+
+    function openMacroCalcModal() {
+      document.getElementById('macroCalcModal').classList.add('active');
     }
 
     function closeModals() {
