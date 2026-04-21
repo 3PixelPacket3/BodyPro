@@ -3,143 +3,282 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>BodyPro | Community Hub</title>
+  <title>BodyPro | Social Network</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
     /* Social Specific Styles */
-    .feed-container {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      margin-bottom: 25px;
-    }
-
-    .feed-item {
-      background: var(--bg-surface);
+    
+    /* ID Card */
+    .id-card {
+      background: linear-gradient(135deg, var(--bg-surface-elevated) 0%, var(--bg-base) 100%);
       border: 1px solid var(--border-color);
       border-radius: var(--border-radius-md);
       padding: 20px;
+      text-align: center;
+      margin-bottom: 20px;
       position: relative;
       overflow: hidden;
     }
 
-    .feed-item::before {
+    .id-card::before {
       content: '';
       position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
+      top: 0; left: 0; right: 0; height: 4px;
       background: var(--primary);
     }
 
-    .feed-item.type-recipe::before { background: var(--accent); }
-    .feed-item.type-workout::before { background: var(--primary); }
+    .network-id-display {
+      font-family: monospace;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text-main);
+      background: var(--bg-surface);
+      padding: 10px;
+      border-radius: var(--border-radius-sm);
+      border: 1px dashed var(--primary);
+      margin: 15px 0;
+      word-break: break-all;
+      letter-spacing: 1px;
+    }
+
+    /* Friends Panel */
+    .friends-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      overflow-x: auto;
+      padding-bottom: 5px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .friends-tabs::-webkit-scrollbar { height: 4px; }
+    .friends-tabs::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+    .tab-btn {
+      flex: 1;
+      min-width: 100px;
+      padding: 8px 12px;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      border-radius: var(--border-radius-sm);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .friend-list-container {
+      max-height: 250px;
+      overflow-y: auto;
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+    }
+
+    .friend-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .friend-item:last-child { border-bottom: none; }
+
+    .friend-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .friend-avatar {
+      width: 36px;
+      height: 36px;
+      background: var(--bg-surface-elevated);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    .friend-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .friend-actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      padding: 5px;
+      transition: color 0.2s;
+    }
+
+    .friend-actions .btn-accept:hover { color: var(--accent); }
+    .friend-actions .btn-reject:hover { color: var(--danger); }
+    .friend-actions .btn-block:hover { color: var(--warning); }
+
+    /* Add Friend Input */
+    .add-friend-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .add-friend-group input {
+      flex: 1;
+    }
+
+    /* Post Creation */
+    .create-post-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-md);
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .post-textarea {
+      width: 100%;
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 12px;
+      border-radius: var(--border-radius-sm);
+      resize: vertical;
+      min-height: 80px;
+      font-family: inherit;
+      margin-bottom: 10px;
+    }
+    
+    .post-textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .post-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Feed Items (Structure for JS Injection) */
+    .feed-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .feed-post {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-md);
+      padding: 15px;
+    }
 
     .feed-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 12px;
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 10px;
     }
 
-    .feed-user-info {
+    .feed-author {
       display: flex;
       align-items: center;
       gap: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
     }
 
-    .feed-avatar {
-      width: 35px;
-      height: 35px;
-      border-radius: 50%;
-      background: var(--bg-surface-elevated);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-muted);
-      font-weight: bold;
-      border: 1px solid var(--border-color);
-    }
-
-    .feed-timestamp {
+    .feed-meta {
       font-size: 0.75rem;
       color: var(--text-muted);
-      font-weight: 600;
     }
 
-    .feed-content h4 {
-      margin: 0 0 8px 0;
-      font-size: 1.05rem;
-    }
-
-    .feed-content p {
-      margin: 0;
+    .feed-content {
       font-size: 0.9rem;
-      color: var(--text-muted);
-      line-height: 1.4;
+      line-height: 1.5;
+      margin-bottom: 15px;
+      color: var(--text-main);
     }
 
     .feed-actions {
       display: flex;
       gap: 15px;
-      margin-top: 15px;
-      padding-top: 15px;
-      border-top: 1px dashed var(--border-color);
+      border-top: 1px solid var(--border-color);
+      padding-top: 10px;
+      margin-bottom: 10px;
     }
 
-    .feed-actions button {
-      background: transparent;
+    .feed-action-btn {
+      background: none;
       border: none;
       color: var(--text-muted);
       cursor: pointer;
+      font-size: 0.9rem;
       font-weight: 600;
-      font-size: 0.85rem;
       display: flex;
       align-items: center;
       gap: 6px;
       transition: color 0.2s;
     }
 
-    .feed-actions button:hover {
+    .feed-action-btn:hover, .feed-action-btn.active {
       color: var(--primary);
     }
 
-    /* Friends List Styles */
-    .friends-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 15px;
-    }
-
-    .friend-card {
+    .comments-section {
       background: var(--bg-base);
-      border: 1px solid var(--border-color);
       border-radius: var(--border-radius-sm);
-      padding: 15px;
+      padding: 10px;
+      display: none; /* Toggled by JS */
+    }
+
+    .comments-section.open {
+      display: block;
+    }
+
+    .comment-item {
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .comment-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .comment-input-group {
       display: flex;
-      align-items: center;
-      gap: 12px;
+      gap: 8px;
+      margin-top: 10px;
     }
 
-    .friend-card .friend-name {
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    .add-friend-bar {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .add-friend-bar input {
+    .comment-input-group input {
       flex: 1;
+      font-size: 0.85rem;
+      padding: 6px 10px;
     }
+
   </style>
 </head>
 <body>
@@ -156,7 +295,7 @@
         <span>Nutrition</span>
       </a>
       <a href="recipes.html" class="nav-item">
-        <i class="fa-solid fa-users"></i>
+        <i class="fa-solid fa-book-open"></i>
         <span>Recipes</span>
       </a>
       <a href="fitness.html" class="nav-item">
@@ -172,41 +311,82 @@
         <span>Social</span>
       </a>
       <a href="settings.html" class="nav-item">
-        <i class="fa-solid fa-users"></i>
+        <i class="fa-solid fa-user"></i>
         <span>Profile</span>
       </a>
     </nav>
 
     <main class="main-content">
       
-      <div style="margin-bottom: 25px;">
-        <h2 style="margin-bottom: 5px;">Community Hub</h2>
-        <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Activity Feed & Network</p>
+      <div style="margin-bottom: 20px;">
+        <h2 style="margin-bottom: 5px;">Social Network</h2>
+        <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Connect & Compete</p>
       </div>
 
-      <div class="card" style="border-top: 4px solid var(--text-main);">
-        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-user-group text-main"></i> Your Network</h3>
+      <div class="id-card">
+        <h3 style="margin: 0 0 5px 0; font-size: 1.1rem;"><i class="fa-solid fa-id-badge text-primary"></i> My Network ID</h3>
+        <p class="text-muted" style="font-size: 0.85rem; margin: 0;">Share this ID to allow others to send you a connection request.</p>
+        <div class="network-id-display" id="myNetworkId">Loading Identity...</div>
+        <button class="btn btn-ghost" id="btnCopyId" style="width: 100%;"><i class="fa-regular fa-copy"></i> Copy to Clipboard</button>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--accent);">
+        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-user-group text-accent"></i> Connections</h3>
         
-        <div class="add-friend-bar">
-          <input type="text" id="inputFriendId" placeholder="Enter Friend's Connection ID...">
-          <button class="btn btn-ghost" id="btnAddFriend" style="width: auto; padding: 0 20px;">
-            <i class="fa-solid fa-user-plus"></i> Connect
-          </button>
+        <div class="add-friend-group">
+          <input type="text" id="inputFriendId" placeholder="Enter Network ID to Add">
+          <button class="btn" id="btnSendRequest" style="padding: 0 15px;"><i class="fa-solid fa-user-plus"></i></button>
         </div>
 
-        <div class="friends-list" id="friendsListContainer">
-          <p class="text-muted" style="font-size: 0.9rem; margin: 0;">Loading network connections...</p>
+        <div class="friends-tabs">
+          <div class="tab-btn active" onclick="switchFriendTab('active')" id="tabActive">Friends</div>
+          <div class="tab-btn" onclick="switchFriendTab('pending')" id="tabPending">Pending</div>
+          <div class="tab-btn" onclick="switchFriendTab('blocked')" id="tabBlocked">Blocked</div>
+        </div>
+
+        <div class="friend-list-container" id="friendListContainer">
+          <p class="text-muted" style="text-align: center; padding: 20px; font-size: 0.9rem;">Initializing network protocols...</p>
+          </div>
+      </div>
+
+      <div class="create-post-box">
+        <h3 style="font-size: 1rem; margin-top: 0; margin-bottom: 10px;"><i class="fa-solid fa-pen-to-square"></i> Broadcast</h3>
+        <textarea class="post-textarea" id="postContentInput" placeholder="Share a status, milestone, or thought..."></textarea>
+        
+        <div class="post-controls">
+          <select id="postVisibility" style="background: var(--bg-base); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px; border-radius: var(--border-radius-sm); font-size: 0.85rem;">
+            <option value="friends">Friends Only</option>
+            <option value="public">Public</option>
+            <option value="private">Private (Diary Only)</option>
+          </select>
+          <button class="btn" id="btnSubmitPost" style="padding: 8px 20px;">Post</button>
         </div>
       </div>
 
-      <h3 style="font-size: 1.1rem; margin: 30px 0 15px 0;"><i class="fa-solid fa-rss text-primary"></i> Live Activity Feed</h3>
+      <h3 style="font-size: 1.1rem; margin: 25px 0 15px 0;"><i class="fa-solid fa-rss text-warning"></i> Live Feed</h3>
       
-      <div class="feed-container" id="activityFeed">
-        <p class="text-muted" style="text-align: center; padding: 20px; font-size: 0.9rem;">Synchronizing network activity...</p>
-      </div>
+      <div class="feed-container" id="socialFeedContainer">
+        <p class="text-muted" style="text-align: center; padding: 20px; font-size: 0.9rem;">Decrypting timeline data...</p>
+        </div>
 
     </main>
   </div>
+
+  <script>
+    // Simple Tab Switching UI Logic
+    function switchFriendTab(tabName) {
+      document.getElementById('tabActive').classList.remove('active');
+      document.getElementById('tabPending').classList.remove('active');
+      document.getElementById('tabBlocked').classList.remove('active');
+      
+      if(tabName === 'active') document.getElementById('tabActive').classList.add('active');
+      if(tabName === 'pending') document.getElementById('tabPending').classList.add('active');
+      if(tabName === 'blocked') document.getElementById('tabBlocked').classList.add('active');
+
+      // Call the JS function to render the specific list
+      if(window.renderFriendsList) window.renderFriendsList(tabName);
+    }
+  </script>
 
   <script type="module" src="data-store.js"></script>
   <script type="module" src="social.js"></script>
