@@ -36,6 +36,7 @@ const savedRecipesList = document.getElementById('savedRecipesList');
 // --- STATE MANAGEMENT ---
 let userData = null;
 let currentBatch = [];
+let html5QrCode = null;
 
 // --- THE SECURITY GUARD ---
 onAuthStateChanged(auth, async (user) => {
@@ -99,7 +100,70 @@ btnExecuteCopy.addEventListener('click', async () => {
     }
 });
 
-// --- MODULE 2: RECIPE BUILDER ---
+// --- MODULE 2: OPTICAL SCANNER FOR INGREDIENTS ---
+window.openScannerFromRecipe = function() {
+    document.getElementById('scannerModal').classList.add('active');
+    
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+    }
+    
+    const config = { fps: 10, qrbox: { width: 250, height: 200 } };
+    
+    html5QrCode.start({ facingMode: "environment" }, config, onRecipeScanSuccess)
+    .catch(err => {
+        console.error("Camera access error:", err);
+        document.getElementById('reader').innerHTML = '<p style="color:var(--danger); padding:20px; text-align:center;">Optical hardware unavailable. Please verify permissions or utilize manual entry.</p>';
+    });
+};
+
+window.closeScannerModal = function() {
+    document.getElementById('scannerModal').classList.remove('active');
+    if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(console.error);
+    }
+};
+
+async function onRecipeScanSuccess(decodedText, decodedResult) {
+    if (html5QrCode && html5QrCode.isScanning) {
+        await html5QrCode.stop();
+    }
+    document.getElementById('scannerModal').classList.remove('active');
+    
+    // Set loading state in ingredient modal
+    ingName.value = "Querying Database...";
+    
+    try {
+        const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
+        const data = await response.json();
+        
+        if (data.status === 1 && data.product) {
+            const p = data.product;
+            const nut = p.nutriments || {};
+            
+            const cals = nut['energy-kcal_serving'] || nut['energy-kcal_100g'] || nut['energy-kcal'] || 0;
+            const prot = nut['proteins_serving'] || nut['proteins_100g'] || nut['proteins'] || 0;
+            const carb = nut['carbohydrates_serving'] || nut['carbohydrates_100g'] || nut['carbohydrates'] || 0;
+            const fat = nut['fat_serving'] || nut['fat_100g'] || nut['fat'] || 0;
+            
+            ingName.value = p.product_name || "Unknown Product";
+            ingCals.value = Math.round(cals);
+            ingProt.value = Math.round(prot);
+            ingCarb.value = Math.round(carb);
+            ingFat.value = Math.round(fat);
+        } else {
+            alert("Telemetry negative. Product not found in OpenFoodFacts database. Manual entry required.");
+            ingName.value = "";
+        }
+    } catch (err) {
+        console.error("API Error:", err);
+        alert("Network failure. Unable to retrieve nutritional telemetry.");
+        ingName.value = "";
+    }
+}
+
+
+// --- MODULE 3: RECIPE BUILDER ---
 function updateBatchUI() {
     activeIngredientList.innerHTML = '';
     let totalCals = 0, totalProt = 0, totalCarb = 0, totalFat = 0;
@@ -210,10 +274,11 @@ btnSaveRecipe.addEventListener('click', async () => {
             fats: Math.round(totalFat / servings)
         },
         ingredients: currentBatch,
-        authorId: auth.currentUser.uid, // Required for secure sharing later
+        authorId: auth.currentUser.uid,
         timestamp: new Date().toISOString()
     };
 
+    userData.custom_recipes = userData.custom_recipes || [];
     userData.custom_recipes.push(newRecipe);
     const success = await window.BodyProDataStore.saveData(userData);
 
@@ -231,10 +296,11 @@ btnSaveRecipe.addEventListener('click', async () => {
     } else {
         alert("System Error: Failed to save recipe to vault.");
         btnSaveRecipe.disabled = false;
+        btnSaveRecipe.innerHTML = '<i class="fa-solid fa-save"></i> Save Recipe';
     }
 });
 
-// --- MODULE 3: SAVED RECIPES VAULT ---
+// --- MODULE 4: SAVED RECIPES VAULT ---
 function renderSavedRecipes() {
     savedRecipesList.innerHTML = '';
     const recipes = userData.custom_recipes || [];
