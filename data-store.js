@@ -98,7 +98,20 @@ window.BodyProDataStore = {
     try {
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
-      let userData = userSnap.exists() ? userSnap.data() : this.getEmptyDB();
+      
+      let userData;
+      let forceCloudInit = false;
+
+      // CRITICAL FIX: The Phantom Profile Resolution
+      if (userSnap.exists()) {
+          userData = userSnap.data();
+      } else {
+          // The user authenticated, but no database document exists yet.
+          // Recover from local storage if possible to prevent wiping data, otherwise build from scratch.
+          const localData = await this.getIndexedData(this.MASTER_KEY);
+          userData = localData || this.getEmptyDB();
+          forceCloudInit = true; // We MUST push this to the cloud instantly so they become searchable
+      }
 
       userData.settings = userData.settings || this.getEmptyDB().settings;
       userData.friends = userData.friends || [];
@@ -108,10 +121,22 @@ window.BodyProDataStore = {
       userData.workout_templates = userData.workout_templates || [];
       userData.custom_workouts = userData.custom_workouts || [];
       
-      // CRITICAL FIX: Ensure awaiting the database write so the document actually commits to the cloud.
+      // Secondary safety check: Document exists but somehow lacks an ID
       if (!userData.profile.shortId) {
          userData.profile.shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
-         await setDoc(userRef, { profile: userData.profile }, { merge: true });
+         forceCloudInit = true;
+      }
+
+      // Execute the immediate cloud stamp if necessary
+      if (forceCloudInit) {
+          console.log("[BodyPro System] Initializing core profile in cloud registry...");
+          await setDoc(userRef, { 
+              profile: userData.profile,
+              settings: userData.settings,
+              friends: userData.friends,
+              workout_templates: userData.workout_templates,
+              custom_workouts: userData.custom_workouts
+          }, { merge: true });
       }
 
       if (userData.settings.preferences && userData.settings.preferences.theme) {
@@ -183,7 +208,6 @@ window.BodyProDataStore = {
   async _executeCloudSync(user, cleanData, oldData) {
       const userRef = doc(db, "users", user.uid);
       
-      // CRITICAL FIX: Push arrays natively to the top-level document
       const topLevelPromise = setDoc(userRef, { 
           settings: cleanData.settings || {},
           friends: cleanData.friends || [],
@@ -238,7 +262,6 @@ window.BodyProDataStore = {
   getEmptyDB() {
     return { 
         profile: {
-            // CRITICAL FIX: Ensure an ID is generated immediately on DB request to prevent null instantiation
             shortId: Math.random().toString(36).substring(2, 8).toUpperCase(),
             displayName: "",
             age: null,
