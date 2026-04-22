@@ -167,7 +167,7 @@
       width: 100%;
     }
 
-    /* Live Log Movement Section Grid - Fixed for weird sizing */
+    /* Live Log Movement Section Grid */
     .movement-header-row {
       display: flex;
       flex-direction: row;
@@ -177,18 +177,9 @@
       width: 100%;
     }
 
-    .movement-header-row input.ex-name {
-      flex: 1 1 auto;
-      min-width: 0; /* CRITICAL FIX: Stops flexbox from blowing out the screen width */
-      font-weight: bold;
-      font-size: 1rem;
-      border-color: var(--primary);
-      width: 100%;
-    }
-
     .set-grid-header, .set-row {
       display: grid;
-      grid-template-columns: 30px 1.2fr 1fr 1fr 30px; /* Responsive mobile ratio */
+      grid-template-columns: 30px 1.2fr 1fr 1fr 30px;
       gap: 6px;
       align-items: center;
       margin-bottom: 8px;
@@ -208,11 +199,60 @@
 
     .set-row input {
       text-align: center;
-      padding: 8px 2px; /* Tighter padding so text fits */
-      min-width: 0; /* CRITICAL FIX */
+      padding: 8px 2px;
+      min-width: 0;
       font-size: 0.9rem;
       width: 100%;
       box-sizing: border-box;
+    }
+
+    /* Custom Autocomplete Dropdown - Bypasses Native Keyboard overlap */
+    .autocomplete-wrapper {
+      position: relative;
+      flex: 1 1 auto;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .autocomplete-wrapper input.ex-name {
+      font-weight: bold;
+      font-size: 1rem;
+      border-color: var(--primary);
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .autocomplete-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 999;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      max-height: 200px;
+      overflow-y: auto;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+      display: none;
+    }
+
+    .autocomplete-item {
+      padding: 12px 10px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.95rem;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .autocomplete-item:last-child {
+      border-bottom: none;
+    }
+
+    .autocomplete-item:hover, .autocomplete-item:active {
+      background: var(--primary);
+      color: white;
     }
 
     /* Modals */
@@ -398,8 +438,6 @@
 
     </main>
   </div>
-
-  <datalist id="presetExercises"></datalist>
 
   <div class="modal-overlay" id="historyModal">
     <div class="modal-content">
