@@ -1,330 +1,217 @@
-// settings.js - BodyPro Profile & Configuration Logic
+// social.js - BodyPro Network & Short ID System
 
-import { auth } from './data-store.js';
-import { onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { auth, db } from './data-store.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// --- DOM Elements ---
-
-// Section 1: Identity
-const profName = document.getElementById('profName');
-const profAge = document.getElementById('profAge');
-const profSex = document.getElementById('profSex');
-const profHeight = document.getElementById('profHeight');
-const profGoalWeight = document.getElementById('profGoalWeight');
-const profActivity = document.getElementById('profActivity');
-const profObjective = document.getElementById('profObjective');
-const btnSaveIdentity = document.getElementById('btnSaveIdentity');
-
-// Section 2: Targets & Goals
-const goalCals = document.getElementById('goalCals');
-const goalProt = document.getElementById('goalProt');
-const goalCarb = document.getElementById('goalCarb');
-const goalFat = document.getElementById('goalFat');
-
-const goalSleep = document.getElementById('goalSleep');
-const goalSteps = document.getElementById('goalSteps');
-const goalFloors = document.getElementById('goalFloors');
-const goalWater = document.getElementById('goalWater');
-const goalWorkoutDays = document.getElementById('goalWorkoutDays');
-const goalLiftMins = document.getElementById('goalLiftMins');
-const goalCardioMins = document.getElementById('goalCardioMins');
-const btnSaveTargets = document.getElementById('btnSaveTargets');
-
-// Section 3: Preferences
-const prefTheme = document.getElementById('prefTheme');
-const prefWeight = document.getElementById('prefWeight');
-const prefFluid = document.getElementById('prefFluid');
-const prefTime = document.getElementById('prefTime');
-const prefMeal = document.getElementById('prefMeal');
-const btnSavePrefs = document.getElementById('btnSavePrefs');
-
-// Section 4: Data Management (Danger Zone)
-const btnExportData = document.getElementById('btnExportData');
-const inputImportData = document.getElementById('inputImportData');
-const btnResetWeek = document.getElementById('btnResetWeek');
-const btnWipeAccount = document.getElementById('btnWipeAccount');
-const btnSignOut = document.getElementById('btnSignOut');
+// --- DOM ELEMENTS ---
+const myShortIdDisplay = document.getElementById('myShortId');
+const btnCopyId = document.getElementById('btnCopyId');
+const inputFriendId = document.getElementById('inputFriendId');
+const btnAddFriend = document.getElementById('btnAddFriend');
+const addFriendMsg = document.getElementById('addFriendMsg');
+const friendListContainer = document.getElementById('friendListContainer');
+const friendCountBadge = document.getElementById('friendCountBadge');
+const systemToast = document.getElementById('systemToast');
 
 // --- STATE MANAGEMENT ---
 let userData = null;
 
-// --- THE SECURITY GUARD ---
+// --- INITIALIZATION ---
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
         window.location.replace('login.html');
         return;
     }
-    
+
     userData = await window.BodyProDataStore.getData();
     
-    // Ensure nested objects exist to prevent null reference errors
+    // Safety Net
+    if (!userData.friends) userData.friends = [];
     if (!userData.profile) userData.profile = {};
-    if (!userData.settings) userData.settings = { macroTargets: {}, goals: {}, preferences: {} };
-    if (!userData.settings.macroTargets) userData.settings.macroTargets = {};
-    if (!userData.settings.goals) userData.settings.goals = {};
-    if (!userData.settings.preferences) userData.settings.preferences = {};
 
-    populateUI(user);
+    // Generate Short ID if missing (Fallback, primarily handled in data-store.js)
+    if (!userData.profile.shortId) {
+        userData.profile.shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
+        await window.BodyProDataStore.saveData(userData);
+    }
+
+    renderNetworkUI();
 });
 
-// --- UI POPULATION ---
-function populateUI(user) {
-    // 1. Identity
-    profName.value = user.displayName || userData.profile.displayName || '';
-    profAge.value = userData.profile.age || '';
-    if (userData.profile.sex) profSex.value = userData.profile.sex;
-    profHeight.value = userData.profile.heightInches || '';
-    profGoalWeight.value = userData.profile.goalWeight || '';
-    if (userData.profile.activityLevel) profActivity.value = userData.profile.activityLevel;
-    if (userData.profile.objective) profObjective.value = userData.profile.objective;
+// --- RENDER UI ---
+function renderNetworkUI() {
+    // 1. Display Personal ID
+    myShortIdDisplay.innerText = userData.profile.shortId || "ERROR";
 
-    // 2. Nutritional Targets
-    goalCals.value = userData.settings.macroTargets.calories || 2200;
-    goalProt.value = userData.settings.macroTargets.protein || 200;
-    goalCarb.value = userData.settings.macroTargets.carbs || 150;
-    goalFat.value = userData.settings.macroTargets.fats || 88;
+    // 2. Render Friends List
+    friendListContainer.innerHTML = '';
+    
+    if (userData.friends.length === 0) {
+        friendListContainer.innerHTML = `
+            <div style="text-align: center; padding: 30px 20px; color: var(--text-muted); font-size: 0.9rem; background: var(--bg-surface-elevated); border-radius: var(--border-radius-sm); border: 1px dashed var(--border-color);">
+                <i class="fa-solid fa-ghost" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;"></i><br>
+                Your network is currently empty.<br>Add friends using their 6-character ID.
+            </div>
+        `;
+        friendCountBadge.innerText = "0 Connections";
+        return;
+    }
 
-    // 3. Biometric & Activity Goals
-    goalSleep.value = userData.settings.goals.sleepHrs || 7.5;
-    goalSteps.value = userData.settings.goals.steps || 10000;
-    goalFloors.value = userData.settings.goals.floors || 10;
-    goalWater.value = userData.settings.goals.waterOz || 120;
-    goalWorkoutDays.value = userData.settings.goals.workoutDaysPerWeek || 6;
-    goalLiftMins.value = userData.settings.goals.targetLiftingMinutes || 90;
-    goalCardioMins.value = userData.settings.goals.targetCardioMinutes || 20;
+    friendCountBadge.innerText = `${userData.friends.length} Connection${userData.friends.length !== 1 ? 's' : ''}`;
 
-    // 4. Preferences
-    if (userData.settings.preferences.theme) prefTheme.value = userData.settings.preferences.theme;
-    if (userData.settings.preferences.weightUnit) prefWeight.value = userData.settings.preferences.weightUnit;
-    if (userData.settings.preferences.fluidUnit) prefFluid.value = userData.settings.preferences.fluidUnit;
-    if (userData.settings.preferences.timeFormat) prefTime.value = userData.settings.preferences.timeFormat;
-    if (userData.settings.preferences.defaultMeal) prefMeal.value = userData.settings.preferences.defaultMeal;
+    userData.friends.forEach(friend => {
+        const initial = friend.displayName ? friend.displayName.charAt(0).toUpperCase() : '?';
+        const name = friend.displayName || 'Unknown User';
+        const sId = friend.shortId || '------';
+
+        const card = document.createElement('div');
+        card.className = 'friend-card';
+        card.innerHTML = `
+            <div class="friend-info">
+                <div class="friend-avatar">${initial}</div>
+                <div class="friend-details">
+                    <h4>${name}</h4>
+                    <p>ID: ${sId}</p>
+                </div>
+            </div>
+            <div class="friend-actions">
+                <button title="Remove Connection" onclick="removeFriend('${sId}')">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+        `;
+        friendListContainer.appendChild(card);
+    });
 }
 
-// --- MODULE 1: IDENTITY MANAGEMENT ---
-btnSaveIdentity.addEventListener('click', async () => {
-    btnSaveIdentity.disabled = true;
-    btnSaveIdentity.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
+// --- GLOBAL ATTACHMENT FOR REMOVE FRIEND ---
+// Because it's injected via innerHTML, we need it on the window object
+window.removeFriend = async function(shortIdToRemove) {
+    if (!confirm(`Are you sure you want to remove connection ${shortIdToRemove} from your network?`)) return;
 
-    // Update Firebase Auth Profile if name changed
-    if (profName.value.trim() && profName.value.trim() !== auth.currentUser.displayName) {
-        await updateProfile(auth.currentUser, { displayName: profName.value.trim() });
-    }
-
-    userData.profile = {
-        displayName: profName.value.trim(),
-        age: parseInt(profAge.value) || null,
-        sex: profSex.value,
-        heightInches: parseInt(profHeight.value) || null,
-        goalWeight: parseInt(profGoalWeight.value) || null,
-        activityLevel: parseFloat(profActivity.value),
-        objective: profObjective.value,
-        shortId: userData.profile.shortId // Preserve the Short ID
-    };
-
-    const success = await window.BodyProDataStore.saveData(userData);
+    userData.friends = userData.friends.filter(f => f.shortId !== shortIdToRemove);
     
+    const success = await window.BodyProDataStore.saveData(userData);
     if (success) {
-        btnSaveIdentity.innerHTML = '<i class="fa-solid fa-check"></i> Identity Secured';
+        showToast("Connection removed.", "var(--danger)");
+        renderNetworkUI();
+    }
+};
+
+// --- COPY TO CLIPBOARD ---
+btnCopyId.addEventListener('click', () => {
+    const idToCopy = myShortIdDisplay.innerText;
+    navigator.clipboard.writeText(idToCopy).then(() => {
+        const originalText = btnCopyId.innerHTML;
+        btnCopyId.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+        btnCopyId.style.color = "var(--accent)";
+        
         setTimeout(() => {
-            btnSaveIdentity.disabled = false;
-            btnSaveIdentity.innerText = 'Update Identity';
+            btnCopyId.innerHTML = originalText;
+            btnCopyId.style.color = "";
         }, 2000);
-    }
-});
-
-// --- MODULE 2: TARGETS & GOALS ---
-btnSaveTargets.addEventListener('click', async () => {
-    btnSaveTargets.disabled = true;
-    btnSaveTargets.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
-
-    userData.settings.macroTargets = {
-        calories: parseInt(goalCals.value) || 2200,
-        protein: parseInt(goalProt.value) || 200,
-        carbs: parseInt(goalCarb.value) || 150,
-        fats: parseInt(goalFat.value) || 88
-    };
-
-    userData.settings.goals = {
-        sleepHrs: parseFloat(goalSleep.value) || 7.5,
-        steps: parseInt(goalSteps.value) || 10000,
-        floors: parseInt(goalFloors.value) || 10,
-        waterOz: parseInt(goalWater.value) || 120,
-        workoutDaysPerWeek: parseInt(goalWorkoutDays.value) || 6,
-        targetLiftingMinutes: parseInt(goalLiftMins.value) || 90,
-        targetCardioMinutes: parseInt(goalCardioMins.value) || 20
-    };
-
-    const success = await window.BodyProDataStore.saveData(userData);
-    
-    if (success) {
-        btnSaveTargets.innerHTML = '<i class="fa-solid fa-check"></i> Targets Locked';
-        setTimeout(() => {
-            btnSaveTargets.disabled = false;
-            btnSaveTargets.innerText = 'Save Targets';
-        }, 2000);
-    }
-});
-
-// --- MODULE 3: SYSTEM PREFERENCES ---
-btnSavePrefs.addEventListener('click', async () => {
-    btnSavePrefs.disabled = true;
-    btnSavePrefs.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Applying...';
-
-    userData.settings.preferences = {
-        theme: prefTheme.value,
-        weightUnit: prefWeight.value,
-        fluidUnit: prefFluid.value,
-        timeFormat: prefTime.value,
-        defaultMeal: prefMeal.value
-    };
-
-    // Apply theme immediately
-    if (prefTheme.value === 'system') {
-        const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-        document.documentElement.setAttribute('data-theme', prefersLight ? 'light' : 'dark');
-    } else {
-        document.documentElement.setAttribute('data-theme', prefTheme.value);
-    }
-
-    const success = await window.BodyProDataStore.saveData(userData);
-    
-    if (success) {
-        btnSavePrefs.innerHTML = '<i class="fa-solid fa-check"></i> Preferences Applied';
-        setTimeout(() => {
-            btnSavePrefs.disabled = false;
-            btnSavePrefs.innerText = 'Apply Preferences';
-        }, 2000);
-    }
-});
-
-// --- MODULE 4: DATA MANAGEMENT (DANGER ZONE) ---
-
-// Backup/Export
-btnExportData.addEventListener('click', () => {
-    if (!userData) return alert("System Error: No data available to export.");
-    
-    const dataStr = JSON.stringify(userData, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `BodyPro_Backup_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-});
-
-// Import/Restore
-inputImportData.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    if (!confirm("WARNING: Importing a backup will overwrite your current cloud data. Proceed?")) {
-        inputImportData.value = ''; // Reset input
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            const importedData = JSON.parse(e.target.result);
-            if (!importedData.uid && !importedData.profile) throw new Error("Invalid payload structure.");
-            
-            // Ensure the imported data is linked to the current user's Auth ID
-            // Handle legacy exports that might not have uid at the root
-            importedData.uid = auth.currentUser.uid;
-            
-            const success = await window.BodyProDataStore.saveData(importedData);
-            if (success) {
-                alert("Backup restored successfully. The system will now reload.");
-                window.location.reload();
-            } else {
-                alert("Error synchronizing imported data to the cloud.");
-            }
-        } catch (error) {
-            alert("File corruption detected. Cannot parse JSON backup.");
-            console.error("Import Error:", error);
-        }
-        inputImportData.value = ''; // Reset input
-    };
-    reader.readAsText(file);
-});
-
-// 7-Day Rollback
-btnResetWeek.addEventListener('click', async () => {
-    if (!confirm("WARNING: This will permanently delete all diary entries, workouts, and biometrics logged in the last 7 days. This action cannot be undone. Execute?")) return;
-    
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 7);
-    const cutoffISO = cutoffDate.toISOString().split('T')[0];
-
-    // Filter Arrays
-    if (userData.food_diary) {
-        userData.food_diary = userData.food_diary.filter(f => f.date < cutoffISO);
-    }
-    if (userData.biometrics) {
-        userData.biometrics = userData.biometrics.filter(b => b.date < cutoffISO);
-    }
-    if (userData.sleep_data) {
-        userData.sleep_data = userData.sleep_data.filter(s => s.date < cutoffISO);
-    }
-    if (userData.workouts) {
-        // Workouts use timestamp instead of strict date string
-        userData.workouts = userData.workouts.filter(w => new Date(w.timestamp) < cutoffDate);
-    }
-
-    const success = await window.BodyProDataStore.saveData(userData);
-    if (success) {
-        alert("7-Day Rollback executed successfully.");
-        window.location.reload();
-    }
-});
-
-// Complete Account Wipe
-btnWipeAccount.addEventListener('click', async () => {
-    const confirmationWord = prompt("CRITICAL WARNING: You are about to wipe your entire BodyPro database. Type 'DELETE' to confirm execution.");
-    if (confirmationWord !== 'DELETE') {
-        alert("Wipe aborted.");
-        return;
-    }
-
-    // Reset all arrays while maintaining the core structure and user UID
-    userData = {
-        uid: auth.currentUser.uid,
-        food_diary: [],
-        biometrics: [],
-        sleep_data: [],
-        workouts: [],
-        custom_recipes: [],
-        workout_templates: [],
-        social: { friends: [], pending: [], blocked: [], posts: [] },
-        profile: userData.profile, // Keep identity/Short ID intact
-        settings: {
-            macroTargets: { calories: 2200, protein: 200, carbs: 150, fats: 88 },
-            goals: {
-                sleepHrs: 7.5, steps: 10000, floors: 10, waterOz: 120,
-                workoutDaysPerWeek: 6, targetLiftingMinutes: 90, targetCardioMinutes: 20
-            },
-            preferences: { theme: 'dark', weightUnit: 'lbs', fluidUnit: 'oz', timeFormat: '12', defaultMeal: 'Snacks' }
-        }
-    };
-
-    const success = await window.BodyProDataStore.saveData(userData);
-    if (success) {
-        alert("Database wiped. System has been factory reset.");
-        window.location.replace('dashboard.html');
-    }
-});
-
-// --- AUTHENTICATION ---
-btnSignOut.addEventListener('click', () => {
-    signOut(auth).then(() => {
-        window.location.replace('login.html');
-    }).catch((error) => {
-        console.error("Sign Out Error", error);
-        alert("Failed to securely disconnect. Please check connection.");
+    }).catch(err => {
+        console.error("Failed to copy ID: ", err);
+        showToast("Clipboard access denied.", "var(--danger)");
     });
 });
+
+// --- ADD CONNECTION LOGIC ---
+btnAddFriend.addEventListener('click', async () => {
+    const targetId = inputFriendId.value.trim().toUpperCase();
+
+    // Validation
+    if (targetId.length !== 6) {
+        showMsg("Invalid ID format. Must be 6 characters.", "var(--danger)");
+        return;
+    }
+    
+    if (targetId === userData.profile.shortId) {
+        showMsg("You cannot add yourself to your own network.", "var(--warning)");
+        return;
+    }
+
+    if (userData.friends.some(f => f.shortId === targetId)) {
+        showMsg("This user is already in your network.", "var(--warning)");
+        return;
+    }
+
+    // UI Feedback
+    btnAddFriend.disabled = true;
+    btnAddFriend.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    showMsg("Searching cloud registry...", "var(--text-muted)");
+
+    try {
+        // Query Firestore for the Target Short ID
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("profile.shortId", "==", targetId));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            showMsg(`No account found with ID: ${targetId}`, "var(--danger)");
+            btnAddFriend.disabled = false;
+            btnAddFriend.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i>';
+            return;
+        }
+
+        // Target Found
+        let foundUserDoc = null;
+        querySnapshot.forEach((doc) => { foundUserDoc = doc; }); // Should only be one
+        
+        const targetData = foundUserDoc.data();
+        const targetName = targetData.profile?.displayName || "BodyPro User";
+
+        // Add to local array
+        userData.friends.push({
+            uid: foundUserDoc.id,
+            shortId: targetId,
+            displayName: targetName,
+            addedAt: new Date().toISOString()
+        });
+
+        // Sync to cloud
+        const success = await window.BodyProDataStore.saveData(userData);
+        
+        if (success) {
+            showMsg(`Successfully connected with ${targetName}!`, "var(--accent)");
+            inputFriendId.value = '';
+            renderNetworkUI();
+        } else {
+            showMsg("Failed to synchronize network update.", "var(--danger)");
+        }
+
+    } catch (error) {
+        console.error("Network Search Error:", error);
+        showMsg("Cloud query failed. Check connection.", "var(--danger)");
+    } finally {
+        btnAddFriend.disabled = false;
+        btnAddFriend.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i>';
+    }
+});
+
+// --- HELPER FUNCTIONS ---
+function showMsg(text, color) {
+    addFriendMsg.style.display = 'block';
+    addFriendMsg.style.color = color;
+    addFriendMsg.innerText = text;
+    
+    // Auto-hide after 4 seconds unless it's a loading state
+    if (color !== "var(--text-muted)") {
+        setTimeout(() => {
+            addFriendMsg.style.display = 'none';
+        }, 4000);
+    }
+}
+
+function showToast(message, bgColor) {
+    systemToast.innerText = message;
+    if (bgColor) systemToast.style.backgroundColor = bgColor;
+    
+    systemToast.classList.add('show');
+    setTimeout(() => {
+        systemToast.classList.remove('show');
+        // Reset color after hide
+        setTimeout(() => { systemToast.style.backgroundColor = "var(--accent)"; }, 400);
+    }, 3000);
+}
