@@ -233,8 +233,8 @@ window.handleAddMovement = function() {
     div.style.padding = '10px';
     
     div.innerHTML = `
-        <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;">
-            <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" placeholder="Movement Name" list="presetExercises" style="flex:1; font-weight:bold; font-size:1rem; border-color:var(--primary);">
+        <div class="movement-header-row">
+            <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" placeholder="Movement Name" list="presetExercises">
             <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
         </div>
         <div class="movement-sets" style="margin-bottom:10px;">
@@ -359,8 +359,8 @@ btnLoadTemplate.addEventListener('click', () => {
         div.style.padding = '10px';
         
         div.innerHTML = `
-            <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;">
-                <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" value="${ex.exercise || ex.name || ''}" list="presetExercises" style="flex:1; font-weight:bold; font-size:1rem; border-color:var(--primary);">
+            <div class="movement-header-row">
+                <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" value="${ex.exercise || ex.name || ''}" list="presetExercises">
                 <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
             </div>
             <div class="movement-sets" style="margin-bottom:10px;">
@@ -522,8 +522,8 @@ document.getElementById('btnEditSession').addEventListener('click', () => {
         div.style.padding = '10px';
         
         div.innerHTML = `
-            <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;">
-                <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" value="${exName}" list="presetExercises" style="flex:1; font-weight:bold; font-size:1rem; border-color:var(--primary);">
+            <div class="movement-header-row">
+                <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" value="${exName}" list="presetExercises">
                 <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
             </div>
             <div class="movement-sets" style="margin-bottom:10px;">
