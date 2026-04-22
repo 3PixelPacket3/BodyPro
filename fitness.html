@@ -1,433 +1,657 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>BodyPro | Training Hub</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="icon" type="image/svg+xml" href="./favicon.svg">  
-  
-<style>
-    /* Fitness Specific Styles */
-    .timer-dashboard {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      margin-bottom: 20px;
+// fitness.js - BodyPro Training Hub Logic
+
+import { auth } from './data-store.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+// --- PROGRESSIVE WEB APP REGISTRATION ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+            .then(reg => console.log('[BodyPro System] Service Worker Registered', reg))
+            .catch(err => console.error('[BodyPro System] SW Registration Failed', err));
+    });
+}
+
+// --- DOM Elements ---
+// Timers: Resistance & Cardio
+const displayLift = document.getElementById('displayLift');
+const btnToggleLift = document.getElementById('btnToggleLift');
+const btnResetLift = document.getElementById('btnResetLift');
+const displayCardio = document.getElementById('displayCardio');
+const btnToggleCardio = document.getElementById('btnToggleCardio');
+const btnResetCardio = document.getElementById('btnResetCardio');
+
+// Timers: Rest Engine
+const displayRest = document.getElementById('displayRest');
+const customRestInput = document.getElementById('customRestInput');
+
+// Session Logger
+const workoutTitle = document.getElementById('workoutTitle');
+const inputAvgHR = document.getElementById('inputAvgHR');
+const inputWorkoutCals = document.getElementById('inputWorkoutCals');
+const workoutLogArea = document.getElementById('workoutLogArea');
+const btnFinishWorkout = document.getElementById('btnFinishWorkout');
+
+// Templates
+const templateSelect = document.getElementById('templateSelect');
+const btnSaveAsTemplate = document.getElementById('btnSaveAsTemplate');
+const btnLoadTemplate = document.getElementById('btnLoadTemplate');
+const templatesListContainer = document.getElementById('templatesListContainer');
+
+// History
+const historyListContainer = document.getElementById('historyListContainer');
+const viewSessionModal = document.getElementById('viewSessionModal');
+
+// --- STATE MANAGEMENT ---
+let userData = null;
+
+let liftTimer = null;
+let liftSeconds = 0;
+let isLiftRunning = false;
+
+let cardioTimer = null;
+let cardioSeconds = 0;
+let isCardioRunning = false;
+
+let restTimer = null;
+let restSecondsRemaining = 0;
+
+let currentViewSessionId = null;
+
+// --- THE SECURITY GUARD ---
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.replace('login.html');
+        return;
+    }
+    userData = await window.BodyProDataStore.getData();
+    
+    userData.workout_templates = userData.workout_templates || [];
+    
+    populateExerciseDatalist();
+    updateTemplateDropdown();
+    handleAddMovement(); // Add initial blank movement group
+    
+    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+    }
+});
+
+// --- CHRONOGRAPH LOGIC ---
+function formatTime(totalSeconds) {
+    const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+    const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+    const s = String(totalSeconds % 60).padStart(2, '0');
+    if (h === "00") return `${m}:${s}`;
+    return `${h}:${m}:${s}`;
+}
+
+window.editTimer = function(type) {
+    const input = prompt("Manual Entry: Enter total minutes (e.g., 45):");
+    if (input !== null && !isNaN(input) && input.trim() !== "") {
+        const totalSecs = Math.floor(parseFloat(input) * 60);
+        if (type === 'lift') {
+            liftSeconds = totalSecs;
+            displayLift.innerText = formatTime(liftSeconds);
+        } else if (type === 'cardio') {
+            cardioSeconds = totalSecs;
+            displayCardio.innerText = formatTime(cardioSeconds);
+        }
+    }
+};
+
+// Resistance Timer
+btnToggleLift.addEventListener('click', () => {
+    if (isLiftRunning) {
+        clearInterval(liftTimer);
+        btnToggleLift.innerHTML = '<i class="fa-solid fa-play"></i> Resume';
+        btnToggleLift.style.background = 'var(--bg-surface-elevated)';
+    } else {
+        liftTimer = setInterval(() => {
+            liftSeconds++;
+            displayLift.innerText = formatTime(liftSeconds);
+        }, 1000);
+        btnToggleLift.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+        btnToggleLift.style.background = 'var(--primary)';
+    }
+    isLiftRunning = !isLiftRunning;
+});
+
+btnResetLift.addEventListener('click', () => {
+    clearInterval(liftTimer);
+    liftSeconds = 0;
+    isLiftRunning = false;
+    displayLift.innerText = "00:00:00";
+    btnToggleLift.innerHTML = '<i class="fa-solid fa-play"></i> Start';
+    btnToggleLift.style.background = 'var(--bg-surface-elevated)';
+});
+
+// Conditioning Timer
+btnToggleCardio.addEventListener('click', () => {
+    if (isCardioRunning) {
+        clearInterval(cardioTimer);
+        btnToggleCardio.innerHTML = '<i class="fa-solid fa-play"></i> Resume';
+        btnToggleCardio.style.background = 'var(--bg-surface-elevated)';
+    } else {
+        cardioTimer = setInterval(() => {
+            cardioSeconds++;
+            displayCardio.innerText = formatTime(cardioSeconds);
+        }, 1000);
+        btnToggleCardio.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+        btnToggleCardio.style.background = 'var(--accent)';
+    }
+    isCardioRunning = !isCardioRunning;
+});
+
+btnResetCardio.addEventListener('click', () => {
+    clearInterval(cardioTimer);
+    cardioSeconds = 0;
+    isCardioRunning = false;
+    displayCardio.innerText = "00:00:00";
+    btnToggleCardio.innerHTML = '<i class="fa-solid fa-play"></i> Start';
+    btnToggleCardio.style.background = 'var(--bg-surface-elevated)';
+});
+
+// Rest Timer Engine
+window.startRestTimer = function(seconds) {
+    clearInterval(restTimer);
+    restSecondsRemaining = seconds;
+    displayRest.innerText = formatTime(restSecondsRemaining);
+    displayRest.style.color = 'var(--warning)';
+
+    if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
     }
 
-    /* NEW Mobile Grid Logic: Stacks timers vertically on smaller screens */
-    @media (max-width: 600px) {
-      .timer-dashboard {
-        grid-template-columns: 1fr;
-      }
+    restTimer = setInterval(() => {
+        restSecondsRemaining--;
+        if (restSecondsRemaining <= 0) {
+            clearInterval(restTimer);
+            displayRest.innerText = "00:00";
+            displayRest.style.color = 'var(--danger)';
+            
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("Rest Interval Complete", {
+                    body: "Time to get back to the bar. Prepare for your next set.",
+                    icon: "icon-192.png"
+                });
+            }
+        } else {
+            displayRest.innerText = formatTime(restSecondsRemaining);
+        }
+    }, 1000);
+};
+
+window.startCustomRest = function() {
+    const secs = parseInt(customRestInput.value);
+    if (secs > 0) window.startRestTimer(secs);
+};
+
+window.stopRestTimer = function() {
+    clearInterval(restTimer);
+    displayRest.innerText = "00:00";
+    displayRest.style.color = 'var(--warning)';
+};
+
+// --- PRESET MOVEMENT LIBRARY ---
+function populateExerciseDatalist() {
+    const datalist = document.getElementById('presetExercises');
+    const exercises = [
+        "Bench Press (Barbell) [Chest]", "Bench Press (Dumbbell) [Chest]", "Incline Bench Press [Chest]", 
+        "Decline Bench Press [Chest]", "Chest Fly (Cable) [Chest]", "Chest Fly (Dumbbell) [Chest]", 
+        "Push-Up [Chest]", "Pec Deck Machine [Chest]", "Deadlift (Barbell) [Back/Legs]", "Pull-Up [Back]", 
+        "Chin-Up [Back]", "Lat Pulldown (Cable) [Back]", "Bent Over Row (Barbell) [Back]", "Dumbbell Row [Back]", 
+        "Seated Cable Row [Back]", "T-Bar Row [Back]", "Overhead Press (Barbell) [Shoulders]", 
+        "Overhead Press (Dumbbell) [Shoulders]", "Arnold Press [Shoulders]", "Lateral Raise (Dumbbell) [Shoulders]", 
+        "Front Raise (Dumbbell) [Shoulders]", "Reverse Pec Deck [Shoulders]", "Face Pull (Cable) [Shoulders]", 
+        "Shrugs (Dumbbell/Barbell) [Traps]", "Squat (Barbell) [Quads/Glutes]", "Front Squat [Quads]", 
+        "Leg Press [Quads/Glutes]", "Lunge (Dumbbell) [Legs]", "Bulgarian Split Squat [Legs]", 
+        "Leg Extension (Machine) [Quads]", "Leg Curl (Machine) [Hamstrings]", "Romanian Deadlift [Hamstrings]", 
+        "Calf Raise (Standing) [Calves]", "Calf Raise (Seated) [Calves]", "Bicep Curl (Barbell) [Biceps]", 
+        "Bicep Curl (Dumbbell) [Biceps]", "Hammer Curl [Biceps]", "Preacher Curl [Biceps]", 
+        "Tricep Extension (Cable) [Triceps]", "Skullcrusher [Triceps]", "Tricep Kickback [Triceps]", 
+        "Dips [Triceps/Chest]", "Crunch [Core]", "Plank [Core]", "Russian Twist [Core]", 
+        "Hanging Leg Raise [Core]", "Cable Woodchopper [Core]", "Ab Wheel Rollout [Core]"
+    ];
+    exercises.sort().forEach(ex => {
+        const option = document.createElement('option');
+        option.value = ex;
+        datalist.appendChild(option);
+    });
+}
+
+// --- NESTED SESSION LOGGER (LIVE GRID) ---
+window.handleAddMovement = function() {
+    const uid = 'mov_' + Date.now() + Math.random().toString(36).substr(2, 5);
+    const div = document.createElement('div');
+    div.className = 'movement-group';
+    div.id = uid;
+    div.style.marginBottom = '20px';
+    div.style.background = 'var(--bg-base)';
+    div.style.border = '1px solid var(--border-color)';
+    div.style.borderRadius = 'var(--border-radius-sm)';
+    div.style.padding = '10px';
+    
+    div.innerHTML = `
+        <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;">
+            <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" placeholder="Movement Name" list="presetExercises" style="flex:1; font-weight:bold; font-size:1rem; border-color:var(--primary);">
+            <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
+        </div>
+        <div class="movement-sets" style="margin-bottom:10px;">
+            <div style="display: grid; grid-template-columns: 0.5fr 1fr 1fr 1fr 40px; gap: 10px; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; padding-left:5px;">
+                <div style="text-align:center;">Set</div><div>Lbs</div><div>Reps</div><div>RPE</div><div></div>
+            </div>
+        </div>
+        <button class="btn btn-ghost" style="width:100%; font-size:0.8rem; padding:8px;" onclick="addSetToMovement('${uid}')"><i class="fa-solid fa-plus"></i> Add Set</button>
+    `;
+    workoutLogArea.appendChild(div);
+    window.addSetToMovement(uid); 
+};
+
+window.addSetToMovement = function(uid, weight='', reps='', rpe='') {
+    const group = document.getElementById(uid);
+    if (!group) return;
+    const setsContainer = group.querySelector('.movement-sets');
+    const setNumber = setsContainer.querySelectorAll('.set-row').length + 1;
+    const setUid = 'set_' + Date.now() + Math.random().toString(36).substr(2, 5);
+    
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    row.style.display = 'grid';
+    row.style.gridTemplateColumns = '0.5fr 1fr 1fr 1fr 40px';
+    row.style.gap = '10px';
+    row.style.alignItems = 'center';
+    row.style.marginBottom = '8px';
+    
+    row.innerHTML = `
+        <div style="text-align:center; font-weight:bold; color:var(--text-muted);" class="set-index">${setNumber}</div>
+        <input type="number" name="weight_${setUid}" class="exercise-input ex-weight" placeholder="0" value="${weight}">
+        <input type="number" name="reps_${setUid}" class="exercise-input ex-reps" placeholder="0" value="${reps}">
+        <input type="number" name="rpe_${setUid}" class="exercise-input ex-rpe" placeholder="7" max="10" value="${rpe}">
+        <button class="btn-remove-set" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;" onclick="removeSetRow(this)"><i class="fa-solid fa-xmark"></i></button>
+    `;
+    setsContainer.appendChild(row);
+    updateSetNumbers(uid);
+};
+
+window.removeSetRow = function(btn) {
+    const group = btn.closest('.movement-group');
+    const row = btn.closest('.set-row');
+    row.remove();
+    updateSetNumbers(group.id);
+};
+
+function updateSetNumbers(uid) {
+    const group = document.getElementById(uid);
+    if(!group) return;
+    const rows = group.querySelectorAll('.set-row .set-index');
+    rows.forEach((el, idx) => {
+        el.innerText = idx + 1;
+    });
+}
+
+// --- TEMPLATE MANAGEMENT ---
+function updateTemplateDropdown() {
+    templateSelect.innerHTML = '<option value="">-- Select Template to Load --</option>';
+    (userData.workout_templates || []).forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.innerText = t.title;
+        templateSelect.appendChild(opt);
+    });
+}
+
+btnSaveAsTemplate.addEventListener('click', async () => {
+    const title = workoutTitle.value.trim();
+    if (!title) return alert("Please enter a Workout Title to save as a template.");
+
+    const exercises = [];
+    const groups = workoutLogArea.querySelectorAll('.movement-group');
+    
+    groups.forEach(group => {
+        const name = group.querySelector('.ex-name').value.trim();
+        if (name) {
+            const setsArr = [];
+            group.querySelectorAll('.set-row').forEach(row => {
+                setsArr.push({
+                    weight: row.querySelector('.ex-weight').value || '',
+                    reps: row.querySelector('.ex-reps').value || '',
+                    rpe: row.querySelector('.ex-rpe').value || ''
+                });
+            });
+            exercises.push({ exercise: name, sets: setsArr });
+        }
+    });
+
+    if (exercises.length === 0) return alert("Cannot save an empty template.");
+
+    const newTemplate = {
+        id: 'tpl_' + Date.now(),
+        title: title,
+        exercises: exercises,
+        timestamp: new Date().toISOString()
+    };
+
+    userData.workout_templates.push(newTemplate);
+    const success = await window.BodyProDataStore.saveData(userData);
+
+    if (success) {
+        updateTemplateDropdown();
+        btnSaveAsTemplate.innerHTML = '<i class="fa-solid fa-check"></i> Saved';
+        setTimeout(() => btnSaveAsTemplate.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save as Template', 2000);
+    }
+});
+
+btnLoadTemplate.addEventListener('click', () => {
+    const tplId = templateSelect.value;
+    if (!tplId) return;
+
+    const tpl = userData.workout_templates.find(t => t.id === tplId);
+    if (!tpl) return;
+
+    workoutTitle.value = tpl.title;
+    workoutLogArea.innerHTML = '';
+
+    tpl.exercises.forEach(ex => {
+        const uid = 'mov_' + Date.now() + Math.random().toString(36).substr(2, 5);
+        const div = document.createElement('div');
+        div.className = 'movement-group';
+        div.id = uid;
+        div.style.marginBottom = '20px';
+        div.style.background = 'var(--bg-base)';
+        div.style.border = '1px solid var(--border-color)';
+        div.style.borderRadius = 'var(--border-radius-sm)';
+        div.style.padding = '10px';
+        
+        div.innerHTML = `
+            <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;">
+                <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" value="${ex.exercise || ex.name || ''}" list="presetExercises" style="flex:1; font-weight:bold; font-size:1rem; border-color:var(--primary);">
+                <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
+            </div>
+            <div class="movement-sets" style="margin-bottom:10px;">
+                <div style="display: grid; grid-template-columns: 0.5fr 1fr 1fr 1fr 40px; gap: 10px; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; padding-left:5px;">
+                    <div style="text-align:center;">Set</div><div>Lbs</div><div>Reps</div><div>RPE</div><div></div>
+                </div>
+            </div>
+            <button class="btn btn-ghost" style="width:100%; font-size:0.8rem; padding:8px;" onclick="addSetToMovement('${uid}')"><i class="fa-solid fa-plus"></i> Add Set</button>
+        `;
+        workoutLogArea.appendChild(div);
+
+        if (ex.sets && Array.isArray(ex.sets)) {
+            ex.sets.forEach(s => window.addSetToMovement(uid, s.weight, s.reps, s.rpe));
+        } else {
+            window.addSetToMovement(uid);
+        }
+    });
+});
+
+window.renderTemplatesManager = function() {
+    templatesListContainer.innerHTML = '';
+    const templates = userData.workout_templates || [];
+
+    if (templates.length === 0) {
+        templatesListContainer.innerHTML = '<p class="text-muted" style="text-align: center; font-size: 0.9rem;">No templates saved.</p>';
+        return;
     }
 
-    .timer-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-md);
-      padding: 15px;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    templates.forEach(t => {
+        const el = document.createElement('div');
+        el.className = 'history-list-item';
+        el.innerHTML = `
+            <div>
+                <h4 style="margin: 0 0 4px 0; font-size: 1rem;">${t.title}</h4>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">${t.exercises.length} Movements</div>
+            </div>
+            <button class="btn btn-ghost" style="padding: 6px 12px; border-color: transparent; color: var(--danger);" onclick="deleteTemplate('${t.id}')">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        `;
+        templatesListContainer.appendChild(el);
+    });
+};
+
+window.deleteTemplate = async function(id) {
+    if(confirm("Permanently delete this template?")) {
+        userData.workout_templates = userData.workout_templates.filter(t => t.id !== id);
+        window.renderTemplatesManager();
+        updateTemplateDropdown();
+        await window.BodyProDataStore.saveData(userData);
+    }
+};
+
+// --- HISTORY & VAULT MANAGEMENT ---
+window.renderHistoryVault = function() {
+    historyListContainer.innerHTML = '';
+    const workouts = [...(userData.workouts || [])].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    if (workouts.length === 0) {
+        historyListContainer.innerHTML = '<p class="text-muted" style="text-align: center; font-size: 0.9rem;">No sessions logged.</p>';
+        return;
     }
 
-    .timer-card h4 {
-      margin: 0 0 10px 0;
-      color: var(--text-muted);
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+    workouts.forEach(wk => {
+        const el = document.createElement('div');
+        el.className = 'history-list-item';
+        el.style.cursor = 'pointer';
+        
+        const dateStr = new Date(wk.timestamp).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+        
+        el.innerHTML = `
+            <div style="flex: 1;" onclick="viewSession('${wk.id}')">
+                <h4 style="margin: 0 0 4px 0; font-size: 1rem; color: var(--primary);">${wk.title || 'Untitled Session'}</h4>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">${dateStr} | ${(wk.sets || []).length} Sets</div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-muted" style="margin-left: 10px;" onclick="viewSession('${wk.id}')"></i>
+        `;
+        historyListContainer.appendChild(el);
+    });
+};
+
+window.viewSession = function(id) {
+    const wk = userData.workouts.find(w => w.id === id);
+    if (!wk) return;
+
+    currentViewSessionId = id;
+    
+    document.getElementById('viewSessionTitle').innerText = wk.title || 'Untitled Session';
+    document.getElementById('viewSessionDate').innerText = new Date(wk.timestamp).toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+    
+    const totalDuration = Math.round((wk.durationLift + wk.durationCardio) / 60);
+    document.getElementById('viewSessionDuration').innerText = `${totalDuration} mins`;
+    document.getElementById('viewSessionCals').innerText = wk.telemetry?.activeCals || 0;
+
+    const setsContainer = document.getElementById('viewSessionSets');
+    setsContainer.innerHTML = '';
+
+    if (wk.sets && wk.sets.length > 0) {
+        wk.sets.forEach((s, idx) => {
+            setsContainer.innerHTML += `
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; ${idx === wk.sets.length - 1 ? 'border:none;' : ''}">
+                    <div style="font-weight: 600;">${s.exercise}</div>
+                    <div class="text-muted">${s.weight} lbs</div>
+                    <div class="text-muted">${s.reps} reps</div>
+                    <div class="text-muted">1RM: ${s.est1RM || 0}</div>
+                </div>
+            `;
+        });
+    } else {
+        setsContainer.innerHTML = '<div class="text-muted" style="font-size: 0.85rem; padding: 10px 0;">No set data recorded. Time/Cardio only.</div>';
     }
 
-    .time-display {
-      font-size: 2rem;
-      font-weight: 800;
-      font-family: monospace;
-      margin-bottom: 10px;
-    }
+    viewSessionModal.classList.add('active');
+};
 
-    .t-lift { color: var(--primary); }
-    .t-cardio { color: var(--accent); }
-    .t-rest { color: var(--warning); font-size: 2.5rem; }
+document.getElementById('btnEditSession').addEventListener('click', () => {
+    const wk = userData.workouts.find(w => w.id === currentViewSessionId);
+    if (!wk) return;
+    
+    document.getElementById('viewSessionModal').classList.remove('active');
+    document.getElementById('historyModal').classList.remove('active');
+    
+    workoutTitle.value = wk.title || '';
+    inputAvgHR.value = wk.telemetry?.avgHR || '';
+    inputWorkoutCals.value = wk.telemetry?.activeCals || '';
+    
+    liftSeconds = wk.durationLift || 0;
+    displayLift.innerText = formatTime(liftSeconds);
+    clearInterval(liftTimer);
+    isLiftRunning = false;
+    btnToggleLift.innerHTML = '<i class="fa-solid fa-play"></i> Start';
+    btnToggleLift.style.background = 'var(--bg-surface-elevated)';
 
-    .timer-controls {
-      display: flex;
-      gap: 10px;
-      width: 100%;
-    }
-
-    .timer-controls button {
-      flex: 1;
-      padding: 8px;
-      border: none;
-      border-radius: var(--border-radius-sm);
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 0.85rem;
-    }
-
-    .btn-play { background: var(--bg-surface-elevated); color: var(--text-main); }
-    .btn-play:hover { background: var(--primary); color: white; }
-    .btn-stop { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
-    .btn-stop:hover { background: var(--danger); color: white; }
-
-    /* Session Logger */
-    .session-logger {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-md);
-      overflow: hidden;
-      margin-bottom: 20px;
-    }
-
-    .logger-header {
-      background: var(--bg-surface-elevated);
-      padding: 15px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    /* Updated Grid to accommodate delete button */
-    .exercise-row {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr 40px;
-      gap: 10px;
-      padding: 15px;
-      border-bottom: 1px solid var(--border-color);
-      align-items: center;
-    }
-
-    .exercise-row:last-child {
-      border-bottom: none;
-    }
-
-    .exercise-input {
-      background: var(--bg-base);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      padding: 8px;
-      border-radius: var(--border-radius-sm);
-      width: 100%;
-      font-size: 0.9rem;
+    cardioSeconds = wk.durationCardio || 0;
+    displayCardio.innerText = formatTime(cardioSeconds);
+    clearInterval(cardioTimer);
+    isCardioRunning = false;
+    btnToggleCardio.innerHTML = '<i class="fa-solid fa-play"></i> Start';
+    btnToggleCardio.style.background = 'var(--bg-surface-elevated)';
+    
+    workoutLogArea.innerHTML = '';
+    
+    // Group flat historical sets back into nested HTML structure
+    const movements = {};
+    (wk.sets || []).forEach(s => {
+        if(!movements[s.exercise]) movements[s.exercise] = [];
+        movements[s.exercise].push(s);
+    });
+    
+    for(const [exName, exSets] of Object.entries(movements)) {
+        const uid = 'mov_' + Date.now() + Math.random().toString(36).substr(2, 5);
+        const div = document.createElement('div');
+        div.className = 'movement-group';
+        div.id = uid;
+        div.style.marginBottom = '20px';
+        div.style.background = 'var(--bg-base)';
+        div.style.border = '1px solid var(--border-color)';
+        div.style.borderRadius = 'var(--border-radius-sm)';
+        div.style.padding = '10px';
+        
+        div.innerHTML = `
+            <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;">
+                <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" value="${exName}" list="presetExercises" style="flex:1; font-weight:bold; font-size:1rem; border-color:var(--primary);">
+                <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
+            </div>
+            <div class="movement-sets" style="margin-bottom:10px;">
+                <div style="display: grid; grid-template-columns: 0.5fr 1fr 1fr 1fr 40px; gap: 10px; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; padding-left:5px;">
+                    <div style="text-align:center;">Set</div><div>Lbs</div><div>Reps</div><div>RPE</div><div></div>
+                </div>
+            </div>
+            <button class="btn btn-ghost" style="width:100%; font-size:0.8rem; padding:8px;" onclick="addSetToMovement('${uid}')"><i class="fa-solid fa-plus"></i> Add Set</button>
+        `;
+        workoutLogArea.appendChild(div);
+        
+        exSets.forEach(s => window.addSetToMovement(uid, s.weight, s.reps, s.rpe));
     }
     
-    .exercise-input:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
+    // Switch the complete button into "Update" mode
+    btnFinishWorkout.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Historical Session';
+    btnFinishWorkout.dataset.editModeId = wk.id;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
 
-    .btn-remove-set {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-size: 1.1rem;
-      transition: color 0.2s;
-    }
-    .btn-remove-set:hover { color: var(--danger); }
-
-    .add-set-btn {
-      width: 100%;
-      padding: 12px;
-      background: transparent;
-      color: var(--primary);
-      border: none;
-      border-top: 1px solid var(--border-color);
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .add-set-btn:hover {
-      background: var(--bg-surface-elevated);
-    }
-
-    /* Telemetry Input */
-    .telemetry-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-
-    /* Modals */
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(5px);
-      z-index: 2000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
-    }
-
-    .modal-overlay.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .modal-content {
-      background: var(--bg-surface);
-      width: 90%;
-      max-width: 500px;
-      max-height: 90vh;
-      overflow-y: auto;
-      border-radius: var(--border-radius-md);
-      border: 1px solid var(--border-color);
-      padding: 25px;
-      transform: translateY(20px);
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .modal-overlay.active .modal-content {
-      transform: translateY(0);
-    }
-
-    .history-list-item {
-      background: var(--bg-base);
-      border: 1px solid var(--border-color);
-      padding: 15px;
-      border-radius: var(--border-radius-sm);
-      margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-</style>
-</head>
-<body>
-
-  <div class="app-container">
+document.getElementById('btnDeleteSession').addEventListener('click', async () => {
+    if (!currentViewSessionId) return;
     
-    <nav class="app-nav">
-      <a href="dashboard.html" class="nav-item">
-        <i class="fa-solid fa-house"></i>
-        <span>Home</span>
-      </a>
-      <a href="nutrition.html" class="nav-item">
-        <i class="fa-solid fa-utensils"></i>
-        <span>Nutrition</span>
-      </a>
-      <a href="recipes.html" class="nav-item">
-        <i class="fa-solid fa-book-open"></i>
-        <span>Recipes</span>
-      </a>
-      <a href="fitness.html" class="nav-item active">
-        <i class="fa-solid fa-dumbbell"></i>
-        <span>Fitness</span>
-      </a>
-      <a href="analytics.html" class="nav-item">
-        <i class="fa-solid fa-chart-line"></i>
-        <span>Analytics</span>
-      </a>
-      <a href="social.html" class="nav-item">
-        <i class="fa-solid fa-users"></i>
-        <span>Social</span>
-      </a>
-      <a href="settings.html" class="nav-item">
-        <i class="fa-solid fa-user"></i>
-        <span>Profile</span>
-      </a>
-    </nav>
+    if(confirm("Permanently delete this session from your history? This will affect your analytics.")) {
+        userData.workouts = userData.workouts.filter(w => w.id !== currentViewSessionId);
+        await window.BodyProDataStore.saveData(userData);
+        document.getElementById('viewSessionModal').classList.remove('active');
+        window.renderHistoryVault();
+    }
+});
 
-    <main class="main-content">
-      
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
-        <div>
-          <h2 style="margin-bottom: 5px;">Active Protocol</h2>
-          <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;" id="currentWorkoutDate">Loading...</p>
-        </div>
-        <button class="btn btn-ghost" style="padding: 8px 15px; font-size: 0.85rem;" onclick="openHistoryModal()">
-          <i class="fa-solid fa-clock-rotate-left"></i> History
-        </button>
-      </div>
+// --- SESSION COMPLETION, 1RM CALCULATION & SAVING ---
+btnFinishWorkout.addEventListener('click', async () => {
+    const title = workoutTitle.value.trim() || "Uncategorized Session";
+    const avgHR = parseInt(inputAvgHR.value) || 0;
+    const activeCals = parseInt(inputWorkoutCals.value) || 0;
+    
+    const sets = [];
+    const groups = workoutLogArea.querySelectorAll('.movement-group');
+    
+    groups.forEach(group => {
+        const name = group.querySelector('.ex-name').value.trim();
+        if (name) {
+            group.querySelectorAll('.set-row').forEach(row => {
+                const weight = parseFloat(row.querySelector('.ex-weight').value) || 0;
+                const reps = parseInt(row.querySelector('.ex-reps').value) || 0;
+                const rpe = parseInt(row.querySelector('.ex-rpe').value) || 0;
+                
+                if (weight > 0 || reps > 0) { 
+                    let est1RM = weight;
+                    if (reps > 1) est1RM = weight * (1 + (reps / 30));
+                    
+                    sets.push({ 
+                        exercise: name, 
+                        weight: weight, 
+                        reps: reps, 
+                        rpe: rpe,
+                        volume: weight * reps,
+                        est1RM: Math.round(est1RM)
+                    });
+                }
+            });
+        }
+    });
 
-      <div class="timer-dashboard">
-        <div class="timer-card" style="border-top: 3px solid var(--primary);">
-          <h4><i class="fa-solid fa-weight-hanging text-primary"></i> Resistance</h4>
-          <div class="time-display t-lift" id="displayLift">00:00:00</div>
-          <div class="timer-controls">
-            <button class="btn-play" id="btnToggleLift"><i class="fa-solid fa-play"></i> Start</button>
-            <button class="btn-stop" id="btnResetLift"><i class="fa-solid fa-rotate-left"></i></button>
-          </div>
-        </div>
+    if (sets.length === 0 && liftSeconds === 0 && cardioSeconds === 0) {
+        alert("Cannot save an empty session. Please log time or sets.");
+        return;
+    }
 
-        <div class="timer-card" style="border-top: 3px solid var(--accent);">
-          <h4><i class="fa-solid fa-person-running text-accent"></i> Conditioning</h4>
-          <div class="time-display t-cardio" id="displayCardio">00:00:00</div>
-          <div class="timer-controls">
-            <button class="btn-play" id="btnToggleCardio"><i class="fa-solid fa-play"></i> Start</button>
-            <button class="btn-stop" id="btnResetCardio"><i class="fa-solid fa-rotate-left"></i></button>
-          </div>
-        </div>
-      </div>
+    btnFinishWorkout.disabled = true;
+    btnFinishWorkout.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Encrypting & Saving...';
 
-      <div class="card" style="border-top: 4px solid var(--warning);">
-        <h3 style="font-size: 1.1rem; margin-bottom: 10px;"><i class="fa-solid fa-stopwatch-20 text-warning"></i> Rest Engine</h3>
-        <div class="time-display t-rest" id="displayRest" style="text-align: center; margin-bottom: 10px;">00:00</div>
+    const workoutPayload = {
+        date: new Date().toLocaleDateString('en-CA'),
+        timestamp: new Date().toISOString(),
+        title: title,
+        durationLift: liftSeconds,
+        durationCardio: cardioSeconds,
+        telemetry: {
+            avgHR: avgHR,
+            activeCals: activeCals
+        },
+        sets: sets
+    };
+
+    const editId = btnFinishWorkout.dataset.editModeId;
+    userData.workouts = userData.workouts || [];
+    
+    if (editId) {
+        workoutPayload.id = editId;
+        const idx = userData.workouts.findIndex(w => w.id === editId);
+        if (idx !== -1) {
+            workoutPayload.timestamp = userData.workouts[idx].timestamp; // Preserve original date
+            userData.workouts[idx] = workoutPayload;
+        }
+    } else {
+        workoutPayload.id = 'wkout_' + Date.now();
+        userData.workouts.push(workoutPayload);
+    }
+    
+    const success = await window.BodyProDataStore.saveData(userData);
+
+    if (success) {
+        btnResetLift.click();
+        btnResetCardio.click();
+        window.stopRestTimer();
+        workoutTitle.value = '';
+        inputAvgHR.value = '';
+        inputWorkoutCals.value = '';
+        workoutLogArea.innerHTML = '';
+        window.handleAddMovement(); 
         
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-          <button class="btn btn-ghost" onclick="startRestTimer(30)" style="flex: 1;">30s</button>
-          <button class="btn btn-ghost" onclick="startRestTimer(60)" style="flex: 1;">60s</button>
-          <button class="btn btn-ghost" onclick="startRestTimer(90)" style="flex: 1;">90s</button>
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-          <input type="number" id="customRestInput" name="customRestInput" placeholder="Secs" style="flex: 1;">
-          <button class="btn btn-ghost" onclick="startCustomRest()" style="flex: 1;">Start</button>
-          <button class="btn btn-ghost" style="color: var(--danger); border-color: var(--danger); flex: 1;" onclick="stopRestTimer()">Stop</button>
-        </div>
-      </div>
-
-      <div class="card" style="border-top: 4px solid var(--text-main);">
-        <div class="card-header">
-          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-folder-open"></i> Routine Templates</h3>
-          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openTemplatesModal()"><i class="fa-solid fa-gear"></i> Manage</button>
-        </div>
-        <select id="templateSelect" name="templateSelect" style="margin-bottom: 15px; width: 100%;">
-          <option value="">-- Select Template to Load --</option>
-        </select>
-        <button class="btn btn-ghost" id="btnLoadTemplate" style="width: 100%;"><i class="fa-solid fa-download"></i> Load to Live Session</button>
-      </div>
-
-      <div class="card">
-        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-tower-broadcast text-warning"></i> Session Telemetry</h3>
-        <div class="telemetry-row">
-          <div class="form-group" style="margin: 0;">
-            <label for="inputAvgHR">Avg Heart Rate (BPM)</label>
-            <input type="number" id="inputAvgHR" name="inputAvgHR" placeholder="e.g. 145" style="border-color: var(--border-color);">
-          </div>
-          <div class="form-group" style="margin: 0;">
-            <label for="inputWorkoutCals">Total Active Cals</label>
-            <input type="number" id="inputWorkoutCals" name="inputWorkoutCals" placeholder="e.g. 650">
-          </div>
-        </div>
-      </div>
-
-      <h3 style="font-size: 1.1rem; margin: 25px 0 15px 0;"><i class="fa-solid fa-list-check text-primary"></i> Live Log</h3>
-      
-      <div class="session-logger" id="workoutLogger">
-        <div class="logger-header">
-          <input type="text" class="exercise-input" id="workoutTitle" name="workoutTitle" placeholder="Workout Title (e.g. Push Day, Pull, Legs)" style="font-weight: bold; background: transparent; border: none; font-size: 1.1rem; padding: 0;">
-        </div>
+        delete btnFinishWorkout.dataset.editModeId;
         
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 40px; gap: 10px; padding: 10px 15px; background: var(--bg-base); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); border-bottom: 1px solid var(--border-color);">
-          <div>Exercise</div>
-          <div>Lbs</div>
-          <div>Reps</div>
-          <div>RPE</div>
-          <div></div>
-        </div>
-
-        <div id="setList">
-          </div>
-
-        <button class="add-set-btn" id="btnAddSet">
-          <i class="fa-solid fa-plus"></i> Add Set
-        </button>
-      </div>
-
-      <div style="margin-top: 25px; margin-bottom: 10px;">
-        <button class="btn btn-ghost" id="btnSaveAsTemplate" style="width: 100%; margin-bottom: 15px;"><i class="fa-solid fa-floppy-disk"></i> Save as Template</button>
-        <button class="btn" id="btnFinishWorkout" style="width: 100%;">
-          <i class="fa-solid fa-check-double"></i> Complete & Save Session
-        </button>
-      </div>
-
-    </main>
-  </div>
-
-  <datalist id="presetExercises">
-    </datalist>
-
-  <div class="modal-overlay" id="historyModal">
-    <div class="modal-content">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 style="margin: 0;"><i class="fa-solid fa-clock-rotate-left text-primary"></i> Session Vault</h3>
-        <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="closeModals()"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      
-      <div id="historyListContainer">
-        </div>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="viewSessionModal">
-    <div class="modal-content">
-      <h3 style="margin-top: 0; margin-bottom: 5px;" id="viewSessionTitle">Session Details</h3>
-      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px;" id="viewSessionDate"></p>
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-        <div style="background: var(--bg-base); padding: 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); text-align: center;">
-          <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Duration</div>
-          <div style="font-weight: 800; color: var(--primary);" id="viewSessionDuration">--</div>
-        </div>
-        <div style="background: var(--bg-base); padding: 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); text-align: center;">
-          <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Cals Burned</div>
-          <div style="font-weight: 800; color: var(--accent);" id="viewSessionCals">--</div>
-        </div>
-      </div>
-
-      <div style="background: var(--bg-base); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); padding: 10px; max-height: 250px; overflow-y: auto;" id="viewSessionSets">
-        </div>
-
-      <div style="display: flex; gap: 10px; margin-top: 20px;">
-        <button class="btn btn-ghost" style="flex: 1;" onclick="closeViewSessionModal()">Close</button>
-        <button class="btn btn-ghost" style="color: var(--danger); border-color: var(--danger); flex: 1;" id="btnDeleteSession">Delete</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="templatesModal">
-    <div class="modal-content">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 style="margin: 0;"><i class="fa-solid fa-folder-open text-accent"></i> My Templates</h3>
-        <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="closeModals()"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      
-      <div id="templatesListContainer">
-        </div>
-    </div>
-  </div>
-
-  <script>
-    const options = { weekday: 'long', month: 'short', day: 'numeric' };
-    document.getElementById('currentWorkoutDate').innerText = new Date().toLocaleDateString('en-US', options);
-
-    function openHistoryModal() {
-      if(window.renderHistoryVault) window.renderHistoryVault();
-      document.getElementById('historyModal').classList.add('active');
+        btnFinishWorkout.innerHTML = '<i class="fa-solid fa-check"></i> Session Saved';
+        setTimeout(() => {
+            btnFinishWorkout.disabled = false;
+            btnFinishWorkout.innerHTML = '<i class="fa-solid fa-check-double"></i> Complete & Save Session';
+        }, 3000);
+    } else {
+        alert("System Error: Failed to synchronize session to the cloud.");
+        btnFinishWorkout.disabled = false;
+        btnFinishWorkout.innerHTML = editId ? '<i class="fa-solid fa-floppy-disk"></i> Update Session' : '<i class="fa-solid fa-check-double"></i> Complete & Save Session';
     }
-
-    function openTemplatesModal() {
-      if(window.renderTemplatesManager) window.renderTemplatesManager();
-      document.getElementById('templatesModal').classList.add('active');
-    }
-
-    function closeViewSessionModal() {
-      document.getElementById('viewSessionModal').classList.remove('active');
-    }
-
-    function closeModals() {
-      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
-    }
-  </script>
-
-  <script type="module" src="data-store.js"></script>
-  <script type="module" src="fitness.js"></script>
-  </body>
-
-<footer style="text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: 20px;">
-  &copy; 2026 Joshua Michael Smolak. All Rights Reserved. <br>
-  BodyPro System v2.0.0
-</footer>
-</html>
+});
