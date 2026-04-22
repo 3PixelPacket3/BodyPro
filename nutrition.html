@@ -440,7 +440,7 @@
       <h3 style="margin-top: 0;"><i class="fa-solid fa-bolt text-warning"></i> Add to Diary</h3>
       
       <div class="form-group">
-        <label>Meal</label>
+        <label for="qaMeal">Meal</label>
         <select id="qaMeal">
           <option value="Breakfast">Breakfast</option>
           <option value="Lunch">Lunch</option>
@@ -450,32 +450,32 @@
       </div>
 
       <div class="form-group" style="padding: 10px; border: 1px dashed var(--accent); border-radius: var(--border-radius-sm); background: rgba(16, 185, 129, 0.05);">
-        <label class="text-accent"><i class="fa-solid fa-book-open"></i> Load Custom Recipe</label>
+        <label for="qaRecipeSelect" class="text-accent"><i class="fa-solid fa-book-open"></i> Load Custom Recipe</label>
         <select id="qaRecipeSelect">
           <option value="">-- Select from Vault --</option>
           </select>
       </div>
       
       <div class="form-group">
-        <label>Description (Optional)</label>
+        <label for="qaName">Description (Optional)</label>
         <input type="text" id="qaName" placeholder="e.g., Office Bagel">
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <div class="form-group">
-          <label>Calories</label>
+          <label for="qaCals">Calories</label>
           <input type="number" id="qaCals" value="0" min="0">
         </div>
         <div class="form-group">
-          <label class="m-prot">Protein (g)</label>
+          <label for="qaProt" class="m-prot">Protein (g)</label>
           <input type="number" id="qaProt" value="0" min="0">
         </div>
         <div class="form-group">
-          <label class="m-carb">Carbs (g)</label>
+          <label for="qaCarb" class="m-carb">Carbs (g)</label>
           <input type="number" id="qaCarb" value="0" min="0">
         </div>
         <div class="form-group">
-          <label class="m-fat">Fats (g)</label>
+          <label for="qaFat" class="m-fat">Fats (g)</label>
           <input type="number" id="qaFat" value="0" min="0">
         </div>
       </div>
@@ -494,31 +494,31 @@
       
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <div class="form-group">
-          <label>Sex</label>
+          <label for="calcSex">Sex</label>
           <select id="calcSex">
             <option value="male">Male</option>
             <option value="female">Female</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Age</label>
+          <label for="calcAge">Age</label>
           <input type="number" id="calcAge" placeholder="e.g. 26">
         </div>
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <div class="form-group">
-          <label>Weight (lbs)</label>
+          <label for="calcWeight">Weight (lbs)</label>
           <input type="number" id="calcWeight" placeholder="e.g. 185">
         </div>
         <div class="form-group">
-          <label>Height (inches)</label>
+          <label for="calcHeight">Height (inches)</label>
           <input type="number" id="calcHeight" placeholder="e.g. 69">
         </div>
       </div>
 
       <div class="form-group">
-        <label>Activity Level</label>
+        <label for="calcActivity">Activity Level</label>
         <select id="calcActivity">
           <option value="1.2">Sedentary (office job, little/no exercise)</option>
           <option value="1.375">Light (exercise 1-3 days/week)</option>
@@ -529,7 +529,7 @@
       </div>
 
       <div class="form-group">
-        <label>Goal</label>
+        <label for="calcGoal">Goal</label>
         <select id="calcGoal">
           <option value="-500">Cut (-500 cal/day, ~1lb loss/wk)</option>
           <option value="-250">Mild Cut (-250 cal/day)</option>
