@@ -226,11 +226,12 @@ function populateExerciseDatalist() {
 btnAddSet.addEventListener('click', () => {
     const row = document.createElement('div');
     row.className = 'exercise-row';
+    const uid = Date.now() + Math.floor(Math.random() * 1000); // Generate unique ID for attributes
     row.innerHTML = `
-        <input type="text" class="exercise-input ex-name" placeholder="Movement" list="presetExercises">
-        <input type="number" class="exercise-input ex-weight" placeholder="0">
-        <input type="number" class="exercise-input ex-reps" placeholder="0">
-        <input type="number" class="exercise-input ex-rpe" placeholder="7" max="10">
+        <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" placeholder="Movement" list="presetExercises">
+        <input type="number" name="ex_weight_${uid}" class="exercise-input ex-weight" placeholder="0">
+        <input type="number" name="ex_reps_${uid}" class="exercise-input ex-reps" placeholder="0">
+        <input type="number" name="ex_rpe_${uid}" class="exercise-input ex-rpe" placeholder="7" max="10">
         <button class="btn-remove-set" onclick="removeSetRow(this)"><i class="fa-solid fa-trash-can"></i></button>
     `;
     setList.appendChild(row);
@@ -303,11 +304,12 @@ btnLoadTemplate.addEventListener('click', () => {
     tpl.exercises.forEach(ex => {
         const row = document.createElement('div');
         row.className = 'exercise-row';
+        const uid = Date.now() + Math.floor(Math.random() * 1000); // Generate unique ID for attributes
         row.innerHTML = `
-            <input type="text" class="exercise-input ex-name" value="${ex.exercise}" list="presetExercises">
-            <input type="number" class="exercise-input ex-weight" placeholder="0">
-            <input type="number" class="exercise-input ex-reps" placeholder="0">
-            <input type="number" class="exercise-input ex-rpe" placeholder="7" max="10">
+            <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" value="${ex.exercise}" list="presetExercises">
+            <input type="number" name="ex_weight_${uid}" class="exercise-input ex-weight" placeholder="0">
+            <input type="number" name="ex_reps_${uid}" class="exercise-input ex-reps" placeholder="0">
+            <input type="number" name="ex_rpe_${uid}" class="exercise-input ex-rpe" placeholder="7" max="10">
             <button class="btn-remove-set" onclick="removeSetRow(this)"><i class="fa-solid fa-trash-can"></i></button>
         `;
         setList.appendChild(row);
