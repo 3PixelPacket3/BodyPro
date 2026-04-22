@@ -2,7 +2,7 @@
 
 import { auth, db } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // --- DOM ELEMENTS ---
 const myShortIdDisplay = document.getElementById('myShortId');
@@ -30,7 +30,7 @@ onAuthStateChanged(auth, async (user) => {
     if (!userData.friends) userData.friends = [];
     if (!userData.profile) userData.profile = {};
 
-    // Generate Short ID if missing (Fallback, primarily handled in data-store.js)
+    // Generate Short ID if missing
     if (!userData.profile.shortId) {
         userData.profile.shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
         await window.BodyProDataStore.saveData(userData);
@@ -86,7 +86,6 @@ function renderNetworkUI() {
 }
 
 // --- GLOBAL ATTACHMENT FOR REMOVE FRIEND ---
-// Because it's injected via innerHTML, we need it on the window object
 window.removeFriend = async function(shortIdToRemove) {
     if (!confirm(`Are you sure you want to remove connection ${shortIdToRemove} from your network?`)) return;
 
@@ -119,7 +118,7 @@ btnCopyId.addEventListener('click', () => {
 
 // --- ADD CONNECTION LOGIC ---
 btnAddFriend.addEventListener('click', async () => {
-    // CRITICAL FIX: Aggressively strip invisible spaces, returns, and zero-width characters
+    // Aggressively strip any accidental spaces or hidden characters from mobile keyboards
     const targetId = inputFriendId.value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
 
     // Validation
@@ -144,22 +143,27 @@ btnAddFriend.addEventListener('click', async () => {
     showMsg("Searching cloud registry...", "var(--text-muted)");
 
     try {
-        // Query Firestore for the Target Short ID
+        // OVERRIDE: Pulling all core user documents and filtering client-side
+        // This ensures the system finds the ID even if Firestore fails to index the nested map correctly.
         const usersRef = collection(db, "users");
-        const q = query(usersRef, where("profile.shortId", "==", targetId));
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocs(usersRef);
 
-        if (querySnapshot.empty) {
+        let foundUserDoc = null;
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            // Check the profile map structure
+            if (data.profile && data.profile.shortId === targetId) {
+                foundUserDoc = doc;
+            }
+        });
+
+        if (!foundUserDoc) {
             showMsg(`No account found with ID: ${targetId}`, "var(--danger)");
             btnAddFriend.disabled = false;
             btnAddFriend.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i>';
             return;
         }
 
-        // Target Found
-        let foundUserDoc = null;
-        querySnapshot.forEach((doc) => { foundUserDoc = doc; }); // Should only be one
-        
         const targetData = foundUserDoc.data();
         const targetName = targetData.profile?.displayName || "BodyPro User";
 
@@ -197,7 +201,6 @@ function showMsg(text, color) {
     addFriendMsg.style.color = color;
     addFriendMsg.innerText = text;
     
-    // Auto-hide after 4 seconds unless it's a loading state
     if (color !== "var(--text-muted)") {
         setTimeout(() => {
             addFriendMsg.style.display = 'none';
@@ -212,7 +215,6 @@ function showToast(message, bgColor) {
     systemToast.classList.add('show');
     setTimeout(() => {
         systemToast.classList.remove('show');
-        // Reset color after hide
         setTimeout(() => { systemToast.style.backgroundColor = "var(--accent)"; }, 400);
     }, 3000);
 }
