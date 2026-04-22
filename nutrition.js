@@ -34,10 +34,22 @@ const qaRecipeSelect = document.getElementById('qaRecipeSelect');
 // Macro Calc Elements
 const btnRunMacroCalc = document.getElementById('btnRunMacroCalc');
 
+// Interactive Nutrition Label Elements
+const nutritionLabelModal = document.getElementById('nutritionLabelModal');
+const labelProductName = document.getElementById('labelProductName');
+const labelServingMultiplier = document.getElementById('labelServingMultiplier');
+const labelCalories = document.getElementById('labelCalories');
+const labelFat = document.getElementById('labelFat');
+const labelCarb = document.getElementById('labelCarb');
+const labelProtein = document.getElementById('labelProtein');
+const btnLogScannedFood = document.getElementById('btnLogScannedFood');
+const labelMealSelect = document.getElementById('labelMealSelect');
+
 // --- STATE MANAGEMENT ---
 let userData = null;
 let currentViewDate = new Date(); // Defaults to today
 let html5QrCode = null;
+let currentScannedFood = null; // Holds base metrics for the interactive label
 
 // --- OFFLINE FOOD CACHE (IndexedDB) ---
 const FoodCache = {
@@ -297,24 +309,26 @@ async function onScanSuccess(decodedText, decodedResult) {
     }
     document.getElementById('scannerModal').classList.remove('active');
     
-    window.openQuickAddModal('Snacks');
+    // Transition to Label Modal
+    labelProductName.innerText = "Querying Database...";
+    labelServingMultiplier.value = 1; // Reset multiplier
+    nutritionLabelModal.classList.add('active');
+    
+    // Set default meal preference
+    const defaultMeal = userData?.settings?.preferences?.defaultMeal || 'Snacks';
+    labelMealSelect.value = defaultMeal;
     
     // Check Local Cache First
     const cachedProduct = await FoodCache.get(decodedText);
     
     if (cachedProduct) {
         console.log('[BodyPro Cache] Local Hit for barcode:', decodedText);
-        document.getElementById('qaName').value = cachedProduct.name;
-        document.getElementById('qaCals').value = cachedProduct.cals;
-        document.getElementById('qaProt').value = cachedProduct.prot;
-        document.getElementById('qaCarb').value = cachedProduct.carb;
-        document.getElementById('qaFat').value = cachedProduct.fat;
+        currentScannedFood = cachedProduct;
+        updateNutritionLabelDisplay();
         return; // Exit early since we used cache
     }
 
     // Cache Miss: Query External Database
-    document.getElementById('qaName').value = "Querying Database...";
-    
     try {
         console.log('[BodyPro Cache] Local Miss. Fetching OpenFoodFacts:', decodedText);
         const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
@@ -330,27 +344,84 @@ async function onScanSuccess(decodedText, decodedResult) {
             const fat = Math.round(nut['fat_serving'] || nut['fat_100g'] || nut['fat'] || 0);
             const name = p.product_name || "Unknown Product";
             
-            // Update UI
-            document.getElementById('qaName').value = name;
-            document.getElementById('qaCals').value = cals;
-            document.getElementById('qaProt').value = prot;
-            document.getElementById('qaCarb').value = carb;
-            document.getElementById('qaFat').value = fat;
+            currentScannedFood = { name, cals, prot, carb, fat };
+            updateNutritionLabelDisplay();
             
             // Save to Local Cache for next time
-            await FoodCache.set(decodedText, { name, cals, prot, carb, fat });
+            await FoodCache.set(decodedText, currentScannedFood);
             console.log('[BodyPro Cache] Product cached successfully.');
             
         } else {
             alert("Telemetry negative. Product not found in OpenFoodFacts database. Manual entry required.");
-            document.getElementById('qaName').value = "";
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+            window.openQuickAddModal('Snacks');
         }
     } catch (err) {
         console.error("API Error:", err);
         alert("Network failure. Unable to retrieve nutritional telemetry.");
-        document.getElementById('qaName').value = "";
+        document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+        window.openQuickAddModal('Snacks');
     }
 }
+
+// --- INTERACTIVE NUTRITION LABEL LOGIC ---
+function updateNutritionLabelDisplay() {
+    if (!currentScannedFood) return;
+    
+    // Read the current multiplier, fallback to 0 if invalid
+    const multiplier = parseFloat(labelServingMultiplier.value) || 0;
+    
+    // Dynamically calculate and update DOM
+    labelProductName.innerText = currentScannedFood.name;
+    labelCalories.innerText = Math.round(currentScannedFood.cals * multiplier);
+    labelFat.innerText = Math.round(currentScannedFood.fat * multiplier);
+    labelCarb.innerText = Math.round(currentScannedFood.carb * multiplier);
+    labelProtein.innerText = Math.round(currentScannedFood.prot * multiplier);
+}
+
+// Listen for keystrokes or up/down arrow clicks on the number input
+labelServingMultiplier.addEventListener('input', updateNutritionLabelDisplay);
+
+// Save directly from the Interactive Label
+btnLogScannedFood.addEventListener('click', async () => {
+    if (!currentScannedFood) return;
+    
+    btnLogScannedFood.disabled = true;
+    btnLogScannedFood.innerText = "Saving...";
+
+    const multiplier = parseFloat(labelServingMultiplier.value) || 0;
+    const meal = labelMealSelect.value;
+    
+    const calculatedCals = Math.round(currentScannedFood.cals * multiplier);
+    const calculatedProt = Math.round(currentScannedFood.prot * multiplier);
+    const calculatedCarb = Math.round(currentScannedFood.carb * multiplier);
+    const calculatedFat = Math.round(currentScannedFood.fat * multiplier);
+
+    const newEntry = {
+        id: 'food_' + Date.now(),
+        date: getLocalISODate(currentViewDate),
+        meal: meal,
+        name: `${currentScannedFood.name} (${multiplier}x)`,
+        calories: calculatedCals,
+        protein: calculatedProt,
+        carbs: calculatedCarb,
+        fats: calculatedFat,
+        timestamp: new Date().toISOString()
+    };
+
+    userData.food_diary.push(newEntry);
+    await window.BodyProDataStore.saveData(userData);
+    
+    // Cleanup & Reset
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    currentScannedFood = null;
+    
+    renderView();
+    
+    btnLogScannedFood.disabled = false;
+    btnLogScannedFood.innerText = "Save to Diary";
+});
+
 
 // --- RECIPE LOADING (QUICK ADD) ---
 qaRecipeSelect.addEventListener('change', (e) => {
@@ -423,7 +494,7 @@ btnSaveQuickAdd.addEventListener('click', async () => {
     document.getElementById('qaFat').value = 0;
     qaRecipeSelect.value = '';
     
-    window.closeModals();
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
     renderView();
     
     btnSaveQuickAdd.disabled = false;
