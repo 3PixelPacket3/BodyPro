@@ -119,11 +119,12 @@ btnCopyId.addEventListener('click', () => {
 
 // --- ADD CONNECTION LOGIC ---
 btnAddFriend.addEventListener('click', async () => {
-    const targetId = inputFriendId.value.trim().toUpperCase();
+    // CRITICAL FIX: Aggressively strip invisible spaces, returns, and zero-width characters
+    const targetId = inputFriendId.value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
 
     // Validation
     if (targetId.length !== 6) {
-        showMsg("Invalid ID format. Must be 6 characters.", "var(--danger)");
+        showMsg("Invalid ID format. Must be exactly 6 alphanumeric characters.", "var(--danger)");
         return;
     }
     
