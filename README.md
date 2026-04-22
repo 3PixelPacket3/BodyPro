@@ -4,7 +4,7 @@
 
 BodyPro is a comprehensive, offline-capable Progressive Web Application (PWA) engineered to track, analyze, and optimize human performance. Moving beyond standard tracking shells, BodyPro integrates real-time optical scanning, complex progression mathematics (1RM and Volume Load), and robust data sovereignty tools into a single, cohesive platform.
 
-![BodyPro Command Center](https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1000&auto=format&fit=crop)
+<img width="967" height="967" alt="icon-192" src="https://github.com/user-attachments/assets/58a3b3e8-0e65-4b02-a312-77e3b4471f30" />
 
 ## 🚀 Core Features
 
@@ -44,3 +44,5 @@ BodyPro is a comprehensive, offline-capable Progressive Web Application (PWA) en
 1. **Clone the Repository:**
    ```bash
    git clone [https://github.com/yourusername/bodypro.git](https://github.com/yourusername/bodypro.git)
+
+![BodyPro Command Center](https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1000&auto=format&fit=crop)
