@@ -238,8 +238,8 @@ window.handleAddMovement = function() {
             <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
         </div>
         <div class="movement-sets" style="margin-bottom:10px;">
-            <div style="display: grid; grid-template-columns: 0.5fr 1fr 1fr 1fr 40px; gap: 10px; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; padding-left:5px;">
-                <div style="text-align:center;">Set</div><div>Lbs</div><div>Reps</div><div>RPE</div><div></div>
+            <div class="set-grid-header">
+                <div>Set</div><div>Lbs</div><div>Reps</div><div>RPE</div><div></div>
             </div>
         </div>
         <button class="btn btn-ghost" style="width:100%; font-size:0.8rem; padding:8px;" onclick="addSetToMovement('${uid}')"><i class="fa-solid fa-plus"></i> Add Set</button>
@@ -257,18 +257,13 @@ window.addSetToMovement = function(uid, weight='', reps='', rpe='') {
     
     const row = document.createElement('div');
     row.className = 'set-row';
-    row.style.display = 'grid';
-    row.style.gridTemplateColumns = '0.5fr 1fr 1fr 1fr 40px';
-    row.style.gap = '10px';
-    row.style.alignItems = 'center';
-    row.style.marginBottom = '8px';
     
     row.innerHTML = `
         <div style="text-align:center; font-weight:bold; color:var(--text-muted);" class="set-index">${setNumber}</div>
         <input type="number" name="weight_${setUid}" class="exercise-input ex-weight" placeholder="0" value="${weight}">
         <input type="number" name="reps_${setUid}" class="exercise-input ex-reps" placeholder="0" value="${reps}">
         <input type="number" name="rpe_${setUid}" class="exercise-input ex-rpe" placeholder="7" max="10" value="${rpe}">
-        <button class="btn-remove-set" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;" onclick="removeSetRow(this)"><i class="fa-solid fa-xmark"></i></button>
+        <button class="btn-remove-set" onclick="removeSetRow(this)"><i class="fa-solid fa-xmark"></i></button>
     `;
     setsContainer.appendChild(row);
     updateSetNumbers(uid);
@@ -369,8 +364,8 @@ btnLoadTemplate.addEventListener('click', () => {
                 <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
             </div>
             <div class="movement-sets" style="margin-bottom:10px;">
-                <div style="display: grid; grid-template-columns: 0.5fr 1fr 1fr 1fr 40px; gap: 10px; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; padding-left:5px;">
-                    <div style="text-align:center;">Set</div><div>Lbs</div><div>Reps</div><div>RPE</div><div></div>
+                <div class="set-grid-header">
+                    <div>Set</div><div>Lbs</div><div>Reps</div><div>RPE</div><div></div>
                 </div>
             </div>
             <button class="btn btn-ghost" style="width:100%; font-size:0.8rem; padding:8px;" onclick="addSetToMovement('${uid}')"><i class="fa-solid fa-plus"></i> Add Set</button>
@@ -532,8 +527,8 @@ document.getElementById('btnEditSession').addEventListener('click', () => {
                 <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
             </div>
             <div class="movement-sets" style="margin-bottom:10px;">
-                <div style="display: grid; grid-template-columns: 0.5fr 1fr 1fr 1fr 40px; gap: 10px; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; padding-left:5px;">
-                    <div style="text-align:center;">Set</div><div>Lbs</div><div>Reps</div><div>RPE</div><div></div>
+                <div class="set-grid-header">
+                    <div>Set</div><div>Lbs</div><div>Reps</div><div>RPE</div><div></div>
                 </div>
             </div>
             <button class="btn btn-ghost" style="width:100%; font-size:0.8rem; padding:8px;" onclick="addSetToMovement('${uid}')"><i class="fa-solid fa-plus"></i> Add Set</button>
