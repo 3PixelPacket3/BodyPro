@@ -22,6 +22,29 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
+// --- GLOBAL OCR ENGINE ---
+// Instantiates Tesseract.js dynamically to extract text from user screenshots
+window.BodyProOCR = {
+    async scanImage(imageFile) {
+        if (!window.Tesseract) {
+            console.log("[BodyPro System] Injecting Tesseract.js for Optical Character Recognition...");
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+        
+        console.log("[BodyPro System] Analyzing optical telemetry...");
+        const worker = await window.Tesseract.createWorker('eng');
+        const ret = await worker.recognize(imageFile);
+        await worker.terminate();
+        return ret.data.text;
+    }
+};
+
 window.BodyProDataStore = {
   DB_NAME: 'BodyProDatabase',
   STORE_NAME: 'bodypro_store',
@@ -80,6 +103,26 @@ window.BodyProDataStore = {
       // Ensure all arrays and objects exist to prevent null reference errors
       userData.settings = userData.settings || this.getEmptyDB().settings;
       userData.friends = userData.friends || [];
+      userData.profile = userData.profile || {};
+      
+      // Generate Short ID for Social Connectivity if missing
+      if (!userData.profile.shortId) {
+         // Secure 6-character alphanumeric identifier
+         userData.profile.shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
+         // Quietly update the database so the ID is immediately permanent
+         setDoc(userRef, { profile: userData.profile }, { merge: true });
+      }
+
+      // Apply Theme Engine globally upon data fetch
+      if (userData.settings.preferences && userData.settings.preferences.theme) {
+          const theme = userData.settings.preferences.theme;
+          if (theme === 'system') {
+              const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+              document.documentElement.setAttribute('data-theme', prefersLight ? 'light' : 'dark');
+          } else {
+              document.documentElement.setAttribute('data-theme', theme);
+          }
+      }
       
       // Fetch subcollections
       const subCollections = ['food_diary', 'workouts', 'biometrics', 'sleep_data', 'custom_recipes'];
@@ -144,7 +187,8 @@ window.BodyProDataStore = {
       
       const topLevelPromise = setDoc(userRef, { 
           settings: cleanData.settings || {},
-          friends: cleanData.friends || []
+          friends: cleanData.friends || [],
+          profile: cleanData.profile || {}
       }, { merge: true }); 
 
       const syncCollection = async (colName, newItems, oldItems, basePath = ["users", user.uid]) => {
@@ -192,9 +236,24 @@ window.BodyProDataStore = {
 
   getEmptyDB() {
     return { 
+        profile: {
+            shortId: null,
+            displayName: "",
+            age: null,
+            sex: "male",
+            heightInches: null,
+            goalWeight: null,
+            activityLevel: 1.2,
+            objective: "maintain"
+        },
         settings: {
-            theme: 'dark',
-            units: 'lbs',
+            preferences: {
+                theme: 'dark',
+                weightUnit: 'lbs',
+                fluidUnit: 'oz',
+                timeFormat: '12',
+                defaultMeal: 'Snacks'
+            },
             macroTargets: {
                 calories: 2200,
                 protein: 200,
@@ -205,7 +264,11 @@ window.BodyProDataStore = {
                 weeklyWeightLoss: 1.5,
                 workoutDaysPerWeek: 6,
                 targetLiftingMinutes: 90,
-                targetCardioMinutes: 20
+                targetCardioMinutes: 20,
+                sleepHrs: 7.5,
+                steps: 10000,
+                floors: 10,
+                waterOz: 120
             },
             dailySupplements: [
                 { name: "Creatine", logged: false },
