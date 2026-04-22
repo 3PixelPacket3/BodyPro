@@ -4,279 +4,131 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>BodyPro | Social Network</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#09090b">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+  
   <style>
-    /* Social Specific Styles */
-    
-    /* ID Card */
-    .id-card {
-      background: linear-gradient(135deg, var(--bg-surface-elevated) 0%, var(--bg-base) 100%);
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-md);
-      padding: 20px;
-      text-align: center;
-      margin-bottom: 20px;
+    /* Global Mobile Scroll Fixes */
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
       position: relative;
-      overflow: hidden;
     }
 
-    .id-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; height: 4px;
-      background: var(--primary);
-    }
-
-    .network-id-display {
-      font-family: monospace;
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: var(--text-main);
-      background: var(--bg-surface);
-      padding: 10px;
-      border-radius: var(--border-radius-sm);
-      border: 1px dashed var(--primary);
-      margin: 15px 0;
-      word-break: break-all;
-      letter-spacing: 1px;
-    }
-
-    /* Friends Panel */
-    .friends-tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 15px;
-      overflow-x: auto;
-      padding-bottom: 5px;
+    .main-content {
+      padding-bottom: 100px;
+      overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
 
-    .friends-tabs::-webkit-scrollbar { height: 4px; }
-    .friends-tabs::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+    /* Social Specific Styles */
+    .id-display-box {
+      background: var(--bg-surface-elevated);
+      border: 2px dashed var(--primary);
+      border-radius: var(--border-radius-md);
+      padding: 25px;
+      text-align: center;
+      margin-top: 15px;
+      margin-bottom: 15px;
+      position: relative;
+    }
 
-    .tab-btn {
-      flex: 1;
-      min-width: 100px;
-      padding: 8px 12px;
+    .short-id-text {
+      font-size: 2.5rem;
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: var(--text-main);
+      font-family: monospace;
+      margin-bottom: 10px;
+    }
+
+    .friend-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .friend-card {
       background: var(--bg-surface-elevated);
       border: 1px solid var(--border-color);
-      color: var(--text-muted);
       border-radius: var(--border-radius-sm);
-      font-size: 0.85rem;
-      font-weight: 700;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s;
-      white-space: nowrap;
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: transform 0.2s;
     }
 
-    .tab-btn.active {
-      background: var(--primary);
-      color: white;
+    .friend-card:hover {
+      transform: translateX(5px);
       border-color: var(--primary);
     }
-
-    .friend-list-container {
-      max-height: 250px;
-      overflow-y: auto;
-      background: var(--bg-base);
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-sm);
-    }
-
-    .friend-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 15px;
-      border-bottom: 1px solid var(--border-color);
-    }
-    
-    .friend-item:last-child { border-bottom: none; }
 
     .friend-info {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 15px;
     }
 
     .friend-avatar {
-      width: 36px;
-      height: 36px;
-      background: var(--bg-surface-elevated);
+      width: 45px;
+      height: 45px;
       border-radius: 50%;
+      background: var(--primary);
+      color: white;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--primary);
-      font-weight: bold;
+      font-size: 1.2rem;
+      font-weight: 700;
     }
 
-    .friend-actions {
-      display: flex;
-      gap: 8px;
+    .friend-details h4 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .friend-details p {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: monospace;
     }
 
     .friend-actions button {
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 1.1rem;
+      background: transparent;
+      border: 1px solid var(--border-color);
       color: var(--text-muted);
-      padding: 5px;
-      transition: color 0.2s;
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s;
     }
 
-    .friend-actions .btn-accept:hover { color: var(--accent); }
-    .friend-actions .btn-reject:hover { color: var(--danger); }
-    .friend-actions .btn-block:hover { color: var(--warning); }
+    .friend-actions button:hover {
+      background: var(--danger);
+      color: white;
+      border-color: var(--danger);
+    }
 
-    /* Add Friend Input */
-    .add-friend-group {
+    .search-box {
       display: flex;
       gap: 10px;
-      margin-bottom: 15px;
+      margin-top: 15px;
     }
     
-    .add-friend-group input {
-      flex: 1;
-    }
-
-    /* Post Creation */
-    .create-post-box {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-md);
-      padding: 15px;
-      margin-bottom: 20px;
-    }
-
-    .post-textarea {
-      width: 100%;
-      background: var(--bg-base);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      padding: 12px;
-      border-radius: var(--border-radius-sm);
-      resize: vertical;
-      min-height: 80px;
-      font-family: inherit;
-      margin-bottom: 10px;
-    }
-    
-    .post-textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-
-    .post-controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    /* Feed Items (Structure for JS Injection) */
-    .feed-container {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .feed-post {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-md);
-      padding: 15px;
-    }
-
-    .feed-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .feed-author {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      font-size: 0.95rem;
-    }
-
-    .feed-meta {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .feed-content {
-      font-size: 0.9rem;
-      line-height: 1.5;
-      margin-bottom: 15px;
-      color: var(--text-main);
-    }
-
-    .feed-actions {
-      display: flex;
-      gap: 15px;
-      border-top: 1px solid var(--border-color);
-      padding-top: 10px;
-      margin-bottom: 10px;
-    }
-
-    .feed-action-btn {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: color 0.2s;
-    }
-
-    .feed-action-btn:hover, .feed-action-btn.active {
-      color: var(--primary);
-    }
-
-    .comments-section {
-      background: var(--bg-base);
-      border-radius: var(--border-radius-sm);
-      padding: 10px;
-      display: none; /* Toggled by JS */
-    }
-
-    .comments-section.open {
-      display: block;
-    }
-
-    .comment-item {
-      font-size: 0.85rem;
-      margin-bottom: 8px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .comment-item:last-child {
-      border-bottom: none;
-      margin-bottom: 0;
-      padding-bottom: 0;
-    }
-
-    .comment-input-group {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .comment-input-group input {
-      flex: 1;
-      font-size: 0.85rem;
-      padding: 6px 10px;
+    .search-box input {
+      text-transform: uppercase;
+      font-family: monospace;
+      letter-spacing: 2px;
+      font-weight: bold;
     }
 
   </style>
@@ -319,79 +171,62 @@
     <main class="main-content">
       
       <div style="margin-bottom: 20px;">
-        <h2 style="margin-bottom: 5px;">Social Network</h2>
+        <h2 style="margin-bottom: 5px;">Network</h2>
         <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Connect & Compete</p>
       </div>
 
-      <div class="id-card">
-        <h3 style="margin: 0 0 5px 0; font-size: 1.1rem;"><i class="fa-solid fa-id-badge text-primary"></i> My Network ID</h3>
-        <p class="text-muted" style="font-size: 0.85rem; margin: 0;">Share this ID to allow others to send you a connection request.</p>
-        <div class="network-id-display" id="myNetworkId">Loading Identity...</div>
-        <button class="btn btn-ghost" id="btnCopyId" style="width: 100%;"><i class="fa-regular fa-copy"></i> Copy to Clipboard</button>
+      <div class="card" style="border-top: 4px solid var(--primary);">
+        <div class="card-header">
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-id-badge text-primary"></i> My Network ID</h3>
+        </div>
+        <p class="text-muted" style="font-size: 0.85rem;">Share this 6-character code with friends so they can add you to their BodyPro network.</p>
+        
+        <div class="id-display-box">
+          <div class="short-id-text" id="myShortId">------</div>
+          <button class="btn btn-ghost" id="btnCopyId" style="width: auto; padding: 8px 20px; font-size: 0.9rem;">
+            <i class="fa-solid fa-copy"></i> Copy to Clipboard
+          </button>
+        </div>
       </div>
 
       <div class="card" style="border-top: 4px solid var(--accent);">
-        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-user-group text-accent"></i> Connections</h3>
+        <div class="card-header">
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-user-plus text-accent"></i> Add Connection</h3>
+        </div>
+        <p class="text-muted" style="font-size: 0.85rem;">Enter a friend's 6-character Network ID to add them to your circle.</p>
         
-        <div class="add-friend-group">
-          <input type="text" id="inputFriendId" placeholder="Enter Network ID to Add">
-          <button class="btn" id="btnSendRequest" style="padding: 0 15px;"><i class="fa-solid fa-user-plus"></i></button>
+        <div class="search-box">
+          <input type="text" id="inputFriendId" placeholder="e.g. X7B9K2" maxlength="6">
+          <button class="btn btn-accent" id="btnAddFriend" style="width: auto; padding: 0 25px;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
         </div>
+        <div id="addFriendMsg" style="margin-top: 10px; font-size: 0.85rem; font-weight: bold; display: none;"></div>
+      </div>
 
-        <div class="friends-tabs">
-          <div class="tab-btn active" onclick="switchFriendTab('active')" id="tabActive">Friends</div>
-          <div class="tab-btn" onclick="switchFriendTab('pending')" id="tabPending">Pending</div>
-          <div class="tab-btn" onclick="switchFriendTab('blocked')" id="tabBlocked">Blocked</div>
+      <div class="card" style="border-top: 4px solid var(--text-main);">
+        <div class="card-header">
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-users text-main"></i> My Circle</h3>
+          <span class="text-muted" style="font-size: 0.85rem; font-weight: bold;" id="friendCountBadge">0 Connections</span>
         </div>
-
-        <div class="friend-list-container" id="friendListContainer">
-          <p class="text-muted" style="text-align: center; padding: 20px; font-size: 0.9rem;">Initializing network protocols...</p>
+        
+        <div class="friend-list" id="friendListContainer">
+          <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.9rem;">
+            <i class="fa-solid fa-satellite-dish" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;"></i><br>
+            Scanning for connections...
           </div>
-      </div>
-
-      <div class="create-post-box">
-        <h3 style="font-size: 1rem; margin-top: 0; margin-bottom: 10px;"><i class="fa-solid fa-pen-to-square"></i> Broadcast</h3>
-        <textarea class="post-textarea" id="postContentInput" placeholder="Share a status, milestone, or thought..."></textarea>
-        
-        <div class="post-controls">
-          <select id="postVisibility" style="background: var(--bg-base); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px; border-radius: var(--border-radius-sm); font-size: 0.85rem;">
-            <option value="friends">Friends Only</option>
-            <option value="public">Public</option>
-            <option value="private">Private (Diary Only)</option>
-          </select>
-          <button class="btn" id="btnSubmitPost" style="padding: 8px 20px;">Post</button>
         </div>
       </div>
-
-      <h3 style="font-size: 1.1rem; margin: 25px 0 15px 0;"><i class="fa-solid fa-rss text-warning"></i> Live Feed</h3>
-      
-      <div class="feed-container" id="socialFeedContainer">
-        <p class="text-muted" style="text-align: center; padding: 20px; font-size: 0.9rem;">Decrypting timeline data...</p>
-        </div>
 
     </main>
   </div>
 
-  <script>
-    // Simple Tab Switching UI Logic
-    function switchFriendTab(tabName) {
-      document.getElementById('tabActive').classList.remove('active');
-      document.getElementById('tabPending').classList.remove('active');
-      document.getElementById('tabBlocked').classList.remove('active');
-      
-      if(tabName === 'active') document.getElementById('tabActive').classList.add('active');
-      if(tabName === 'pending') document.getElementById('tabPending').classList.add('active');
-      if(tabName === 'blocked') document.getElementById('tabBlocked').classList.add('active');
-
-      // Call the JS function to render the specific list
-      if(window.renderFriendsList) window.renderFriendsList(tabName);
-    }
-  </script>
+  <div class="toast" id="systemToast">System Notification</div>
 
   <script type="module" src="data-store.js"></script>
   <script type="module" src="social.js"></script>
 </body>
-
+  
 <footer style="text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: 20px;">
   &copy; 2026 Joshua Michael Smolak. All Rights Reserved. <br>
   BodyPro System v2.0.0
