@@ -291,18 +291,11 @@
           <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-clipboard-list"></i> Today's Protocol</h3>
           <button class="btn btn-ghost" id="btnTimeCrunch" style="padding: 4px 10px; font-size: 0.75rem; border-color: var(--danger); color: var(--danger);"><i class="fa-solid fa-bolt"></i> Time-Crunch</button>
         </div>
+        <select id="protocolSelect" style="margin-bottom: 15px; width: 100%; display: none;">
+          <option value="">-- Select Protocol --</option>
+        </select>
         <div id="todayProtocolContainer">
-          <div style="background: var(--bg-base); padding: 15px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 15px; transition: all 0.3s;" id="protocolDisplayBox">
-            <div style="background: var(--bg-surface-elevated); padding: 15px; border-radius: var(--border-radius-sm); color: var(--text-main);" id="protocolIconBox">
-              <i class="fa-solid fa-dumbbell" style="font-size: 1.5rem;" id="protocolIcon"></i>
-            </div>
-            <div>
-              <h4 style="margin: 0; transition: color 0.3s;" id="protocolTitle">Resistance & Conditioning</h4>
-              <p class="text-muted" style="font-size: 0.85rem; margin-top: 4px; font-weight: 600; transition: color 0.3s;" id="protocolDesc">Lifting: ~90m | Cardio: ~20m</p>
-            </div>
-            <a href="fitness.html" style="margin-left: auto; background: var(--bg-surface-elevated); padding: 10px 15px; border-radius: var(--border-radius-sm); color: var(--text-main); font-size: 1.2rem;"><i class="fa-solid fa-play"></i></a>
           </div>
-        </div>
       </div>
 
       <div class="card" style="border-top: 4px solid var(--warning);">
@@ -432,33 +425,33 @@
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <div class="form-group">
-          <label>Bed Time</label>
+          <label for="inputBedTime">Bed Time</label>
           <input type="time" id="inputBedTime">
         </div>
         <div class="form-group">
-          <label>Wake Time</label>
+          <label for="inputWakeTime">Wake Time</label>
           <input type="time" id="inputWakeTime">
         </div>
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <div class="form-group">
-          <label class="text-primary">Deep Sleep (hrs)</label>
+          <label for="inputDeepSleep" class="text-primary">Deep Sleep (hrs)</label>
           <input type="number" id="inputDeepSleep" step="0.1" placeholder="e.g. 1.5">
         </div>
         <div class="form-group">
-          <label class="text-accent">REM Sleep (hrs)</label>
+          <label for="inputRemSleep" class="text-accent">REM Sleep (hrs)</label>
           <input type="number" id="inputRemSleep" step="0.1" placeholder="e.g. 2.0">
         </div>
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <div class="form-group">
-          <label>Restfulness Score (0-100)</label>
+          <label for="inputRestfulness">Restfulness Score (0-100)</label>
           <input type="number" id="inputRestfulness" min="0" max="100" placeholder="e.g. 85">
         </div>
         <div class="form-group">
-          <label>Latency (Mins to fall asleep)</label>
+          <label for="inputLatency">Latency (Mins to fall asleep)</label>
           <input type="number" id="inputLatency" placeholder="e.g. 15">
         </div>
       </div>
@@ -481,22 +474,22 @@
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <div class="form-group">
-          <label class="text-accent">Steps</label>
+          <label for="inputSteps" class="text-accent">Steps</label>
           <input type="number" id="inputSteps" placeholder="e.g. 10000">
         </div>
         <div class="form-group">
-          <label class="text-primary">Floors Climbed</label>
+          <label for="inputFloors" class="text-primary">Floors Climbed</label>
           <input type="number" id="inputFloors" placeholder="e.g. 12">
         </div>
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <div class="form-group">
-          <label class="text-danger">Resting HR (BPM)</label>
+          <label for="inputRestingHR" class="text-danger">Resting HR (BPM)</label>
           <input type="number" id="inputRestingHR" placeholder="e.g. 58">
         </div>
         <div class="form-group">
-          <label class="text-warning">Active Calories</label>
+          <label for="inputActiveCals" class="text-warning">Active Calories</label>
           <input type="number" id="inputActiveCals" placeholder="e.g. 450">
         </div>
       </div>
