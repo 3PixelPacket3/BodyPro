@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>BodyPro | Profile Configuration</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#09090b">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -255,6 +258,31 @@
         </div>
         
         <div class="settings-grid">
+          
+          <div class="form-group settings-grid-full" style="margin-bottom: 5px;">
+            <label style="color: var(--text-muted);">Nutritional Targets</label>
+          </div>
+          <div class="form-group">
+            <label>Calorie Goal (kcal)</label>
+            <input type="number" id="goalCals" placeholder="2200">
+          </div>
+          <div class="form-group">
+            <label>Protein (g)</label>
+            <input type="number" id="goalProt" placeholder="200">
+          </div>
+          <div class="form-group">
+            <label>Carbs (g)</label>
+            <input type="number" id="goalCarb" placeholder="150">
+          </div>
+          <div class="form-group">
+            <label>Fats (g)</label>
+            <input type="number" id="goalFat" placeholder="88">
+          </div>
+
+          <div class="form-group settings-grid-full" style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
+            <label style="color: var(--text-muted);">Biometric & Activity Targets</label>
+          </div>
+
           <div class="form-group">
             <label>Sleep Goal (hrs)</label>
             <input type="number" step="0.5" id="goalSleep" placeholder="7.5">
