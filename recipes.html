@@ -213,11 +213,11 @@
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
           <div class="form-group" style="margin: 0;">
-            <label>Source Date</label>
+            <label for="copySourceDate">Source Date</label>
             <input type="date" id="copySourceDate">
           </div>
           <div class="form-group" style="margin: 0;">
-            <label>Meal to Copy</label>
+            <label for="copySourceMeal">Meal to Copy</label>
             <select id="copySourceMeal">
               <option value="Breakfast">Breakfast</option>
               <option value="Lunch">Lunch</option>
@@ -234,17 +234,17 @@
         
         <div class="recipe-header-inputs">
           <div class="form-group" style="margin: 0;">
-            <label>Recipe Name</label>
+            <label for="recipeName">Recipe Name</label>
             <input type="text" id="recipeName" placeholder="e.g. High Protein Chili">
           </div>
           <div class="form-group" style="margin: 0;">
-            <label>Total Servings</label>
+            <label for="recipeServings">Total Servings</label>
             <input type="number" id="recipeServings" value="1" min="1">
           </div>
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Ingredients</label>
+          <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Ingredients</div>
           <button class="btn btn-ghost" style="padding: 5px 10px; font-size: 0.75rem;" onclick="openIngredientModal()"><i class="fa-solid fa-plus"></i> Add Item</button>
         </div>
 
@@ -299,25 +299,25 @@
       </div>
       
       <div class="form-group">
-        <label>Ingredient Name</label>
+        <label for="ingName">Ingredient Name</label>
         <input type="text" id="ingName" placeholder="e.g., Ground Turkey (93/7) 4oz">
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <div class="form-group">
-          <label>Calories</label>
+          <label for="ingCals">Calories</label>
           <input type="number" id="ingCals" value="0" min="0">
         </div>
         <div class="form-group">
-          <label class="text-primary">Protein (g)</label>
+          <label for="ingProt" class="text-primary">Protein (g)</label>
           <input type="number" id="ingProt" value="0" min="0">
         </div>
         <div class="form-group">
-          <label class="text-warning">Carbs (g)</label>
+          <label for="ingCarb" class="text-warning">Carbs (g)</label>
           <input type="number" id="ingCarb" value="0" min="0">
         </div>
         <div class="form-group">
-          <label class="text-danger">Fats (g)</label>
+          <label for="ingFat" class="text-danger">Fats (g)</label>
           <input type="number" id="ingFat" value="0" min="0">
         </div>
       </div>
