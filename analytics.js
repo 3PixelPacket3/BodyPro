@@ -6,7 +6,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/fi
 // --- PROGRESSIVE WEB APP REGISTRATION ---
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // Corrected to relative path for subdirectory compatibility
+        // Corrected to relative path for GitHub Pages subdirectory compatibility
         navigator.serviceWorker.register('./service-worker.js')
             .then(reg => console.log('[BodyPro System] SW Analytics Handshake Successful'))
             .catch(err => console.error('[BodyPro System] SW Analytics Registration Failed', err));
@@ -333,7 +333,7 @@ function updateMacroCharts() {
 
     if (chartMacroDistInstance) chartMacroDistInstance.destroy();
     if (totalProt === 0 && totalCarb === 0 && totalFat === 0) {
-        totalProt = 1; totalCarb = 1; totalFat = 1; 
+        totalProt = 1; totalCarb = 1; totalFat = 1;
     }
 
     chartMacroDistInstance = new Chart(ctxMacroDist, {
@@ -366,7 +366,7 @@ function updateSleepChart() {
 
     dateLabels.forEach(date => {
         const sleepData = (userData.sleep_data || []).find(s => s.date === date);
-        sleepScores.push(sleepData && sleepData.score ? sleepData.score : null); 
+        sleepScores.push(sleepData && sleepData.score ? sleepData.score : null);
     });
 
     if (chartSleepInstance) chartSleepInstance.destroy();
@@ -505,7 +505,7 @@ btnDeleteActivity.addEventListener('click', async () => {
         userData.workouts = userData.workouts.filter(w => w.id !== currentViewActivityId);
         await window.BodyProDataStore.saveData(userData);
         activityDetailModal.classList.remove('active');
-        renderAnalytics(); 
+        renderAnalytics();
     }
 });
 
