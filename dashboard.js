@@ -7,6 +7,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/fi
 
 // Hero & Greeting
 const userGreeting = document.getElementById('userGreeting');
+const heroBanner = document.getElementById('heroBanner');
 
 // Today's Protocol Elements
 const protocolSelect = document.getElementById('protocolSelect');
@@ -84,7 +85,29 @@ onAuthStateChanged(auth, async (user) => {
     if (!userData.custom_workouts) userData.custom_workouts = [];
 
     renderDashboard();
+    loadHeroImage();
 });
+
+// --- HERO IMAGE MODULE ---
+function loadHeroImage() {
+    if (!heroBanner) return;
+
+    // The Unsplash Source API was shut down causing dynamic APIs to fail. 
+    // We use a curated array of high-quality direct links that rotate based on the day.
+    const fitnessImages = [
+        'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80', 
+        'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80', 
+        'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=1200&q=80', 
+        'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1558611848-73f7eb4001a1?auto=format&fit=crop&w=1200&q=80'
+    ];
+    
+    // Determine the day of the year to rotate the image daily consistently
+    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+    const selectedImage = fitnessImages[dayOfYear % fitnessImages.length];
+    
+    heroBanner.style.backgroundImage = `url('${selectedImage}')`;
+}
 
 // --- CORE RENDER ENGINE ---
 function renderDashboard() {
