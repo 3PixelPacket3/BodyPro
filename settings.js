@@ -15,6 +15,20 @@ const profActivity = document.getElementById('profActivity');
 const profObjective = document.getElementById('profObjective');
 const btnSaveIdentity = document.getElementById('btnSaveIdentity');
 
+// Section 1.5: Macro Calculator
+const calcSex = document.getElementById('calcSex');
+const calcAge = document.getElementById('calcAge');
+const calcWeight = document.getElementById('calcWeight');
+const calcHeight = document.getElementById('calcHeight');
+const calcActivity = document.getElementById('calcActivity');
+const calcGoal = document.getElementById('calcGoal');
+const calcResultCals = document.getElementById('calcResultCals');
+const calcResultProt = document.getElementById('calcResultProt');
+const calcResultCarb = document.getElementById('calcResultCarb');
+const calcResultFat = document.getElementById('calcResultFat');
+const btnRunMacroCalc = document.getElementById('btnRunMacroCalc');
+const btnApplyMacros = document.getElementById('btnApplyMacros');
+
 // Section 2: Targets & Goals
 const goalCals = document.getElementById('goalCals');
 const goalProt = document.getElementById('goalProt');
@@ -73,11 +87,26 @@ function populateUI(user) {
     // 1. Identity
     profName.value = user.displayName || userData.profile?.displayName || '';
     profAge.value = userData.profile?.age || '';
-    if (userData.profile?.sex) profSex.value = userData.profile.sex;
+    if (userData.profile?.sex) {
+        profSex.value = userData.profile.sex;
+        calcSex.value = userData.profile.sex;
+    }
     profHeight.value = userData.profile?.heightInches || '';
     profGoalWeight.value = userData.profile?.goalWeight || '';
-    if (userData.profile?.activityLevel) profActivity.value = userData.profile.activityLevel;
-    if (userData.profile?.objective) profObjective.value = userData.profile.objective;
+    if (userData.profile?.activityLevel) {
+        profActivity.value = userData.profile.activityLevel;
+        calcActivity.value = userData.profile.activityLevel;
+    }
+    if (userData.profile?.objective) {
+        profObjective.value = userData.profile.objective;
+    }
+
+    // Pre-fill Macro Calculator based on identity
+    calcAge.value = userData.profile?.age || '';
+    calcHeight.value = userData.profile?.heightInches || '';
+    if (userData.biometrics && userData.biometrics.length > 0) {
+        calcWeight.value = userData.biometrics[userData.biometrics.length - 1].weight || '';
+    }
 
     // 2. Nutritional Targets
     goalCals.value = userData.settings?.macroTargets?.calories || 2200;
@@ -132,6 +161,78 @@ btnSaveIdentity.addEventListener('click', async () => {
             btnSaveIdentity.innerText = 'Update Identity';
         }, 2000);
     }
+});
+
+// --- MODULE 1.5: MACRO CALCULATOR ---
+btnRunMacroCalc.addEventListener('click', () => {
+    const sex = calcSex.value;
+    const age = parseInt(calcAge.value);
+    const weightLbs = parseFloat(calcWeight.value);
+    const heightIn = parseFloat(calcHeight.value);
+    const activity = parseFloat(calcActivity.value);
+    const goal = parseFloat(calcGoal.value);
+
+    if (!age || !weightLbs || !heightIn) {
+        alert("Please provide Age, Weight, and Height to calculate your macros.");
+        return;
+    }
+
+    // Convert to Metric for Mifflin-St Jeor equation
+    const weightKg = weightLbs * 0.453592;
+    const heightCm = heightIn * 2.54;
+
+    let bmr;
+    if (sex === 'male') {
+        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
+    } else {
+        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
+    }
+
+    // Calculate TDEE and apply goal modifier
+    const tdee = bmr * activity;
+    let targetCals = Math.round(tdee + goal);
+    
+    // Safety floor (don't recommend dipping below 1200)
+    if (targetCals < 1200) targetCals = 1200;
+
+    // Macro Split (Standard Bodybuilding approach: 1g/lb protein, 25% fats, rest carbs)
+    const protGrams = Math.round(weightLbs * 1.0); 
+    const fatGrams = Math.round((targetCals * 0.25) / 9); 
+    const carbCals = targetCals - (protGrams * 4) - (fatGrams * 9);
+    const carbGrams = Math.round(Math.max(0, carbCals / 4));
+
+    // Update UI
+    calcResultCals.innerText = `${targetCals} kcal`;
+    calcResultProt.innerText = protGrams;
+    calcResultFat.innerText = fatGrams;
+    calcResultCarb.innerText = carbGrams;
+
+    // Store in dataset for easy application
+    btnApplyMacros.dataset.cals = targetCals;
+    btnApplyMacros.dataset.prot = protGrams;
+    btnApplyMacros.dataset.fat = fatGrams;
+    btnApplyMacros.dataset.carb = carbGrams;
+
+    // Reveal the Apply button
+    btnApplyMacros.style.display = 'block';
+});
+
+btnApplyMacros.addEventListener('click', () => {
+    // Port values over to the target inputs
+    goalCals.value = btnApplyMacros.dataset.cals;
+    goalProt.value = btnApplyMacros.dataset.prot;
+    goalFat.value = btnApplyMacros.dataset.fat;
+    goalCarb.value = btnApplyMacros.dataset.carb;
+
+    // Flash the Target Section to draw attention
+    const targetSection = goalCals.closest('.settings-section');
+    targetSection.style.transition = 'box-shadow 0.3s';
+    targetSection.style.boxShadow = '0 0 15px var(--accent)';
+    
+    setTimeout(() => {
+        targetSection.style.boxShadow = 'none';
+        btnSaveTargets.click(); // Automatically trigger the save routine
+    }, 800);
 });
 
 // --- MODULE 2: TARGETS & GOALS ---
@@ -333,10 +434,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     // Stash the event so it can be triggered later.
     deferredPrompt = e;
-    // Update UI notify the user they can install the PWA
-    if (btnInstallApp) {
-        btnInstallApp.style.display = 'block';
-    }
 });
 
 if (btnInstallApp) {
@@ -347,19 +444,15 @@ if (btnInstallApp) {
             // Wait for the user to respond to the prompt
             const { outcome } = await deferredPrompt.userChoice;
             console.log(`User response to the install prompt: ${outcome}`);
-            // We've used the prompt, and can't use it again, throw it away
             deferredPrompt = null;
-            // Hide the button
-            btnInstallApp.style.display = 'none';
+        } else {
+            // Provide explicit instructions for mobile users when prompt API isn't supported (like Safari iOS)
+            alert("To install BodyPro as an app:\n\n📱 iOS (Safari): Tap the 'Share' icon at the bottom, scroll down, and select 'Add to Home Screen'.\n\n📱 Android (Chrome): Tap the menu (three dots) and select 'Install app' or 'Add to Home Screen'.");
         }
     });
 }
 
 window.addEventListener('appinstalled', () => {
-    // Hide the app-provided install promotion
-    if (btnInstallApp) {
-        btnInstallApp.style.display = 'none';
-    }
     deferredPrompt = null;
     console.log('PWA was installed successfully');
 });
