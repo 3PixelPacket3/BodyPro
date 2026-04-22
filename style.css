@@ -1,7 +1,7 @@
 /* style.css - BodyPro Global Stylesheet */
 
 :root {
-  /* Core Brand Colors - Modern Dark Theme */
+  /* Core Brand Colors - Modern Dark Theme (Default) */
   --bg-base: #09090b;
   --bg-surface: #18181b;
   --bg-surface-elevated: #27272a;
@@ -28,6 +28,25 @@
   --border-radius-pill: 9999px;
   
   --font-base: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Light Theme Overrides */
+[data-theme="light"] {
+  --bg-base: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f1f5f9;
+  
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  
+  /* Accents adjusted slightly for contrast on light mode if needed */
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --accent: #059669;
+  --accent-hover: #047857;
+  --danger: #dc2626;
+  --warning: #d97706;
 }
 
 /* =========================================
