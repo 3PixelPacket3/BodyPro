@@ -2,7 +2,7 @@
 
 import { auth, db } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // --- DOM ELEMENTS ---
 const myShortIdDisplay = document.getElementById('myShortId');
@@ -143,19 +143,27 @@ btnAddFriend.addEventListener('click', async () => {
     showMsg("Searching cloud registry...", "var(--text-muted)");
 
     try {
-        // OVERRIDE: Pulling all core user documents and filtering client-side
-        // This ensures the system finds the ID even if Firestore fails to index the nested map correctly.
         const usersRef = collection(db, "users");
-        const querySnapshot = await getDocs(usersRef);
+        
+        // Use an explicit query to find the user via shortId instead of fetching the whole collection
+        const q = query(usersRef, where("profile.shortId", "==", targetId));
+        const querySnapshot = await getDocs(q);
 
         let foundUserDoc = null;
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            // Check the profile map structure
-            if (data.profile && data.profile.shortId === targetId) {
-                foundUserDoc = doc;
-            }
-        });
+        
+        if (!querySnapshot.empty) {
+            foundUserDoc = querySnapshot.docs[0];
+        } else {
+            // Fallback: If indexing hasn't built yet, do a full scan (handles Firebase map indexing quirks)
+            console.log("[BodyPro Social] Query miss. Falling back to full scan...");
+            const fallbackSnapshot = await getDocs(usersRef);
+            fallbackSnapshot.forEach((doc) => {
+                const data = doc.data();
+                if (data.profile && data.profile.shortId === targetId) {
+                    foundUserDoc = doc;
+                }
+            });
+        }
 
         if (!foundUserDoc) {
             showMsg(`No account found with ID: ${targetId}`, "var(--danger)");
