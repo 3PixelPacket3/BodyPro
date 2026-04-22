@@ -13,7 +13,6 @@ if ('serviceWorker' in navigator) {
 }
 
 // --- DOM Elements ---
-// Timers: Resistance & Cardio
 const displayLift = document.getElementById('displayLift');
 const btnToggleLift = document.getElementById('btnToggleLift');
 const btnResetLift = document.getElementById('btnResetLift');
@@ -21,24 +20,20 @@ const displayCardio = document.getElementById('displayCardio');
 const btnToggleCardio = document.getElementById('btnToggleCardio');
 const btnResetCardio = document.getElementById('btnResetCardio');
 
-// Timers: Rest Engine
 const displayRest = document.getElementById('displayRest');
 const customRestInput = document.getElementById('customRestInput');
 
-// Session Logger
 const workoutTitle = document.getElementById('workoutTitle');
 const inputAvgHR = document.getElementById('inputAvgHR');
 const inputWorkoutCals = document.getElementById('inputWorkoutCals');
 const workoutLogArea = document.getElementById('workoutLogArea');
 const btnFinishWorkout = document.getElementById('btnFinishWorkout');
 
-// Templates
 const templateSelect = document.getElementById('templateSelect');
 const btnSaveAsTemplate = document.getElementById('btnSaveAsTemplate');
 const btnLoadTemplate = document.getElementById('btnLoadTemplate');
 const templatesListContainer = document.getElementById('templatesListContainer');
 
-// History
 const historyListContainer = document.getElementById('historyListContainer');
 const viewSessionModal = document.getElementById('viewSessionModal');
 
@@ -68,7 +63,6 @@ onAuthStateChanged(auth, async (user) => {
     
     userData.workout_templates = userData.workout_templates || [];
     
-    populateExerciseDatalist();
     updateTemplateDropdown();
     handleAddMovement(); // Add initial blank movement group
     
@@ -193,32 +187,76 @@ window.stopRestTimer = function() {
     displayRest.style.color = 'var(--warning)';
 };
 
-// --- PRESET MOVEMENT LIBRARY ---
-function populateExerciseDatalist() {
-    const datalist = document.getElementById('presetExercises');
-    const exercises = [
-        "Bench Press (Barbell) [Chest]", "Bench Press (Dumbbell) [Chest]", "Incline Bench Press [Chest]", 
-        "Decline Bench Press [Chest]", "Chest Fly (Cable) [Chest]", "Chest Fly (Dumbbell) [Chest]", 
-        "Push-Up [Chest]", "Pec Deck Machine [Chest]", "Deadlift (Barbell) [Back/Legs]", "Pull-Up [Back]", 
-        "Chin-Up [Back]", "Lat Pulldown (Cable) [Back]", "Bent Over Row (Barbell) [Back]", "Dumbbell Row [Back]", 
-        "Seated Cable Row [Back]", "T-Bar Row [Back]", "Overhead Press (Barbell) [Shoulders]", 
-        "Overhead Press (Dumbbell) [Shoulders]", "Arnold Press [Shoulders]", "Lateral Raise (Dumbbell) [Shoulders]", 
-        "Front Raise (Dumbbell) [Shoulders]", "Reverse Pec Deck [Shoulders]", "Face Pull (Cable) [Shoulders]", 
-        "Shrugs (Dumbbell/Barbell) [Traps]", "Squat (Barbell) [Quads/Glutes]", "Front Squat [Quads]", 
-        "Leg Press [Quads/Glutes]", "Lunge (Dumbbell) [Legs]", "Bulgarian Split Squat [Legs]", 
-        "Leg Extension (Machine) [Quads]", "Leg Curl (Machine) [Hamstrings]", "Romanian Deadlift [Hamstrings]", 
-        "Calf Raise (Standing) [Calves]", "Calf Raise (Seated) [Calves]", "Bicep Curl (Barbell) [Biceps]", 
-        "Bicep Curl (Dumbbell) [Biceps]", "Hammer Curl [Biceps]", "Preacher Curl [Biceps]", 
-        "Tricep Extension (Cable) [Triceps]", "Skullcrusher [Triceps]", "Tricep Kickback [Triceps]", 
-        "Dips [Triceps/Chest]", "Crunch [Core]", "Plank [Core]", "Russian Twist [Core]", 
-        "Hanging Leg Raise [Core]", "Cable Woodchopper [Core]", "Ab Wheel Rollout [Core]"
-    ];
-    exercises.sort().forEach(ex => {
-        const option = document.createElement('option');
-        option.value = ex;
-        datalist.appendChild(option);
+// --- CUSTOM AUTOCOMPLETE LOGIC (Bypasses Native OS Keyboard Overlays) ---
+const PRESET_EXERCISES = [
+    "Bench Press (Barbell) [Chest]", "Bench Press (Dumbbell) [Chest]", "Incline Bench Press [Chest]", 
+    "Decline Bench Press [Chest]", "Chest Fly (Cable) [Chest]", "Chest Fly (Dumbbell) [Chest]", 
+    "Push-Up [Chest]", "Pec Deck Machine [Chest]", "Deadlift (Barbell) [Back/Legs]", "Pull-Up [Back]", 
+    "Chin-Up [Back]", "Lat Pulldown (Cable) [Back]", "Bent Over Row (Barbell) [Back]", "Dumbbell Row [Back]", 
+    "Seated Cable Row [Back]", "T-Bar Row [Back]", "Overhead Press (Barbell) [Shoulders]", 
+    "Overhead Press (Dumbbell) [Shoulders]", "Arnold Press [Shoulders]", "Lateral Raise (Dumbbell) [Shoulders]", 
+    "Front Raise (Dumbbell) [Shoulders]", "Reverse Pec Deck [Shoulders]", "Face Pull (Cable) [Shoulders]", 
+    "Shrugs (Dumbbell/Barbell) [Traps]", "Squat (Barbell) [Quads/Glutes]", "Front Squat [Quads]", 
+    "Leg Press [Quads/Glutes]", "Lunge (Dumbbell) [Legs]", "Bulgarian Split Squat [Legs]", 
+    "Leg Extension (Machine) [Quads]", "Leg Curl (Machine) [Hamstrings]", "Romanian Deadlift [Hamstrings]", 
+    "Calf Raise (Standing) [Calves]", "Calf Raise (Seated) [Calves]", "Bicep Curl (Barbell) [Biceps]", 
+    "Bicep Curl (Dumbbell) [Biceps]", "Hammer Curl [Biceps]", "Preacher Curl [Biceps]", 
+    "Tricep Extension (Cable) [Triceps]", "Skullcrusher [Triceps]", "Tricep Kickback [Triceps]", 
+    "Dips [Triceps/Chest]", "Crunch [Core]", "Plank [Core]", "Russian Twist [Core]", 
+    "Hanging Leg Raise [Core]", "Cable Woodchopper [Core]", "Ab Wheel Rollout [Core]"
+].sort();
+
+window.attachAutocomplete = function(inputEl, listEl) {
+    inputEl.addEventListener('input', function() {
+        const val = this.value.toLowerCase();
+        listEl.innerHTML = '';
+        if (!val) {
+            listEl.style.display = 'none';
+            return;
+        }
+        
+        const matches = PRESET_EXERCISES.filter(ex => ex.toLowerCase().includes(val));
+        if (matches.length > 0) {
+            matches.forEach(match => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-item';
+                div.innerText = match;
+                // onmousedown ensures click is registered BEFORE input blur fires and hides the list
+                div.onmousedown = function(e) { 
+                    e.preventDefault(); 
+                    inputEl.value = match;
+                    listEl.style.display = 'none';
+                };
+                listEl.appendChild(div);
+            });
+            listEl.style.display = 'block';
+        } else {
+            listEl.style.display = 'none';
+        }
     });
-}
+
+    inputEl.addEventListener('focus', function() {
+        if (!this.value) {
+            listEl.innerHTML = '';
+            PRESET_EXERCISES.slice(0, 10).forEach(match => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-item';
+                div.innerText = match;
+                div.onmousedown = function(e) { 
+                    e.preventDefault();
+                    inputEl.value = match;
+                    listEl.style.display = 'none';
+                };
+                listEl.appendChild(div);
+            });
+            listEl.style.display = 'block';
+        }
+    });
+
+    inputEl.addEventListener('blur', function() {
+        setTimeout(() => listEl.style.display = 'none', 150);
+    });
+};
 
 // --- NESTED SESSION LOGGER (LIVE GRID) ---
 window.handleAddMovement = function() {
@@ -234,7 +272,10 @@ window.handleAddMovement = function() {
     
     div.innerHTML = `
         <div class="movement-header-row">
-            <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" placeholder="Movement Name" list="presetExercises">
+            <div class="autocomplete-wrapper">
+                <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" placeholder="Movement Name" autocomplete="off">
+                <div class="autocomplete-list"></div>
+            </div>
             <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
         </div>
         <div class="movement-sets" style="margin-bottom:10px;">
@@ -245,6 +286,12 @@ window.handleAddMovement = function() {
         <button class="btn btn-ghost" style="width:100%; font-size:0.8rem; padding:8px;" onclick="addSetToMovement('${uid}')"><i class="fa-solid fa-plus"></i> Add Set</button>
     `;
     workoutLogArea.appendChild(div);
+    
+    // Attach the custom autocomplete engine
+    const inputEl = div.querySelector('.ex-name');
+    const listEl = div.querySelector('.autocomplete-list');
+    window.attachAutocomplete(inputEl, listEl);
+
     window.addSetToMovement(uid); 
 };
 
@@ -360,7 +407,10 @@ btnLoadTemplate.addEventListener('click', () => {
         
         div.innerHTML = `
             <div class="movement-header-row">
-                <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" value="${ex.exercise || ex.name || ''}" list="presetExercises">
+                <div class="autocomplete-wrapper">
+                    <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" value="${ex.exercise || ex.name || ''}" autocomplete="off">
+                    <div class="autocomplete-list"></div>
+                </div>
                 <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
             </div>
             <div class="movement-sets" style="margin-bottom:10px;">
@@ -371,6 +421,10 @@ btnLoadTemplate.addEventListener('click', () => {
             <button class="btn btn-ghost" style="width:100%; font-size:0.8rem; padding:8px;" onclick="addSetToMovement('${uid}')"><i class="fa-solid fa-plus"></i> Add Set</button>
         `;
         workoutLogArea.appendChild(div);
+
+        const inputEl = div.querySelector('.ex-name');
+        const listEl = div.querySelector('.autocomplete-list');
+        window.attachAutocomplete(inputEl, listEl);
 
         if (ex.sets && Array.isArray(ex.sets)) {
             ex.sets.forEach(s => window.addSetToMovement(uid, s.weight, s.reps, s.rpe));
@@ -523,7 +577,10 @@ document.getElementById('btnEditSession').addEventListener('click', () => {
         
         div.innerHTML = `
             <div class="movement-header-row">
-                <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" value="${exName}" list="presetExercises">
+                <div class="autocomplete-wrapper">
+                    <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" value="${exName}" autocomplete="off">
+                    <div class="autocomplete-list"></div>
+                </div>
                 <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
             </div>
             <div class="movement-sets" style="margin-bottom:10px;">
@@ -535,6 +592,10 @@ document.getElementById('btnEditSession').addEventListener('click', () => {
         `;
         workoutLogArea.appendChild(div);
         
+        const inputEl = div.querySelector('.ex-name');
+        const listEl = div.querySelector('.autocomplete-list');
+        window.attachAutocomplete(inputEl, listEl);
+
         exSets.forEach(s => window.addSetToMovement(uid, s.weight, s.reps, s.rpe));
     }
     
