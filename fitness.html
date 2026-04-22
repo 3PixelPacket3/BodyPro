@@ -282,7 +282,7 @@
         </div>
 
         <div style="display: flex; gap: 10px;">
-          <input type="number" id="customRestInput" placeholder="Secs" style="flex: 1;">
+          <input type="number" id="customRestInput" name="customRestInput" placeholder="Secs" style="flex: 1;">
           <button class="btn btn-ghost" onclick="startCustomRest()" style="flex: 1;">Start</button>
           <button class="btn btn-ghost" style="color: var(--danger); border-color: var(--danger); flex: 1;" onclick="stopRestTimer()">Stop</button>
         </div>
@@ -293,7 +293,7 @@
           <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-folder-open"></i> Routine Templates</h3>
           <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openTemplatesModal()"><i class="fa-solid fa-gear"></i> Manage</button>
         </div>
-        <select id="templateSelect" style="margin-bottom: 15px; width: 100%;">
+        <select id="templateSelect" name="templateSelect" style="margin-bottom: 15px; width: 100%;">
           <option value="">-- Select Template to Load --</option>
         </select>
         <button class="btn btn-ghost" id="btnLoadTemplate" style="width: 100%;"><i class="fa-solid fa-download"></i> Load to Live Session</button>
@@ -303,12 +303,12 @@
         <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-tower-broadcast text-warning"></i> Session Telemetry</h3>
         <div class="telemetry-row">
           <div class="form-group" style="margin: 0;">
-            <label>Avg Heart Rate (BPM)</label>
-            <input type="number" id="inputAvgHR" placeholder="e.g. 145" style="border-color: var(--border-color);">
+            <label for="inputAvgHR">Avg Heart Rate (BPM)</label>
+            <input type="number" id="inputAvgHR" name="inputAvgHR" placeholder="e.g. 145" style="border-color: var(--border-color);">
           </div>
           <div class="form-group" style="margin: 0;">
-            <label>Total Active Cals</label>
-            <input type="number" id="inputWorkoutCals" placeholder="e.g. 650">
+            <label for="inputWorkoutCals">Total Active Cals</label>
+            <input type="number" id="inputWorkoutCals" name="inputWorkoutCals" placeholder="e.g. 650">
           </div>
         </div>
       </div>
@@ -317,7 +317,7 @@
       
       <div class="session-logger" id="workoutLogger">
         <div class="logger-header">
-          <input type="text" class="exercise-input" id="workoutTitle" placeholder="Workout Title (e.g. Push Day, Pull, Legs)" style="font-weight: bold; background: transparent; border: none; font-size: 1.1rem; padding: 0;">
+          <input type="text" class="exercise-input" id="workoutTitle" name="workoutTitle" placeholder="Workout Title (e.g. Push Day, Pull, Legs)" style="font-weight: bold; background: transparent; border: none; font-size: 1.1rem; padding: 0;">
         </div>
         
         <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 40px; gap: 10px; padding: 10px 15px; background: var(--bg-base); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); border-bottom: 1px solid var(--border-color);">
