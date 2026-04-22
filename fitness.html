@@ -160,7 +160,7 @@
     .telemetry-row .form-group {
       flex: 1;
       margin: 0;
-      min-width: 0; /* Allows flex items to shrink below their implied minimums */
+      min-width: 0; 
     }
 
     .telemetry-row input {
@@ -168,12 +168,31 @@
     }
 
     /* Live Log Movement Section Grid - Fixed for weird sizing */
+    .movement-header-row {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center;
+      width: 100%;
+    }
+
+    .movement-header-row input.ex-name {
+      flex: 1 1 auto;
+      min-width: 0; /* CRITICAL FIX: Stops flexbox from blowing out the screen width */
+      font-weight: bold;
+      font-size: 1rem;
+      border-color: var(--primary);
+      width: 100%;
+    }
+
     .set-grid-header, .set-row {
       display: grid;
-      grid-template-columns: 35px 1fr 1fr 1fr 30px;
-      gap: 8px;
+      grid-template-columns: 30px 1.2fr 1fr 1fr 30px; /* Responsive mobile ratio */
+      gap: 6px;
       align-items: center;
       margin-bottom: 8px;
+      width: 100%;
     }
 
     .set-grid-header {
@@ -189,7 +208,11 @@
 
     .set-row input {
       text-align: center;
-      padding: 8px 4px; /* Slightly tighter padding for mobile */
+      padding: 8px 2px; /* Tighter padding so text fits */
+      min-width: 0; /* CRITICAL FIX */
+      font-size: 0.9rem;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     /* Modals */
