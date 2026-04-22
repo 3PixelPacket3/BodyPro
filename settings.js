@@ -70,35 +70,35 @@ onAuthStateChanged(auth, async (user) => {
 // --- UI POPULATION ---
 function populateUI(user) {
     // 1. Identity
-    profName.value = user.displayName || userData.profile.displayName || '';
-    profAge.value = userData.profile.age || '';
-    if (userData.profile.sex) profSex.value = userData.profile.sex;
-    profHeight.value = userData.profile.heightInches || '';
-    profGoalWeight.value = userData.profile.goalWeight || '';
-    if (userData.profile.activityLevel) profActivity.value = userData.profile.activityLevel;
-    if (userData.profile.objective) profObjective.value = userData.profile.objective;
+    profName.value = user.displayName || userData.profile?.displayName || '';
+    profAge.value = userData.profile?.age || '';
+    if (userData.profile?.sex) profSex.value = userData.profile.sex;
+    profHeight.value = userData.profile?.heightInches || '';
+    profGoalWeight.value = userData.profile?.goalWeight || '';
+    if (userData.profile?.activityLevel) profActivity.value = userData.profile.activityLevel;
+    if (userData.profile?.objective) profObjective.value = userData.profile.objective;
 
     // 2. Nutritional Targets
-    goalCals.value = userData.settings.macroTargets.calories || 2200;
-    goalProt.value = userData.settings.macroTargets.protein || 200;
-    goalCarb.value = userData.settings.macroTargets.carbs || 150;
-    goalFat.value = userData.settings.macroTargets.fats || 88;
+    goalCals.value = userData.settings?.macroTargets?.calories || 2200;
+    goalProt.value = userData.settings?.macroTargets?.protein || 200;
+    goalCarb.value = userData.settings?.macroTargets?.carbs || 150;
+    goalFat.value = userData.settings?.macroTargets?.fats || 88;
 
     // 3. Biometric & Activity Goals
-    goalSleep.value = userData.settings.goals.sleepHrs || 7.5;
-    goalSteps.value = userData.settings.goals.steps || 10000;
-    goalFloors.value = userData.settings.goals.floors || 10;
-    goalWater.value = userData.settings.goals.waterOz || 120;
-    goalWorkoutDays.value = userData.settings.goals.workoutDaysPerWeek || 6;
-    goalLiftMins.value = userData.settings.goals.targetLiftingMinutes || 90;
-    goalCardioMins.value = userData.settings.goals.targetCardioMinutes || 20;
+    goalSleep.value = userData.settings?.goals?.sleepHrs || 7.5;
+    goalSteps.value = userData.settings?.goals?.steps || 10000;
+    goalFloors.value = userData.settings?.goals?.floors || 10;
+    goalWater.value = userData.settings?.goals?.waterOz || 120;
+    goalWorkoutDays.value = userData.settings?.goals?.workoutDaysPerWeek || 6;
+    goalLiftMins.value = userData.settings?.goals?.targetLiftingMinutes || 90;
+    goalCardioMins.value = userData.settings?.goals?.targetCardioMinutes || 20;
 
     // 4. Preferences
-    if (userData.settings.preferences.theme) prefTheme.value = userData.settings.preferences.theme;
-    if (userData.settings.preferences.weightUnit) prefWeight.value = userData.settings.preferences.weightUnit;
-    if (userData.settings.preferences.fluidUnit) prefFluid.value = userData.settings.preferences.fluidUnit;
-    if (userData.settings.preferences.timeFormat) prefTime.value = userData.settings.preferences.timeFormat;
-    if (userData.settings.preferences.defaultMeal) prefMeal.value = userData.settings.preferences.defaultMeal;
+    if (userData.settings?.preferences?.theme) prefTheme.value = userData.settings.preferences.theme;
+    if (userData.settings?.preferences?.weightUnit) prefWeight.value = userData.settings.preferences.weightUnit;
+    if (userData.settings?.preferences?.fluidUnit) prefFluid.value = userData.settings.preferences.fluidUnit;
+    if (userData.settings?.preferences?.timeFormat) prefTime.value = userData.settings.preferences.timeFormat;
+    if (userData.settings?.preferences?.defaultMeal) prefMeal.value = userData.settings.preferences.defaultMeal;
 }
 
 // --- MODULE 1: IDENTITY MANAGEMENT ---
@@ -231,11 +231,7 @@ inputImportData.addEventListener('change', (event) => {
     reader.onload = async (e) => {
         try {
             const importedData = JSON.parse(e.target.result);
-            if (!importedData.uid && !importedData.profile) throw new Error("Invalid payload structure.");
-            
-            // Ensure the imported data is linked to the current user's Auth ID
-            // Handle legacy exports that might not have uid at the root
-            importedData.uid = auth.currentUser.uid;
+            if (!importedData.profile) throw new Error("Invalid payload structure.");
             
             const success = await window.BodyProDataStore.saveData(importedData);
             if (success) {
@@ -291,16 +287,8 @@ btnWipeAccount.addEventListener('click', async () => {
         return;
     }
 
-    // Reset all arrays while maintaining the core structure and user UID
+    // Reset all arrays while maintaining the core structure and identity parameters
     userData = {
-        uid: auth.currentUser.uid,
-        food_diary: [],
-        biometrics: [],
-        sleep_data: [],
-        workouts: [],
-        custom_recipes: [],
-        workout_templates: [],
-        social: { friends: [], pending: [], blocked: [], posts: [] },
         profile: userData.profile, // Keep identity/Short ID intact
         settings: {
             macroTargets: { calories: 2200, protein: 200, carbs: 150, fats: 88 },
@@ -309,7 +297,14 @@ btnWipeAccount.addEventListener('click', async () => {
                 workoutDaysPerWeek: 6, targetLiftingMinutes: 90, targetCardioMinutes: 20
             },
             preferences: { theme: 'dark', weightUnit: 'lbs', fluidUnit: 'oz', timeFormat: '12', defaultMeal: 'Snacks' }
-        }
+        },
+        friends: [],
+        food_diary: [],
+        biometrics: [],
+        sleep_data: [],
+        workouts: [],
+        custom_recipes: [],
+        workout_templates: []
     };
 
     const success = await window.BodyProDataStore.saveData(userData);
