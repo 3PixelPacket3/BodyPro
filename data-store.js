@@ -104,6 +104,10 @@ window.BodyProDataStore = {
       userData.friends = userData.friends || [];
       userData.profile = userData.profile || {};
       
+      // Sync templates
+      userData.workout_templates = userData.workout_templates || [];
+      userData.custom_workouts = userData.custom_workouts || [];
+      
       if (!userData.profile.shortId) {
          userData.profile.shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
          setDoc(userRef, { profile: userData.profile }, { merge: true });
@@ -178,10 +182,13 @@ window.BodyProDataStore = {
   async _executeCloudSync(user, cleanData, oldData) {
       const userRef = doc(db, "users", user.uid);
       
+      // CRITICAL FIX: Push arrays natively to the top-level document
       const topLevelPromise = setDoc(userRef, { 
           settings: cleanData.settings || {},
           friends: cleanData.friends || [],
-          profile: cleanData.profile || {}
+          profile: cleanData.profile || {},
+          workout_templates: cleanData.workout_templates || [], 
+          custom_workouts: cleanData.custom_workouts || []     
       }, { merge: true }); 
 
       const syncCollection = async (colName, newItems, oldItems, basePath = ["users", user.uid]) => {
@@ -276,7 +283,9 @@ window.BodyProDataStore = {
         workouts: [], 
         biometrics: [], 
         sleep_data: [], 
-        custom_recipes: []
+        custom_recipes: [],
+        workout_templates: [],
+        custom_workouts: []
     };
   }
 };
