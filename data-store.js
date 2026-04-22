@@ -108,9 +108,10 @@ window.BodyProDataStore = {
       userData.workout_templates = userData.workout_templates || [];
       userData.custom_workouts = userData.custom_workouts || [];
       
+      // CRITICAL FIX: Ensure awaiting the database write so the document actually commits to the cloud.
       if (!userData.profile.shortId) {
          userData.profile.shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
-         setDoc(userRef, { profile: userData.profile }, { merge: true });
+         await setDoc(userRef, { profile: userData.profile }, { merge: true });
       }
 
       if (userData.settings.preferences && userData.settings.preferences.theme) {
@@ -237,7 +238,8 @@ window.BodyProDataStore = {
   getEmptyDB() {
     return { 
         profile: {
-            shortId: null,
+            // CRITICAL FIX: Ensure an ID is generated immediately on DB request to prevent null instantiation
+            shortId: Math.random().toString(36).substring(2, 8).toUpperCase(),
             displayName: "",
             age: null,
             sex: "male",
