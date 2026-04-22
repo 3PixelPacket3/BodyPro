@@ -6,7 +6,8 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/fi
 // --- PROGRESSIVE WEB APP REGISTRATION ---
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
+        // Corrected path to be relative for GitHub Pages compatibility
+        navigator.serviceWorker.register('./service-worker.js')
             .then(reg => console.log('[BodyPro System] Service Worker Registered', reg))
             .catch(err => console.error('[BodyPro System] SW Registration Failed', err));
     });
@@ -146,7 +147,6 @@ function renderSupplements() {
         const isChecked = completedSupps.includes(supp.name);
         
         const item = document.createElement('div');
-        // Apply the 'completed' class if already checked
         item.className = `supp-item ${isChecked ? 'completed' : ''}`;
         item.innerHTML = `
             <input type="checkbox" id="supp_${index}" ${isChecked ? 'checked' : ''}>
@@ -157,7 +157,6 @@ function renderSupplements() {
         checkbox.addEventListener('change', async (e) => {
             const checked = e.target.checked;
             
-            // Visual toggle
             if (checked) {
                 item.classList.add('completed');
             } else {
@@ -258,7 +257,6 @@ function renderDiary() {
     const pct = Math.min((dailyCals / targetCals) * 100, 100);
     calProgressBar.style.width = `${pct}%`;
     
-    // Check if over target
     if (dailyCals > targetCals) {
         calProgressBar.classList.add('overage');
     } else {
@@ -298,24 +296,20 @@ async function onScanSuccess(decodedText, decodedResult) {
     
     window.openQuickAddModal('Snacks');
     
-    // Check Local Cache First
     const cachedProduct = await FoodCache.get(decodedText);
     
     if (cachedProduct) {
-        console.log('[BodyPro Cache] Local Hit for barcode:', decodedText);
         document.getElementById('qaName').value = cachedProduct.name;
         document.getElementById('qaCals').value = cachedProduct.cals;
         document.getElementById('qaProt').value = cachedProduct.prot;
         document.getElementById('qaCarb').value = cachedProduct.carb;
         document.getElementById('qaFat').value = cachedProduct.fat;
-        return; // Exit early since we used cache
+        return;
     }
 
-    // Cache Miss: Query External Database
     document.getElementById('qaName').value = "Querying Database...";
     
     try {
-        console.log('[BodyPro Cache] Local Miss. Fetching OpenFoodFacts:', decodedText);
         const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
         const data = await response.json();
         
@@ -329,19 +323,15 @@ async function onScanSuccess(decodedText, decodedResult) {
             const fat = Math.round(nut['fat_serving'] || nut['fat_100g'] || nut['fat'] || 0);
             const name = p.product_name || "Unknown Product";
             
-            // Update UI
             document.getElementById('qaName').value = name;
             document.getElementById('qaCals').value = cals;
             document.getElementById('qaProt').value = prot;
             document.getElementById('qaCarb').value = carb;
             document.getElementById('qaFat').value = fat;
             
-            // Save to Local Cache for next time
             await FoodCache.set(decodedText, { name, cals, prot, carb, fat });
-            console.log('[BodyPro Cache] Product cached successfully.');
-            
         } else {
-            alert("Telemetry negative. Product not found in OpenFoodFacts database. Manual entry required.");
+            alert("Telemetry negative. Product not found in database. Manual entry required.");
             document.getElementById('qaName').value = "";
         }
     } catch (err) {
@@ -380,7 +370,6 @@ function populateRecipeDropdown() {
 
 // --- CRUD OPERATIONS ---
 window.openQuickAddModal = function(meal = 'Snacks') {
-    // Override default meal if user set a preference
     const defaultMeal = userData?.settings?.preferences?.defaultMeal || meal;
     document.getElementById('qaMeal').value = defaultMeal;
     
@@ -414,7 +403,6 @@ btnSaveQuickAdd.addEventListener('click', async () => {
     userData.food_diary.push(newEntry);
     await window.BodyProDataStore.saveData(userData);
     
-    // Reset Modal Fields
     document.getElementById('qaName').value = '';
     document.getElementById('qaCals').value = 0;
     document.getElementById('qaProt').value = 0;
@@ -447,15 +435,13 @@ btnRunMacroCalc.addEventListener('click', () => {
     const goal = parseInt(document.getElementById('calcGoal').value);
     
     if(!age || !weightLbs || !heightInches) {
-        alert("Please provide Age, Weight, and Height for an accurate calculation.");
+        alert("Please provide Age, Weight, and Height for accurate calculation.");
         return;
     }
     
-    // Conversions
     const weightKg = weightLbs / 2.20462;
     const heightCm = heightInches * 2.54;
     
-    // Mifflin-St Jeor Equation
     let bmr;
     if(sex === 'male') {
         bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
@@ -466,19 +452,12 @@ btnRunMacroCalc.addEventListener('click', () => {
     const tdee = bmr * activity;
     const targetCals = Math.round(tdee + goal);
     
-    // Precision Macro Split Logic (Fitness/Bodybuilding standard)
-    // Protein: ~1g per lb of bodyweight to preserve/build muscle
-    // Fat: ~25% of total caloric intake
-    // Carbs: Remainder of caloric budget
-    
     let targetProt = Math.round(weightLbs);
     let targetFat = Math.round((targetCals * 0.25) / 9);
     let targetCarb = Math.round((targetCals - (targetProt * 4) - (targetFat * 9)) / 4);
     
-    // Safety check for extreme deficit states where carbs might hit zero or negative
     if(targetCarb < 0) {
         targetCarb = 0;
-        // Re-balance protein slightly if necessary, though extreme deficits are warned against
         targetProt = Math.round((targetCals - (targetFat * 9)) / 4); 
     }
     
