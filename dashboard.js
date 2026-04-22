@@ -8,6 +8,10 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/fi
 // Hero & Greeting
 const userGreeting = document.getElementById('userGreeting');
 
+// Today's Protocol Elements
+const protocolSelect = document.getElementById('protocolSelect');
+const todayProtocolContainer = document.getElementById('todayProtocolContainer');
+
 // Nutrition Elements
 const calsRemaining = document.getElementById('calsRemaining');
 const calsEaten = document.getElementById('calsEaten');
@@ -77,6 +81,7 @@ onAuthStateChanged(auth, async (user) => {
     if (!userData.food_diary) userData.food_diary = [];
     if (!userData.biometrics) userData.biometrics = [];
     if (!userData.sleep_data) userData.sleep_data = [];
+    if (!userData.custom_workouts) userData.custom_workouts = [];
 
     renderDashboard();
 });
@@ -89,6 +94,22 @@ function renderDashboard() {
     if (hour < 12) timeGreeting = "Good Morning";
     else if (hour < 17) timeGreeting = "Good Afternoon";
     userGreeting.innerText = `${timeGreeting}, ${name}.`;
+
+    // Today's Protocol Setup
+    protocolSelect.innerHTML = '<option value="">-- Select Protocol --</option>';
+    if (userData.custom_workouts && userData.custom_workouts.length > 0) {
+        protocolSelect.style.display = 'block';
+        userData.custom_workouts.forEach(workout => {
+            const opt = document.createElement('option');
+            opt.value = workout.id;
+            opt.textContent = workout.name;
+            protocolSelect.appendChild(opt);
+        });
+        todayProtocolContainer.innerHTML = ''; // Clear container until selected
+    } else {
+        protocolSelect.style.display = 'none';
+        todayProtocolContainer.innerHTML = '<p class="text-muted" style="font-size: 0.85rem; text-align: center; padding: 10px;">No custom protocols found. Create one in the Fitness tab.</p>';
+    }
 
     const todayWater = userData.biometrics.find(b => b.date === todayStr);
     const currentWater = todayWater?.waterOz || 0;
@@ -149,6 +170,32 @@ function renderDashboard() {
         activeCals.innerText = todaysVitals.activeCals || '0';
     }
 }
+
+// --- TODAY'S PROTOCOL HANDLER ---
+protocolSelect.addEventListener('change', (e) => {
+    const workoutId = e.target.value;
+    if (!workoutId) {
+        todayProtocolContainer.innerHTML = '';
+        return;
+    }
+
+    const workout = userData.custom_workouts.find(w => w.id === workoutId);
+    if (workout && workout.exercises) {
+        let html = `<ul style="list-style: none; padding: 0; margin: 0;">`;
+        workout.exercises.forEach(ex => {
+            html += `
+            <li style="padding: 10px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-weight: 600; font-size: 0.95rem;">${ex.name}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">${ex.sets} Sets x ${ex.reps} Reps</div>
+                </div>
+                <button class="btn btn-ghost" style="padding: 5px 10px; font-size: 0.8rem;"><i class="fa-regular fa-circle"></i></button>
+            </li>`;
+        });
+        html += `</ul>`;
+        todayProtocolContainer.innerHTML = html;
+    }
+});
 
 // --- HYDRATION MODULE ---
 async function updateWater(amount) {
