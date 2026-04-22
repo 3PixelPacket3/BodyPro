@@ -4,11 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>BodyPro | Training Hub</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#09090b">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">  
   
 <style>
+    /* Global Mobile Scroll Fixes */
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
+      position: relative;
+    }
+
+    .main-content {
+      padding-bottom: 100px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
     /* Fitness Specific Styles */
     .timer-dashboard {
       display: grid;
@@ -133,11 +149,47 @@
       background: var(--bg-surface-elevated);
     }
 
-    /* Telemetry Input */
+    /* Telemetry Input - Fixed for Mobile */
     .telemetry-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
+      flex-direction: row;
       gap: 15px;
+      width: 100%;
+    }
+
+    .telemetry-row .form-group {
+      flex: 1;
+      margin: 0;
+      min-width: 0; /* Allows flex items to shrink below their implied minimums */
+    }
+
+    .telemetry-row input {
+      width: 100%;
+    }
+
+    /* Live Log Movement Section Grid - Fixed for weird sizing */
+    .set-grid-header, .set-row {
+      display: grid;
+      grid-template-columns: 35px 1fr 1fr 1fr 30px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .set-grid-header {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 5px;
+    }
+
+    .set-row input {
+      text-align: center;
+      padding: 8px 4px; /* Slightly tighter padding for mobile */
     }
 
     /* Modals */
@@ -287,12 +339,12 @@
       <div class="card">
         <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-tower-broadcast text-warning"></i> Session Telemetry</h3>
         <div class="telemetry-row">
-          <div class="form-group" style="margin: 0;">
-            <label for="inputAvgHR">Avg Heart Rate (BPM)</label>
+          <div class="form-group">
+            <label for="inputAvgHR">Avg HR (BPM)</label>
             <input type="number" id="inputAvgHR" name="inputAvgHR" placeholder="e.g. 145" style="border-color: var(--border-color);">
           </div>
-          <div class="form-group" style="margin: 0;">
-            <label for="inputWorkoutCals">Total Active Cals</label>
+          <div class="form-group">
+            <label for="inputWorkoutCals">Active Cals</label>
             <input type="number" id="inputWorkoutCals" name="inputWorkoutCals" placeholder="e.g. 650">
           </div>
         </div>
