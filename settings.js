@@ -1,415 +1,330 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>BodyPro | Profile Configuration</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#09090b">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+// settings.js - BodyPro Profile & Configuration Logic
 
-  <style>
-    /* Settings & Profile Specific Styles */
+import { auth } from './data-store.js';
+import { onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+// --- DOM Elements ---
+
+// Section 1: Identity
+const profName = document.getElementById('profName');
+const profAge = document.getElementById('profAge');
+const profSex = document.getElementById('profSex');
+const profHeight = document.getElementById('profHeight');
+const profGoalWeight = document.getElementById('profGoalWeight');
+const profActivity = document.getElementById('profActivity');
+const profObjective = document.getElementById('profObjective');
+const btnSaveIdentity = document.getElementById('btnSaveIdentity');
+
+// Section 2: Targets & Goals
+const goalCals = document.getElementById('goalCals');
+const goalProt = document.getElementById('goalProt');
+const goalCarb = document.getElementById('goalCarb');
+const goalFat = document.getElementById('goalFat');
+
+const goalSleep = document.getElementById('goalSleep');
+const goalSteps = document.getElementById('goalSteps');
+const goalFloors = document.getElementById('goalFloors');
+const goalWater = document.getElementById('goalWater');
+const goalWorkoutDays = document.getElementById('goalWorkoutDays');
+const goalLiftMins = document.getElementById('goalLiftMins');
+const goalCardioMins = document.getElementById('goalCardioMins');
+const btnSaveTargets = document.getElementById('btnSaveTargets');
+
+// Section 3: Preferences
+const prefTheme = document.getElementById('prefTheme');
+const prefWeight = document.getElementById('prefWeight');
+const prefFluid = document.getElementById('prefFluid');
+const prefTime = document.getElementById('prefTime');
+const prefMeal = document.getElementById('prefMeal');
+const btnSavePrefs = document.getElementById('btnSavePrefs');
+
+// Section 4: Data Management (Danger Zone)
+const btnExportData = document.getElementById('btnExportData');
+const inputImportData = document.getElementById('inputImportData');
+const btnResetWeek = document.getElementById('btnResetWeek');
+const btnWipeAccount = document.getElementById('btnWipeAccount');
+const btnSignOut = document.getElementById('btnSignOut');
+
+// --- STATE MANAGEMENT ---
+let userData = null;
+
+// --- THE SECURITY GUARD ---
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.replace('login.html');
+        return;
+    }
     
-    /* Global Mobile Scroll Fixes */
-    html, body {
-      overflow-x: hidden; /* Prevent horizontal scroll lock on Samsung/Large devices */
-      width: 100%;
-      position: relative;
-    }
-
-    .main-content {
-      padding-bottom: 100px; /* Ensure space for the bottom nav bar */
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch; /* Smooth scrolling for iOS/Android */
-    }
-
-    .settings-section {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-md);
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-
-    .settings-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 15px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .settings-header h3 {
-      margin: 0;
-      font-size: 1.1rem;
-      color: var(--text-main);
-    }
-
-    .settings-header i {
-      font-size: 1.2rem;
-    }
-
-    .settings-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-
-    .settings-grid-full {
-      grid-column: span 2;
-    }
-
-    /* Danger Zone */
-    .danger-zone {
-      border: 1px solid var(--danger);
-      background: rgba(239, 68, 68, 0.05);
-    }
-
-    .danger-zone .settings-header h3, 
-    .danger-zone .settings-header i {
-      color: var(--danger);
-    }
-
-    .btn-danger-outline {
-      background: transparent;
-      border: 1px solid var(--danger);
-      color: var(--danger);
-      width: 100%;
-      padding: 10px;
-      border-radius: var(--border-radius-sm);
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .btn-danger-outline:hover {
-      background: var(--danger);
-      color: white;
-    }
-
-    .btn-warning-outline {
-      background: transparent;
-      border: 1px solid var(--warning);
-      color: var(--warning);
-      width: 100%;
-      padding: 10px;
-      border-radius: var(--border-radius-sm);
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .btn-warning-outline:hover {
-      background: var(--warning);
-      color: white;
-    }
-
-    .action-row {
-      display: flex;
-      gap: 10px;
-      margin-top: 15px;
-    }
-
-    /* File Input Styling */
-    input[type="file"] {
-      display: none;
-    }
-
-    .custom-file-upload {
-      border: 1px dashed var(--border-color);
-      display: inline-block;
-      padding: 10px;
-      cursor: pointer;
-      width: 100%;
-      text-align: center;
-      border-radius: var(--border-radius-sm);
-      color: var(--primary);
-      font-weight: 600;
-      transition: background 0.2s;
-    }
-
-    .custom-file-upload:hover {
-      background: var(--bg-surface-elevated);
-    }
-
-    @media (max-width: 480px) {
-      .settings-grid {
-        grid-template-columns: 1fr;
-      }
-      .settings-grid-full {
-        grid-column: span 1;
-      }
-    }
-  </style>
-</head>
-<body>
-
-  <div class="app-container">
+    userData = await window.BodyProDataStore.getData();
     
-    <nav class="app-nav">
-      <a href="dashboard.html" class="nav-item">
-        <i class="fa-solid fa-house"></i>
-        <span>Home</span>
-      </a>
-      <a href="nutrition.html" class="nav-item">
-        <i class="fa-solid fa-utensils"></i>
-        <span>Nutrition</span>
-      </a>
-      <a href="recipes.html" class="nav-item">
-        <i class="fa-solid fa-book-open"></i>
-        <span>Recipes</span>
-      </a>
-      <a href="fitness.html" class="nav-item">
-        <i class="fa-solid fa-dumbbell"></i>
-        <span>Fitness</span>
-      </a>
-      <a href="analytics.html" class="nav-item">
-        <i class="fa-solid fa-chart-line"></i>
-        <span>Analytics</span>
-      </a>
-      <a href="social.html" class="nav-item">
-        <i class="fa-solid fa-users"></i>
-        <span>Social</span>
-      </a>
-      <a href="settings.html" class="nav-item active">
-        <i class="fa-solid fa-user"></i>
-        <span>Profile</span>
-      </a>
-    </nav>
+    // Ensure nested objects exist to prevent null reference errors
+    if (!userData.profile) userData.profile = {};
+    if (!userData.settings) userData.settings = { macroTargets: {}, goals: {}, preferences: {} };
+    if (!userData.settings.macroTargets) userData.settings.macroTargets = {};
+    if (!userData.settings.goals) userData.settings.goals = {};
+    if (!userData.settings.preferences) userData.settings.preferences = {};
 
-    <main class="main-content">
-      
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div>
-          <h2 style="margin-bottom: 5px;">Configuration</h2>
-          <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Profile & System Preferences</p>
-        </div>
-        <button class="btn btn-ghost" id="btnSignOut" style="padding: 8px 15px; font-size: 0.85rem; color: var(--danger); border-color: transparent;">
-          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
-        </button>
-      </div>
+    populateUI(user);
+});
 
-      <div class="settings-section" style="border-top: 4px solid var(--primary);">
-        <div class="settings-header">
-          <i class="fa-solid fa-id-card text-primary"></i>
-          <h3>Biometric Identity</h3>
-        </div>
-        
-        <div class="settings-grid">
-          <div class="form-group settings-grid-full">
-            <label>Display Name</label>
-            <input type="text" id="profName" placeholder="Joshua">
-          </div>
-          
-          <div class="form-group">
-            <label>Age</label>
-            <input type="number" id="profAge" placeholder="26">
-          </div>
-          
-          <div class="form-group">
-            <label>Sex</label>
-            <select id="profSex">
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </div>
+// --- UI POPULATION ---
+function populateUI(user) {
+    // 1. Identity
+    profName.value = user.displayName || userData.profile.displayName || '';
+    profAge.value = userData.profile.age || '';
+    if (userData.profile.sex) profSex.value = userData.profile.sex;
+    profHeight.value = userData.profile.heightInches || '';
+    profGoalWeight.value = userData.profile.goalWeight || '';
+    if (userData.profile.activityLevel) profActivity.value = userData.profile.activityLevel;
+    if (userData.profile.objective) profObjective.value = userData.profile.objective;
 
-          <div class="form-group">
-            <label>Height (in)</label>
-            <input type="number" id="profHeight" placeholder="69">
-          </div>
+    // 2. Nutritional Targets
+    goalCals.value = userData.settings.macroTargets.calories || 2200;
+    goalProt.value = userData.settings.macroTargets.protein || 200;
+    goalCarb.value = userData.settings.macroTargets.carbs || 150;
+    goalFat.value = userData.settings.macroTargets.fats || 88;
 
-          <div class="form-group">
-            <label>Goal Weight (lbs)</label>
-            <input type="number" id="profGoalWeight" placeholder="185">
-          </div>
+    // 3. Biometric & Activity Goals
+    goalSleep.value = userData.settings.goals.sleepHrs || 7.5;
+    goalSteps.value = userData.settings.goals.steps || 10000;
+    goalFloors.value = userData.settings.goals.floors || 10;
+    goalWater.value = userData.settings.goals.waterOz || 120;
+    goalWorkoutDays.value = userData.settings.goals.workoutDaysPerWeek || 6;
+    goalLiftMins.value = userData.settings.goals.targetLiftingMinutes || 90;
+    goalCardioMins.value = userData.settings.goals.targetCardioMinutes || 20;
 
-          <div class="form-group settings-grid-full">
-            <label>Activity Level</label>
-            <select id="profActivity">
-              <option value="1.2">Sedentary (office job)</option>
-              <option value="1.375">Light (1-3 days/week)</option>
-              <option value="1.55">Moderate (3-5 days/week)</option>
-              <option value="1.725">Active (6-7 days/week)</option>
-              <option value="1.9">Very Active (physical job)</option>
-            </select>
-          </div>
+    // 4. Preferences
+    if (userData.settings.preferences.theme) prefTheme.value = userData.settings.preferences.theme;
+    if (userData.settings.preferences.weightUnit) prefWeight.value = userData.settings.preferences.weightUnit;
+    if (userData.settings.preferences.fluidUnit) prefFluid.value = userData.settings.preferences.fluidUnit;
+    if (userData.settings.preferences.timeFormat) prefTime.value = userData.settings.preferences.timeFormat;
+    if (userData.settings.preferences.defaultMeal) prefMeal.value = userData.settings.preferences.defaultMeal;
+}
 
-          <div class="form-group settings-grid-full">
-            <label>Current Objective</label>
-            <select id="profObjective">
-              <option value="cut">Cut (Fat Loss)</option>
-              <option value="maintain">Maintain</option>
-              <option value="bulk">Bulk (Muscle Gain)</option>
-            </select>
-          </div>
-        </div>
-        <button class="btn" id="btnSaveIdentity" style="width: 100%; margin-top: 10px;">Update Identity</button>
-      </div>
+// --- MODULE 1: IDENTITY MANAGEMENT ---
+btnSaveIdentity.addEventListener('click', async () => {
+    btnSaveIdentity.disabled = true;
+    btnSaveIdentity.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
 
-      <div class="settings-section" style="border-top: 4px solid var(--accent);">
-        <div class="settings-header">
-          <i class="fa-solid fa-bullseye text-accent"></i>
-          <h3>Daily Targets</h3>
-        </div>
-        
-        <div class="settings-grid">
-          
-          <div class="form-group settings-grid-full" style="margin-bottom: 5px;">
-            <label style="color: var(--text-muted);">Nutritional Targets</label>
-          </div>
-          <div class="form-group">
-            <label>Calorie Goal (kcal)</label>
-            <input type="number" id="goalCals" placeholder="2200">
-          </div>
-          <div class="form-group">
-            <label>Protein (g)</label>
-            <input type="number" id="goalProt" placeholder="200">
-          </div>
-          <div class="form-group">
-            <label>Carbs (g)</label>
-            <input type="number" id="goalCarb" placeholder="150">
-          </div>
-          <div class="form-group">
-            <label>Fats (g)</label>
-            <input type="number" id="goalFat" placeholder="88">
-          </div>
+    // Update Firebase Auth Profile if name changed
+    if (profName.value.trim() && profName.value.trim() !== auth.currentUser.displayName) {
+        await updateProfile(auth.currentUser, { displayName: profName.value.trim() });
+    }
 
-          <div class="form-group settings-grid-full" style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
-            <label style="color: var(--text-muted);">Biometric & Activity Targets</label>
-          </div>
+    userData.profile = {
+        displayName: profName.value.trim(),
+        age: parseInt(profAge.value) || null,
+        sex: profSex.value,
+        heightInches: parseInt(profHeight.value) || null,
+        goalWeight: parseInt(profGoalWeight.value) || null,
+        activityLevel: parseFloat(profActivity.value),
+        objective: profObjective.value,
+        shortId: userData.profile.shortId // Preserve the Short ID
+    };
 
-          <div class="form-group">
-            <label>Sleep Goal (hrs)</label>
-            <input type="number" step="0.5" id="goalSleep" placeholder="7.5">
-          </div>
-          
-          <div class="form-group">
-            <label>Step Goal</label>
-            <input type="number" id="goalSteps" placeholder="10000">
-          </div>
+    const success = await window.BodyProDataStore.saveData(userData);
+    
+    if (success) {
+        btnSaveIdentity.innerHTML = '<i class="fa-solid fa-check"></i> Identity Secured';
+        setTimeout(() => {
+            btnSaveIdentity.disabled = false;
+            btnSaveIdentity.innerText = 'Update Identity';
+        }, 2000);
+    }
+});
 
-          <div class="form-group">
-            <label>Floor Goal</label>
-            <input type="number" id="goalFloors" placeholder="10">
-          </div>
+// --- MODULE 2: TARGETS & GOALS ---
+btnSaveTargets.addEventListener('click', async () => {
+    btnSaveTargets.disabled = true;
+    btnSaveTargets.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
 
-          <div class="form-group">
-            <label>Hydration (fl oz)</label>
-            <input type="number" id="goalWater" placeholder="120">
-          </div>
+    userData.settings.macroTargets = {
+        calories: parseInt(goalCals.value) || 2200,
+        protein: parseInt(goalProt.value) || 200,
+        carbs: parseInt(goalCarb.value) || 150,
+        fats: parseInt(goalFat.value) || 88
+    };
 
-          <div class="form-group settings-grid-full" style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
-            <label style="color: var(--text-muted);">Weekly Training Protocol</label>
-          </div>
+    userData.settings.goals = {
+        sleepHrs: parseFloat(goalSleep.value) || 7.5,
+        steps: parseInt(goalSteps.value) || 10000,
+        floors: parseInt(goalFloors.value) || 10,
+        waterOz: parseInt(goalWater.value) || 120,
+        workoutDaysPerWeek: parseInt(goalWorkoutDays.value) || 6,
+        targetLiftingMinutes: parseInt(goalLiftMins.value) || 90,
+        targetCardioMinutes: parseInt(goalCardioMins.value) || 20
+    };
 
-          <div class="form-group">
-            <label>Days / Week</label>
-            <input type="number" id="goalWorkoutDays" placeholder="6">
-          </div>
+    const success = await window.BodyProDataStore.saveData(userData);
+    
+    if (success) {
+        btnSaveTargets.innerHTML = '<i class="fa-solid fa-check"></i> Targets Locked';
+        setTimeout(() => {
+            btnSaveTargets.disabled = false;
+            btnSaveTargets.innerText = 'Save Targets';
+        }, 2000);
+    }
+});
 
-          <div class="form-group">
-            <label>Lift Mins / Day</label>
-            <input type="number" id="goalLiftMins" placeholder="90">
-          </div>
+// --- MODULE 3: SYSTEM PREFERENCES ---
+btnSavePrefs.addEventListener('click', async () => {
+    btnSavePrefs.disabled = true;
+    btnSavePrefs.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Applying...';
 
-          <div class="form-group">
-            <label>Cardio Mins / Day</label>
-            <input type="number" id="goalCardioMins" placeholder="20">
-          </div>
-        </div>
-        <button class="btn" id="btnSaveTargets" style="width: 100%; margin-top: 10px;">Save Targets</button>
-      </div>
+    userData.settings.preferences = {
+        theme: prefTheme.value,
+        weightUnit: prefWeight.value,
+        fluidUnit: prefFluid.value,
+        timeFormat: prefTime.value,
+        defaultMeal: prefMeal.value
+    };
 
-      <div class="settings-section" style="border-top: 4px solid var(--text-main);">
-        <div class="settings-header">
-          <i class="fa-solid fa-sliders"></i>
-          <h3>System Preferences</h3>
-        </div>
-        
-        <div class="settings-grid">
-          <div class="form-group">
-            <label>Theme</label>
-            <select id="prefTheme">
-              <option value="dark">Dark</option>
-              <option value="light">Light</option>
-              <option value="system">System Default</option>
-            </select>
-          </div>
+    // Apply theme immediately
+    if (prefTheme.value === 'system') {
+        const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+        document.documentElement.setAttribute('data-theme', prefersLight ? 'light' : 'dark');
+    } else {
+        document.documentElement.setAttribute('data-theme', prefTheme.value);
+    }
 
-          <div class="form-group">
-            <label>Weight Unit</label>
-            <select id="prefWeight">
-              <option value="lbs">Pounds (lbs)</option>
-              <option value="kg">Kilograms (kg)</option>
-            </select>
-          </div>
+    const success = await window.BodyProDataStore.saveData(userData);
+    
+    if (success) {
+        btnSavePrefs.innerHTML = '<i class="fa-solid fa-check"></i> Preferences Applied';
+        setTimeout(() => {
+            btnSavePrefs.disabled = false;
+            btnSavePrefs.innerText = 'Apply Preferences';
+        }, 2000);
+    }
+});
 
-          <div class="form-group">
-            <label>Fluid Unit</label>
-            <select id="prefFluid">
-              <option value="oz">Fluid Ounces (fl oz)</option>
-              <option value="ml">Milliliters (mL)</option>
-            </select>
-          </div>
+// --- MODULE 4: DATA MANAGEMENT (DANGER ZONE) ---
 
-          <div class="form-group">
-            <label>Time Format</label>
-            <select id="prefTime">
-              <option value="12">12-Hour (AM/PM)</option>
-              <option value="24">24-Hour</option>
-            </select>
-          </div>
+// Backup/Export
+btnExportData.addEventListener('click', () => {
+    if (!userData) return alert("System Error: No data available to export.");
+    
+    const dataStr = JSON.stringify(userData, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `BodyPro_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+});
 
-          <div class="form-group settings-grid-full">
-            <label>Default Quick-Add Meal</label>
-            <select id="prefMeal">
-              <option value="Breakfast">Breakfast</option>
-              <option value="Lunch">Lunch</option>
-              <option value="Dinner">Dinner</option>
-              <option value="Snacks">Snacks</option>
-            </select>
-          </div>
-        </div>
-        <button class="btn btn-ghost" id="btnSavePrefs" style="width: 100%; margin-top: 10px; background: var(--bg-base);">Apply Preferences</button>
-      </div>
+// Import/Restore
+inputImportData.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
 
-      <div class="settings-section danger-zone">
-        <div class="settings-header">
-          <i class="fa-solid fa-triangle-exclamation"></i>
-          <h3>Data Management</h3>
-        </div>
-        
-        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px;">Backup your telemetry locally or reset your database. These actions are irreversible once executed.</p>
+    if (!confirm("WARNING: Importing a backup will overwrite your current cloud data. Proceed?")) {
+        inputImportData.value = ''; // Reset input
+        return;
+    }
 
-        <div class="action-row">
-          <button class="btn btn-ghost" id="btnExportData" style="flex: 1;"><i class="fa-solid fa-download"></i> Export JSON</button>
-          
-          <label class="custom-file-upload" style="flex: 1;">
-            <input type="file" id="inputImportData" accept=".json">
-            <i class="fa-solid fa-upload"></i> Import Backup
-          </label>
-        </div>
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            if (!importedData.uid && !importedData.profile) throw new Error("Invalid payload structure.");
+            
+            // Ensure the imported data is linked to the current user's Auth ID
+            // Handle legacy exports that might not have uid at the root
+            importedData.uid = auth.currentUser.uid;
+            
+            const success = await window.BodyProDataStore.saveData(importedData);
+            if (success) {
+                alert("Backup restored successfully. The system will now reload.");
+                window.location.reload();
+            } else {
+                alert("Error synchronizing imported data to the cloud.");
+            }
+        } catch (error) {
+            alert("File corruption detected. Cannot parse JSON backup.");
+            console.error("Import Error:", error);
+        }
+        inputImportData.value = ''; // Reset input
+    };
+    reader.readAsText(file);
+});
 
-        <div style="margin-top: 25px; border-top: 1px dashed var(--danger); padding-top: 20px;">
-          <button class="btn-warning-outline" id="btnResetWeek" style="margin-bottom: 10px;"><i class="fa-solid fa-clock-rotate-left"></i> Rollback 7 Days</button>
-          <button class="btn-danger-outline" id="btnWipeAccount"><i class="fa-solid fa-skull"></i> Execute Complete Wipe</button>
-        </div>
-      </div>
+// 7-Day Rollback
+btnResetWeek.addEventListener('click', async () => {
+    if (!confirm("WARNING: This will permanently delete all diary entries, workouts, and biometrics logged in the last 7 days. This action cannot be undone. Execute?")) return;
+    
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 7);
+    const cutoffISO = cutoffDate.toISOString().split('T')[0];
 
-    </main>
-  </div>
+    // Filter Arrays
+    if (userData.food_diary) {
+        userData.food_diary = userData.food_diary.filter(f => f.date < cutoffISO);
+    }
+    if (userData.biometrics) {
+        userData.biometrics = userData.biometrics.filter(b => b.date < cutoffISO);
+    }
+    if (userData.sleep_data) {
+        userData.sleep_data = userData.sleep_data.filter(s => s.date < cutoffISO);
+    }
+    if (userData.workouts) {
+        // Workouts use timestamp instead of strict date string
+        userData.workouts = userData.workouts.filter(w => new Date(w.timestamp) < cutoffDate);
+    }
 
-  <script type="module" src="data-store.js"></script>
-  <script type="module" src="settings.js"></script>
-</body>
-  
-<footer style="text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: 20px;">
-  &copy; 2026 Joshua Michael Smolak. All Rights Reserved. <br>
-  BodyPro System v2.0.0
-</footer>
-</html>
+    const success = await window.BodyProDataStore.saveData(userData);
+    if (success) {
+        alert("7-Day Rollback executed successfully.");
+        window.location.reload();
+    }
+});
+
+// Complete Account Wipe
+btnWipeAccount.addEventListener('click', async () => {
+    const confirmationWord = prompt("CRITICAL WARNING: You are about to wipe your entire BodyPro database. Type 'DELETE' to confirm execution.");
+    if (confirmationWord !== 'DELETE') {
+        alert("Wipe aborted.");
+        return;
+    }
+
+    // Reset all arrays while maintaining the core structure and user UID
+    userData = {
+        uid: auth.currentUser.uid,
+        food_diary: [],
+        biometrics: [],
+        sleep_data: [],
+        workouts: [],
+        custom_recipes: [],
+        workout_templates: [],
+        social: { friends: [], pending: [], blocked: [], posts: [] },
+        profile: userData.profile, // Keep identity/Short ID intact
+        settings: {
+            macroTargets: { calories: 2200, protein: 200, carbs: 150, fats: 88 },
+            goals: {
+                sleepHrs: 7.5, steps: 10000, floors: 10, waterOz: 120,
+                workoutDaysPerWeek: 6, targetLiftingMinutes: 90, targetCardioMinutes: 20
+            },
+            preferences: { theme: 'dark', weightUnit: 'lbs', fluidUnit: 'oz', timeFormat: '12', defaultMeal: 'Snacks' }
+        }
+    };
+
+    const success = await window.BodyProDataStore.saveData(userData);
+    if (success) {
+        alert("Database wiped. System has been factory reset.");
+        window.location.replace('dashboard.html');
+    }
+});
+
+// --- AUTHENTICATION ---
+btnSignOut.addEventListener('click', () => {
+    signOut(auth).then(() => {
+        window.location.replace('login.html');
+    }).catch((error) => {
+        console.error("Sign Out Error", error);
+        alert("Failed to securely disconnect. Please check connection.");
+    });
+});
