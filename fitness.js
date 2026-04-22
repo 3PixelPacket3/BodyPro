@@ -6,7 +6,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/fi
 // --- PROGRESSIVE WEB APP REGISTRATION ---
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // Corrected path to relative for GitHub subdirectory compatibility
+        // Corrected to relative path for GitHub Pages subdirectory compatibility
         navigator.serviceWorker.register('./service-worker.js')
             .then(reg => console.log('[BodyPro System] Service Worker Registered', reg))
             .catch(err => console.error('[BodyPro System] SW Registration Failed', err));
