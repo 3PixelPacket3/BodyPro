@@ -73,7 +73,6 @@ onAuthStateChanged(auth, async (user) => {
 
     userData = await window.BodyProDataStore.getData();
     
-    // Safety Net
     if (!userData.settings) userData.settings = { macroTargets: {}, goals: {} };
     if (!userData.food_diary) userData.food_diary = [];
     if (!userData.biometrics) userData.biometrics = [];
@@ -84,7 +83,6 @@ onAuthStateChanged(auth, async (user) => {
 
 // --- CORE RENDER ENGINE ---
 function renderDashboard() {
-    // 1. Set Greeting
     const name = userData.profile?.displayName || "Commander";
     const hour = new Date().getHours();
     let timeGreeting = "Good Evening";
@@ -92,22 +90,18 @@ function renderDashboard() {
     else if (hour < 17) timeGreeting = "Good Afternoon";
     userGreeting.innerText = `${timeGreeting}, ${name}.`;
 
-    // 2. Hydration Sync
     const todayWater = userData.biometrics.find(b => b.date === todayStr);
     const currentWater = todayWater?.waterOz || 0;
     const waterGoal = userData.settings.goals?.waterOz || 120;
     waterCount.innerHTML = `${currentWater} <span style="font-size: 0.9rem; color: var(--text-muted);">fl oz</span>`;
     waterTargetLabel.innerText = `Goal: ${waterGoal} fl oz`;
 
-    // 3. Nutrition Sync
     const targets = userData.settings.macroTargets || { calories: 2200, protein: 200, carbs: 150, fats: 88 };
     
-    // Set Target Labels
     protTarget.innerText = `/ ${targets.protein}g`;
     carbTarget.innerText = `/ ${targets.carbs}g`;
     fatTarget.innerText = `/ ${targets.fats}g`;
 
-    // Calculate Today's Food
     const todaysFood = userData.food_diary.filter(f => f.date === todayStr);
     let eatenCals = 0, eatenProt = 0, eatenCarb = 0, eatenFat = 0;
     
@@ -126,13 +120,11 @@ function renderDashboard() {
     const calsLeft = Math.max(0, targets.calories - eatenCals);
     calsRemaining.innerText = Math.round(calsLeft);
 
-    // Update Calorie Ring Color and Progress
     const progressPerc = Math.min(100, (eatenCals / targets.calories) * 100);
     let ringColor = 'var(--accent)';
-    if (eatenCals > targets.calories) ringColor = 'var(--danger)'; // Over calorie goal
+    if (eatenCals > targets.calories) ringColor = 'var(--danger)'; 
     calorieRing.style.background = `conic-gradient(${ringColor} ${progressPerc}%, var(--bg-surface-elevated) 0)`;
 
-    // 4. Sleep Sync
     const sleepGoal = userData.settings.goals?.sleepHrs || 7.5;
     sleepTarget.innerText = `/ ${sleepGoal}h`;
 
@@ -145,7 +137,6 @@ function renderDashboard() {
         sleepLatency.innerText = todaysSleep.latencyMins ? `${todaysSleep.latencyMins}m` : '--';
     }
 
-    // 5. Vitals & Activity Sync
     const goals = userData.settings.goals || {};
     stepTarget.innerText = `/ ${goals.steps?.toLocaleString() || '10,000'}`;
     floorTarget.innerText = `/ ${goals.floors || 10}`;
@@ -171,22 +162,12 @@ async function updateWater(amount) {
     
     todayBio.waterOz = Math.max(0, (todayBio.waterOz || 0) + amount);
     
-    // Optimistic UI Update
     renderDashboard();
-
-    // Persist to Cloud
     await window.BodyProDataStore.saveData(userData);
 }
 
-btnAddWater.addEventListener('click', () => {
-    const val = parseInt(customWaterInput.value) || 8;
-    updateWater(val);
-});
-
-btnSubWater.addEventListener('click', () => {
-    const val = parseInt(customWaterInput.value) || 8;
-    updateWater(-val);
-});
+btnAddWater.addEventListener('click', () => updateWater(parseInt(customWaterInput.value) || 8));
+btnSubWater.addEventListener('click', () => updateWater(-(parseInt(customWaterInput.value) || 8)));
 
 // --- SLEEP TELEMETRY MODULE ---
 btnSaveSleep.addEventListener('click', async () => {
@@ -204,7 +185,6 @@ btnSaveSleep.addEventListener('click', async () => {
         latencyMins: parseInt(inputLatency.value) || null
     };
 
-    // Remove existing entry for today if exists
     userData.sleep_data = userData.sleep_data.filter(s => s.date !== todayStr);
     userData.sleep_data.push(sleepEntry);
 
@@ -216,12 +196,11 @@ btnSaveSleep.addEventListener('click', async () => {
     renderDashboard();
 });
 
-// Helper for time math
 function calculateDuration(start, end) {
     if (!start || !end) return null;
     const d1 = new Date(`2000-01-01T${start}`);
     let d2 = new Date(`2000-01-01T${end}`);
-    if (d2 < d1) d2.setDate(d2.getDate() + 1); // Crosses midnight
+    if (d2 < d1) d2.setDate(d2.getDate() + 1); 
     return parseFloat(((d2 - d1) / (1000 * 60 * 60)).toFixed(1));
 }
 
@@ -248,81 +227,70 @@ btnSaveVitals.addEventListener('click', async () => {
 
 // --- OPTICAL CHARACTER RECOGNITION (OCR) MODULE ---
 
-// Sleep Screenshot Processing
 uploadSleepScreenshot.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const originalText = uploadSleepScreenshot.parentElement.innerHTML;
-    uploadSleepScreenshot.parentElement.innerHTML = '<i class="fa-solid fa-cog fa-spin"></i> Scanning Telemetry...';
+    // Fix: Target the span instead of destroying the input
+    const textSpan = document.getElementById('sleepOcrText');
+    const originalText = textSpan.innerHTML;
+    textSpan.innerHTML = '<i class="fa-solid fa-cog fa-spin"></i> Scanning Telemetry...';
 
     try {
         const textData = await window.BodyProOCR.scanImage(file);
         console.log("Extracted Sleep OCR Data:", textData);
 
-        // Regex patterns specifically tuned for standard fitness app readouts
         const scoreMatch = textData.match(/(?:score|restfulness)[\s:]*(\d{1,3})/i);
         const deepMatch = textData.match(/(?:deep|deep sleep)[\s\n]*(\d+)h\s*(\d+)m/i);
         const remMatch = textData.match(/(?:rem)[\s\n]*(\d+)h\s*(\d+)m/i);
 
         if (scoreMatch) inputRestfulness.value = scoreMatch[1];
-        
         if (deepMatch) {
             const hrs = parseInt(deepMatch[1]) + (parseInt(deepMatch[2]) / 60);
             inputDeepSleep.value = hrs.toFixed(1);
         }
-        
         if (remMatch) {
             const hrs = parseInt(remMatch[1]) + (parseInt(remMatch[2]) / 60);
             inputRemSleep.value = hrs.toFixed(1);
         }
         
         alert("OCR Scan Complete. Please verify auto-filled metrics.");
-
     } catch (err) {
         console.error("OCR Engine Failure:", err);
         alert("Failed to analyze image. Please enter metrics manually.");
     } finally {
-        uploadSleepScreenshot.parentElement.innerHTML = originalText;
-        e.target.value = ''; // Reset input
+        textSpan.innerHTML = originalText;
+        e.target.value = ''; 
     }
 });
 
-// Vitals Screenshot Processing
 uploadVitalsScreenshot.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const originalText = uploadVitalsScreenshot.parentElement.innerHTML;
-    uploadVitalsScreenshot.parentElement.innerHTML = '<i class="fa-solid fa-cog fa-spin"></i> Scanning Telemetry...';
+    // Fix: Target the span instead of destroying the input
+    const textSpan = document.getElementById('vitalsOcrText');
+    const originalText = textSpan.innerHTML;
+    textSpan.innerHTML = '<i class="fa-solid fa-cog fa-spin"></i> Scanning Telemetry...';
 
     try {
         const textData = await window.BodyProOCR.scanImage(file);
         console.log("Extracted Vitals OCR Data:", textData);
 
-        // Regex patterns for steps, HR, active calories
         const stepsMatch = textData.match(/([\d,]+)\s*(?:steps)/i);
         const hrMatch = textData.match(/(?:resting\s*hr|resting\s*heart\s*rate)[\s:]*(\d{2,3})/i);
         const calMatch = textData.match(/([\d,]+)\s*(?:kcal|active)/i);
 
-        if (stepsMatch) {
-            // Remove commas from numbers
-            inputSteps.value = parseInt(stepsMatch[1].replace(/,/g, ''));
-        }
-        
+        if (stepsMatch) inputSteps.value = parseInt(stepsMatch[1].replace(/,/g, ''));
         if (hrMatch) inputRestingHR.value = hrMatch[1];
-        
-        if (calMatch) {
-            inputActiveCals.value = parseInt(calMatch[1].replace(/,/g, ''));
-        }
+        if (calMatch) inputActiveCals.value = parseInt(calMatch[1].replace(/,/g, ''));
 
         alert("OCR Scan Complete. Please verify auto-filled metrics.");
-
     } catch (err) {
         console.error("OCR Engine Failure:", err);
         alert("Failed to analyze image. Please enter metrics manually.");
     } finally {
-        uploadVitalsScreenshot.parentElement.innerHTML = originalText;
-        e.target.value = ''; // Reset input
+        textSpan.innerHTML = originalText;
+        e.target.value = ''; 
     }
 });
