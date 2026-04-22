@@ -1,6 +1,6 @@
 // data-store.js
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
     getFirestore, doc, getDoc, setDoc, collection, getDocs, 
@@ -18,12 +18,12 @@ const firebaseConfig = {
   measurementId: "G-CGWF3TCQL8"
 };
 
-const app = initializeApp(firebaseConfig);
+// CRITICAL FIX: Singleton Check to prevent duplicate-app console errors across pages
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
 // --- GLOBAL OCR ENGINE ---
-// Instantiates Tesseract.js dynamically to extract text from user screenshots
 window.BodyProOCR = {
     async scanImage(imageFile) {
         if (!window.Tesseract) {
@@ -100,20 +100,15 @@ window.BodyProDataStore = {
       const userSnap = await getDoc(userRef);
       let userData = userSnap.exists() ? userSnap.data() : this.getEmptyDB();
 
-      // Ensure all arrays and objects exist to prevent null reference errors
       userData.settings = userData.settings || this.getEmptyDB().settings;
       userData.friends = userData.friends || [];
       userData.profile = userData.profile || {};
       
-      // Generate Short ID for Social Connectivity if missing
       if (!userData.profile.shortId) {
-         // Secure 6-character alphanumeric identifier
          userData.profile.shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
-         // Quietly update the database so the ID is immediately permanent
          setDoc(userRef, { profile: userData.profile }, { merge: true });
       }
 
-      // Apply Theme Engine globally upon data fetch
       if (userData.settings.preferences && userData.settings.preferences.theme) {
           const theme = userData.settings.preferences.theme;
           if (theme === 'system') {
@@ -124,7 +119,6 @@ window.BodyProDataStore = {
           }
       }
       
-      // Fetch subcollections
       const subCollections = ['food_diary', 'workouts', 'biometrics', 'sleep_data', 'custom_recipes'];
       const userColPromises = subCollections.map(async (colName) => {
           const colRef = collection(db, "users", user.uid, colName);
@@ -152,7 +146,6 @@ window.BodyProDataStore = {
       const oldDataObj = await this.getIndexedData(this.MASTER_KEY) || this.getEmptyDB();
       const cleanData = JSON.parse(JSON.stringify(dataObj));
       
-      // Save locally (Instant)
       await this.setIndexedData(this.MASTER_KEY, cleanData);
 
       this.isSyncing = true;
