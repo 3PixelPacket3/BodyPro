@@ -6,7 +6,8 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/fi
 // --- PROGRESSIVE WEB APP REGISTRATION ---
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
+        // Corrected to relative path for subdirectory compatibility
+        navigator.serviceWorker.register('./service-worker.js')
             .then(reg => console.log('[BodyPro System] SW Analytics Handshake Successful'))
             .catch(err => console.error('[BodyPro System] SW Analytics Registration Failed', err));
     });
