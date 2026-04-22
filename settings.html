@@ -202,17 +202,17 @@
         
         <div class="settings-grid">
           <div class="form-group settings-grid-full">
-            <label>Display Name</label>
+            <label for="profName">Display Name</label>
             <input type="text" id="profName" placeholder="Joshua">
           </div>
           
           <div class="form-group">
-            <label>Age</label>
+            <label for="profAge">Age</label>
             <input type="number" id="profAge" placeholder="26">
           </div>
           
           <div class="form-group">
-            <label>Sex</label>
+            <label for="profSex">Sex</label>
             <select id="profSex">
               <option value="male">Male</option>
               <option value="female">Female</option>
@@ -220,17 +220,17 @@
           </div>
 
           <div class="form-group">
-            <label>Height (in)</label>
+            <label for="profHeight">Height (in)</label>
             <input type="number" id="profHeight" placeholder="69">
           </div>
 
           <div class="form-group">
-            <label>Goal Weight (lbs)</label>
+            <label for="profGoalWeight">Goal Weight (lbs)</label>
             <input type="number" id="profGoalWeight" placeholder="185">
           </div>
 
           <div class="form-group settings-grid-full">
-            <label>Activity Level</label>
+            <label for="profActivity">Activity Level</label>
             <select id="profActivity">
               <option value="1.2">Sedentary (office job)</option>
               <option value="1.375">Light (1-3 days/week)</option>
@@ -241,7 +241,7 @@
           </div>
 
           <div class="form-group settings-grid-full">
-            <label>Current Objective</label>
+            <label for="profObjective">Current Objective</label>
             <select id="profObjective">
               <option value="cut">Cut (Fat Loss)</option>
               <option value="maintain">Maintain</option>
@@ -261,65 +261,65 @@
         <div class="settings-grid">
           
           <div class="form-group settings-grid-full" style="margin-bottom: 5px;">
-            <label style="color: var(--text-muted);">Nutritional Targets</label>
+            <div style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Nutritional Targets</div>
           </div>
           <div class="form-group">
-            <label>Calorie Goal (kcal)</label>
+            <label for="goalCals">Calorie Goal (kcal)</label>
             <input type="number" id="goalCals" placeholder="2200">
           </div>
           <div class="form-group">
-            <label>Protein (g)</label>
+            <label for="goalProt">Protein (g)</label>
             <input type="number" id="goalProt" placeholder="200">
           </div>
           <div class="form-group">
-            <label>Carbs (g)</label>
+            <label for="goalCarb">Carbs (g)</label>
             <input type="number" id="goalCarb" placeholder="150">
           </div>
           <div class="form-group">
-            <label>Fats (g)</label>
+            <label for="goalFat">Fats (g)</label>
             <input type="number" id="goalFat" placeholder="88">
           </div>
 
           <div class="form-group settings-grid-full" style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
-            <label style="color: var(--text-muted);">Biometric & Activity Targets</label>
+            <div style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Biometric & Activity Targets</div>
           </div>
 
           <div class="form-group">
-            <label>Sleep Goal (hrs)</label>
+            <label for="goalSleep">Sleep Goal (hrs)</label>
             <input type="number" step="0.5" id="goalSleep" placeholder="7.5">
           </div>
           
           <div class="form-group">
-            <label>Step Goal</label>
+            <label for="goalSteps">Step Goal</label>
             <input type="number" id="goalSteps" placeholder="10000">
           </div>
 
           <div class="form-group">
-            <label>Floor Goal</label>
+            <label for="goalFloors">Floor Goal</label>
             <input type="number" id="goalFloors" placeholder="10">
           </div>
 
           <div class="form-group">
-            <label>Hydration (fl oz)</label>
+            <label for="goalWater">Hydration (fl oz)</label>
             <input type="number" id="goalWater" placeholder="120">
           </div>
 
           <div class="form-group settings-grid-full" style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
-            <label style="color: var(--text-muted);">Weekly Training Protocol</label>
+            <div style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Weekly Training Protocol</div>
           </div>
 
           <div class="form-group">
-            <label>Days / Week</label>
+            <label for="goalWorkoutDays">Days / Week</label>
             <input type="number" id="goalWorkoutDays" placeholder="6">
           </div>
 
           <div class="form-group">
-            <label>Lift Mins / Day</label>
+            <label for="goalLiftMins">Lift Mins / Day</label>
             <input type="number" id="goalLiftMins" placeholder="90">
           </div>
 
           <div class="form-group">
-            <label>Cardio Mins / Day</label>
+            <label for="goalCardioMins">Cardio Mins / Day</label>
             <input type="number" id="goalCardioMins" placeholder="20">
           </div>
         </div>
@@ -334,7 +334,7 @@
         
         <div class="settings-grid">
           <div class="form-group">
-            <label>Theme</label>
+            <label for="prefTheme">Theme</label>
             <select id="prefTheme">
               <option value="dark">Dark</option>
               <option value="light">Light</option>
@@ -343,7 +343,7 @@
           </div>
 
           <div class="form-group">
-            <label>Weight Unit</label>
+            <label for="prefWeight">Weight Unit</label>
             <select id="prefWeight">
               <option value="lbs">Pounds (lbs)</option>
               <option value="kg">Kilograms (kg)</option>
@@ -351,7 +351,7 @@
           </div>
 
           <div class="form-group">
-            <label>Fluid Unit</label>
+            <label for="prefFluid">Fluid Unit</label>
             <select id="prefFluid">
               <option value="oz">Fluid Ounces (fl oz)</option>
               <option value="ml">Milliliters (mL)</option>
@@ -359,7 +359,7 @@
           </div>
 
           <div class="form-group">
-            <label>Time Format</label>
+            <label for="prefTime">Time Format</label>
             <select id="prefTime">
               <option value="12">12-Hour (AM/PM)</option>
               <option value="24">24-Hour</option>
@@ -367,7 +367,7 @@
           </div>
 
           <div class="form-group settings-grid-full">
-            <label>Default Quick-Add Meal</label>
+            <label for="prefMeal">Default Quick-Add Meal</label>
             <select id="prefMeal">
               <option value="Breakfast">Breakfast</option>
               <option value="Lunch">Lunch</option>
@@ -377,6 +377,7 @@
           </div>
         </div>
         <button class="btn btn-ghost" id="btnSavePrefs" style="width: 100%; margin-top: 10px; background: var(--bg-base);">Apply Preferences</button>
+        <button class="btn btn-ghost" id="btnInstallApp" style="width: 100%; margin-top: 10px; border-color: var(--accent); color: var(--accent); display: none;"><i class="fa-solid fa-download"></i> Install Desktop/Mobile App</button>
       </div>
 
       <div class="settings-section danger-zone">
@@ -390,7 +391,7 @@
         <div class="action-row">
           <button class="btn btn-ghost" id="btnExportData" style="flex: 1;"><i class="fa-solid fa-download"></i> Export JSON</button>
           
-          <label class="custom-file-upload" style="flex: 1;">
+          <label class="custom-file-upload" for="inputImportData" style="flex: 1;">
             <input type="file" id="inputImportData" accept=".json">
             <i class="fa-solid fa-upload"></i> Import Backup
           </label>
