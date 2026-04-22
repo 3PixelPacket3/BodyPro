@@ -12,6 +12,19 @@
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 
   <style>
+    /* Global Mobile Scroll Fixes */
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
+      position: relative;
+    }
+
+    .main-content {
+      padding-bottom: 100px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
     /* Nutrition Specific Styles */
     .date-navigator {
       display: flex;
@@ -272,6 +285,83 @@
       margin: 5px;
     }
     #reader a { color: var(--primary); }
+
+    /* FDA-Style Nutrition Label */
+    .nutrition-label {
+      background-color: #ffffff;
+      color: #000000;
+      border: 2px solid #000000;
+      padding: 10px;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      border-radius: 4px;
+      margin: 15px 0;
+    }
+    
+    .nutrition-label h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 900;
+      border-bottom: 1px solid #000000;
+      padding-bottom: 5px;
+      text-transform: capitalize;
+    }
+
+    .nl-servings-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 10px solid #000000;
+      font-weight: 900;
+      font-size: 1.1rem;
+    }
+
+    .nl-servings-wrapper input {
+      width: 80px;
+      padding: 4px 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border: 2px solid #000;
+      border-radius: 4px;
+      text-align: right;
+      color: #000;
+      background: #fff;
+    }
+
+    .nl-cals-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 5px solid #000000;
+      padding: 6px 0;
+    }
+
+    .nl-cals-row .cals-title {
+      font-weight: 900;
+      font-size: 1.5rem;
+    }
+
+    .nl-cals-row .cals-val {
+      font-weight: 900;
+      font-size: 2.5rem;
+      line-height: 1;
+    }
+
+    .nl-row {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #000000;
+      padding: 6px 0;
+      font-size: 1rem;
+    }
+
+    .nl-row.thick {
+      border-bottom: 5px solid #000000;
+    }
+
+    .nl-bold {
+      font-weight: 900;
+    }
   </style>
 </head>
 <body>
@@ -431,6 +521,61 @@
 
       <div style="display: flex; gap: 10px; margin-top: 20px;">
         <button class="btn btn-ghost" onclick="closeScannerModal()" style="width: 100%;">Close Optics</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="nutritionLabelModal">
+    <div class="modal-content" style="padding: 20px;">
+      <h3 style="margin-top: 0; margin-bottom: 15px;"><i class="fa-solid fa-tag text-accent"></i> Telemetry Acquired</h3>
+
+      <div class="form-group">
+        <label for="labelMealSelect">Log to Meal</label>
+        <select id="labelMealSelect">
+          <option value="Breakfast">Breakfast</option>
+          <option value="Lunch">Lunch</option>
+          <option value="Dinner">Dinner</option>
+          <option value="Snacks" selected>Snacks</option>
+        </select>
+      </div>
+
+      <div class="nutrition-label">
+        <h1 id="labelProductName">Loading...</h1>
+        
+        <div class="nl-servings-wrapper">
+          <span>Servings:</span>
+          <input type="number" id="labelServingMultiplier" value="1" min="0.1" step="0.1">
+        </div>
+
+        <div class="nl-cals-row">
+          <div>
+            <div class="nl-bold" style="font-size: 0.9rem;">Amount per serving</div>
+            <div class="cals-title">Calories</div>
+          </div>
+          <div class="cals-val" id="labelCalories">0</div>
+        </div>
+
+        <div class="nl-row" style="justify-content: flex-end;">
+          <span class="nl-bold" style="font-size: 0.85rem;">% Daily Value*</span>
+        </div>
+
+        <div class="nl-row">
+          <div><span class="nl-bold">Total Fat</span> <span id="labelFat">0</span>g</div>
+        </div>
+        <div class="nl-row">
+          <div><span class="nl-bold">Total Carbohydrate</span> <span id="labelCarb">0</span>g</div>
+        </div>
+        <div class="nl-row thick">
+          <div><span class="nl-bold">Protein</span> <span id="labelProtein">0</span>g</div>
+        </div>
+        <div style="font-size: 0.75rem; color: #555555; padding-top: 5px; font-weight: normal;">
+          * Macros dynamically calculated based on serving multiplier. Base data retrieved via barcode scan.
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-ghost" onclick="closeModals()">Discard</button>
+        <button class="btn btn-accent" id="btnLogScannedFood">Save to Diary</button>
       </div>
     </div>
   </div>
