@@ -252,6 +252,71 @@
         <button class="btn" id="btnSaveIdentity" style="width: 100%; margin-top: 10px;">Update Identity</button>
       </div>
 
+      <div class="settings-section" style="border-top: 4px solid var(--warning);">
+        <div class="settings-header">
+          <i class="fa-solid fa-calculator text-warning"></i>
+          <h3>Macro Calculator</h3>
+        </div>
+        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px;">Based on the Mifflin-St Jeor equation for accurate basal metabolic rate (BMR) and Total Daily Energy Expenditure (TDEE).</p>
+        
+        <div class="settings-grid">
+          <div class="form-group">
+            <label for="calcSex">Sex</label>
+            <select id="calcSex">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="calcAge">Age</label>
+            <input type="number" id="calcAge" placeholder="e.g. 26">
+          </div>
+          <div class="form-group">
+            <label for="calcWeight">Weight (lbs)</label>
+            <input type="number" id="calcWeight" placeholder="e.g. 185">
+          </div>
+          <div class="form-group">
+            <label for="calcHeight">Height (inches)</label>
+            <input type="number" id="calcHeight" placeholder="e.g. 69">
+          </div>
+          <div class="form-group settings-grid-full">
+            <label for="calcActivity">Activity Level</label>
+            <select id="calcActivity">
+              <option value="1.2">Sedentary (office job, little/no exercise)</option>
+              <option value="1.375">Light (exercise 1-3 days/week)</option>
+              <option value="1.55">Moderate (exercise 3-5 days/week)</option>
+              <option value="1.725">Active (exercise 6-7 days/week)</option>
+              <option value="1.9">Very Active (physical job or training 2x/day)</option>
+            </select>
+          </div>
+          <div class="form-group settings-grid-full">
+            <label for="calcGoal">Goal</label>
+            <select id="calcGoal">
+              <option value="-500">Cut (-500 cal/day, ~1lb loss/wk)</option>
+              <option value="-250">Mild Cut (-250 cal/day)</option>
+              <option value="0">Maintain Weight</option>
+              <option value="250">Lean Bulk (+250 cal/day)</option>
+              <option value="500">Bulk (+500 cal/day, ~1lb gain/wk)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-base); padding: 15px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); margin-bottom: 15px; text-align: center; margin-top: 15px;">
+          <h4 style="margin: 0 0 10px 0; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Recommended Targets</h4>
+          <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary);" id="calcResultCals">-- kcal</div>
+          <div style="display: flex; justify-content: center; gap: 15px; margin-top: 10px; font-size: 0.9rem; font-weight: 600;">
+            <span class="text-primary"><span id="calcResultProt">--</span>g P</span>
+            <span class="text-warning"><span id="calcResultCarb">--</span>g C</span>
+            <span class="text-danger"><span id="calcResultFat">--</span>g F</span>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button class="btn btn-ghost" id="btnRunMacroCalc" style="flex: 1;"><i class="fa-solid fa-calculator"></i> Calculate</button>
+          <button class="btn" id="btnApplyMacros" style="flex: 1; display: none;"><i class="fa-solid fa-check"></i> Apply to Targets</button>
+        </div>
+      </div>
+
       <div class="settings-section" style="border-top: 4px solid var(--accent);">
         <div class="settings-header">
           <i class="fa-solid fa-bullseye text-accent"></i>
@@ -377,7 +442,7 @@
           </div>
         </div>
         <button class="btn btn-ghost" id="btnSavePrefs" style="width: 100%; margin-top: 10px; background: var(--bg-base);">Apply Preferences</button>
-        <button class="btn btn-ghost" id="btnInstallApp" style="width: 100%; margin-top: 10px; border-color: var(--accent); color: var(--accent); display: none;"><i class="fa-solid fa-download"></i> Install Desktop/Mobile App</button>
+        <button class="btn btn-ghost" id="btnInstallApp" style="width: 100%; margin-top: 10px; border-color: var(--accent); color: var(--accent);"><i class="fa-solid fa-download"></i> Install Desktop/Mobile App</button>
       </div>
 
       <div class="settings-section danger-zone">
