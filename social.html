@@ -89,6 +89,7 @@
       justify-content: center;
       font-size: 1.2rem;
       font-weight: 700;
+      flex-shrink: 0;
     }
 
     .friend-details h4 {
@@ -112,12 +113,18 @@
       border-radius: 50%;
       cursor: pointer;
       transition: all 0.2s;
+      margin-left: 5px;
     }
 
     .friend-actions button:hover {
       background: var(--danger);
       color: white;
       border-color: var(--danger);
+    }
+
+    .friend-actions button.btn-accept:hover {
+      background: var(--accent);
+      border-color: var(--accent);
     }
 
     .search-box {
@@ -133,6 +140,92 @@
       font-weight: bold;
     }
 
+    /* --- NEW STYLES: Tabs & Feed --- */
+    .social-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 20px;
+    }
+    .social-tab {
+      flex: 1;
+      text-align: center;
+      padding: 12px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-weight: bold;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .social-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+    .badge-indicator {
+      background: var(--danger);
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 10px;
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      display: none;
+    }
+
+    .feed-card {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-md);
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .feed-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+    }
+    .compare-row {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+    }
+    .compare-bar-container {
+      height: 10px;
+      background: var(--bg-base);
+      border-radius: 5px;
+      overflow: hidden;
+      display: flex;
+    }
+    .compare-bar-self {
+      background: var(--accent);
+      height: 100%;
+    }
+    .compare-bar-friend {
+      background: var(--primary);
+      height: 100%;
+    }
+    .feed-section-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      font-weight: bold;
+      color: var(--text-muted);
+      margin: 15px 0 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -172,51 +265,93 @@
 
     <main class="main-content">
       
-      <div style="margin-bottom: 20px;">
+      <div style="margin-bottom: 15px;">
         <h2 style="margin-bottom: 5px;">Network</h2>
         <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Connect & Compete</p>
       </div>
 
-      <div class="card" style="border-top: 4px solid var(--primary);">
-        <div class="card-header">
-          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-id-badge text-primary"></i> My Network ID</h3>
-        </div>
-        <p class="text-muted" style="font-size: 0.85rem;">Share this 6-character code with friends so they can add you to their BodyPro network.</p>
-        
-        <div class="id-display-box">
-          <div class="short-id-text" id="myShortId">------</div>
-          <button class="btn btn-ghost" id="btnCopyId" style="width: auto; padding: 8px 20px; font-size: 0.9rem;">
-            <i class="fa-solid fa-copy"></i> Copy to Clipboard
-          </button>
-        </div>
+      <div class="social-tabs">
+        <button class="social-tab active" data-tab="pane-network">My Circle</button>
+        <button class="social-tab" data-tab="pane-requests">
+          Requests <span class="badge-indicator" id="requestBadge">0</span>
+        </button>
+        <button class="social-tab" data-tab="pane-feed">Feed</button>
       </div>
 
-      <div class="card" style="border-top: 4px solid var(--accent);">
-        <div class="card-header">
-          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-user-plus text-accent"></i> Add Connection</h3>
-        </div>
-        <p class="text-muted" style="font-size: 0.85rem;">Enter a friend's 6-character Network ID to add them to your circle.</p>
-        
-        <div class="search-box">
-          <input type="text" id="inputFriendId" placeholder="e.g. X7B9K2" maxlength="6">
-          <button class="btn btn-accent" id="btnAddFriend" style="width: auto; padding: 0 25px;">
-            <i class="fa-solid fa-magnifying-glass"></i>
-          </button>
-        </div>
-        <div id="addFriendMsg" style="margin-top: 10px; font-size: 0.85rem; font-weight: bold; display: none;"></div>
-      </div>
-
-      <div class="card" style="border-top: 4px solid var(--text-main);">
-        <div class="card-header">
-          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-users text-main"></i> My Circle</h3>
-          <span class="text-muted" style="font-size: 0.85rem; font-weight: bold;" id="friendCountBadge">0 Connections</span>
-        </div>
-        
-        <div class="friend-list" id="friendListContainer">
-          <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.9rem;">
-            <i class="fa-solid fa-satellite-dish" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;"></i><br>
-            Scanning for connections...
+      <div id="pane-network" class="tab-pane active">
+        <div class="card" style="border-top: 4px solid var(--primary);">
+          <div class="card-header">
+            <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-id-badge text-primary"></i> My Network ID</h3>
           </div>
+          <p class="text-muted" style="font-size: 0.85rem;">Share this 6-character code with friends so they can add you to their BodyPro network.</p>
+          
+          <div class="id-display-box">
+            <div class="short-id-text" id="myShortId">------</div>
+            <button class="btn btn-ghost" id="btnCopyId" style="width: auto; padding: 8px 20px; font-size: 0.9rem;">
+              <i class="fa-solid fa-copy"></i> Copy to Clipboard
+            </button>
+          </div>
+        </div>
+
+        <div class="card" style="border-top: 4px solid var(--accent);">
+          <div class="card-header">
+            <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-user-plus text-accent"></i> Add Connection</h3>
+          </div>
+          <p class="text-muted" style="font-size: 0.85rem;">Enter a friend's 6-character Network ID to send them a connection request.</p>
+          
+          <div class="search-box">
+            <input type="text" id="inputFriendId" placeholder="e.g. X7B9K2" maxlength="6">
+            <button class="btn btn-accent" id="btnAddFriend" style="width: auto; padding: 0 25px;">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
+          <div id="addFriendMsg" style="margin-top: 10px; font-size: 0.85rem; font-weight: bold; display: none;"></div>
+        </div>
+
+        <div class="card" style="border-top: 4px solid var(--text-main);">
+          <div class="card-header">
+            <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-users text-main"></i> My Circle</h3>
+            <span class="text-muted" style="font-size: 0.85rem; font-weight: bold;" id="friendCountBadge">0 Connections</span>
+          </div>
+          
+          <div class="friend-list" id="friendListContainer">
+            <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.9rem;">
+              <i class="fa-solid fa-satellite-dish" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;"></i><br>
+              Scanning for connections...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="pane-requests" class="tab-pane">
+        <div class="card" style="border-top: 4px solid var(--warning);">
+          <div class="card-header">
+            <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-envelope-open-text text-warning"></i> Pending Invites</h3>
+          </div>
+          <p class="text-muted" style="font-size: 0.85rem;">Review connection requests from other athletes.</p>
+          
+          <div class="friend-list" id="requestsListContainer">
+            <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.9rem;">
+              No pending requests.
+            </div>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top: 15px; opacity: 0.7;">
+          <div class="card-header">
+             <h3 style="margin: 0; font-size: 1rem;">Sent Requests</h3>
+          </div>
+          <div class="friend-list" id="sentRequestsContainer" style="margin-top: 10px;">
+             </div>
+        </div>
+      </div>
+
+      <div id="pane-feed" class="tab-pane">
+        <div id="analyticsFeedContainer">
+           <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+              <i class="fa-solid fa-chart-pie fa-spin" style="font-size: 2rem; margin-bottom: 10px;"></i><br>
+              Compiling network telemetry...
+           </div>
         </div>
       </div>
 
@@ -224,6 +359,19 @@
   </div>
 
   <div class="toast" id="systemToast">System Notification</div>
+
+  <script>
+    // Simple Tab Switching Logic
+    document.querySelectorAll('.social-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.social-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            
+            tab.classList.add('active');
+            document.getElementById(tab.dataset.tab).classList.add('active');
+        });
+    });
+  </script>
 
   <script type="module" src="data-store.js"></script>
   <script type="module" src="social.js"></script>
