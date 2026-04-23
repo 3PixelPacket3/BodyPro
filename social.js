@@ -2,7 +2,7 @@
 
 import { auth, db } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { collection, getDocs, doc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { collection, getDocs, doc, getDoc, query, where, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // --- DOM ELEMENTS ---
 const myShortIdDisplay = document.getElementById('myShortId');
@@ -14,7 +14,7 @@ const friendListContainer = document.getElementById('friendListContainer');
 const friendCountBadge = document.getElementById('friendCountBadge');
 const systemToast = document.getElementById('systemToast');
 
-// New DOM Elements for Tabs
+// Tabs
 const requestsListContainer = document.getElementById('requestsListContainer');
 const sentRequestsContainer = document.getElementById('sentRequestsContainer');
 const requestBadge = document.getElementById('requestBadge');
@@ -25,7 +25,9 @@ const btnRefreshSocial = document.getElementById('btnRefreshSocial');
 let userData = null;
 let feedLoaded = false;
 
-// CRITICAL FIX: Synchronize timezone with the rest of the application
+// Safe global cache to prevent stringify parsing crashes when rendering HTML
+let currentFriendVaultData = { workouts: [], recipes: [] }; 
+
 function getLocalISODate() {
     const d = new Date();
     const offset = d.getTimezoneOffset() * 60000;
@@ -57,6 +59,13 @@ onAuthStateChanged(auth, async (user) => {
     document.querySelectorAll('.social-tab').forEach(tab => {
         tab.addEventListener('click', (e) => {
             const targetPane = e.target.closest('.social-tab').dataset.tab;
+            
+            // Handle Active Tab State
+            document.querySelectorAll('.social-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            e.target.closest('.social-tab').classList.add('active');
+            document.getElementById(targetPane).classList.add('active');
+
             if(targetPane === 'pane-feed' && !feedLoaded) {
                 renderFeedUI();
             }
@@ -99,11 +108,11 @@ function renderNetworkUI() {
                 Your network is currently empty.<br>Add friends using their 6-character ID.
             </div>
         `;
-        friendCountBadge.innerText = "0 Connections";
+        friendCountBadge.innerText = "0";
         return;
     }
 
-    friendCountBadge.innerText = `${activeFriends.length} Connection${activeFriends.length !== 1 ? 's' : ''}`;
+    friendCountBadge.innerText = activeFriends.length;
 
     activeFriends.forEach(friend => {
         const initial = friend.displayName ? friend.displayName.charAt(0).toUpperCase() : '?';
@@ -122,7 +131,7 @@ function renderNetworkUI() {
             </div>
             <div class="friend-actions">
                 <button title="Remove Connection" onclick="removeFriend('${sId}')">
-                    <i class="fa-solid fa-trash-can"></i>
+                    <i class="fa-solid fa-trash-can"></i> Disconnect
                 </button>
             </div>
         `;
@@ -135,15 +144,13 @@ function renderRequestsUI() {
     const inbound = userData.friends.filter(f => f.status === 'pending' && f.direction === 'inbound');
     const outbound = userData.friends.filter(f => f.status === 'pending' && f.direction === 'outbound');
 
-    // Update Badge
     if (inbound.length > 0) {
         requestBadge.innerText = inbound.length;
-        requestBadge.style.display = 'block';
+        requestBadge.style.display = 'inline-block';
     } else {
         requestBadge.style.display = 'none';
     }
 
-    // Render Inbound
     requestsListContainer.innerHTML = '';
     if (inbound.length === 0) {
         requestsListContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.9rem;">No pending requests.</div>';
@@ -162,10 +169,10 @@ function renderRequestsUI() {
                 </div>
                 <div class="friend-actions">
                     <button class="btn-accept" title="Accept" onclick="handleRequest('${req.uid}', true)" style="color: var(--accent); border-color: var(--accent);">
-                        <i class="fa-solid fa-check"></i>
+                        <i class="fa-solid fa-check"></i> Accept
                     </button>
                     <button title="Decline" onclick="handleRequest('${req.uid}', false)">
-                        <i class="fa-solid fa-xmark"></i>
+                        <i class="fa-solid fa-xmark"></i> Decline
                     </button>
                 </div>
             `;
@@ -173,7 +180,6 @@ function renderRequestsUI() {
         });
     }
 
-    // Render Outbound
     sentRequestsContainer.innerHTML = '';
     if (outbound.length === 0) {
         sentRequestsContainer.innerHTML = '<div style="padding: 10px; color: var(--text-muted); font-size: 0.85rem; text-align: center;">No outbound requests.</div>';
@@ -186,12 +192,12 @@ function renderRequestsUI() {
                 <div class="friend-info">
                     <div class="friend-details">
                         <h4 style="font-size: 0.9rem;">${req.displayName || 'Unknown User'} (ID: ${req.shortId})</h4>
-                        <p style="color: var(--warning); font-size: 0.75rem;">Awaiting their approval...</p>
+                        <p style="color: var(--warning); font-size: 0.75rem;">Awaiting approval...</p>
                     </div>
                 </div>
                 <div class="friend-actions">
-                    <button title="Cancel Request" onclick="removeFriend('${req.shortId}')" style="width: 25px; height: 25px; font-size: 0.7rem;">
-                        <i class="fa-solid fa-trash-can"></i>
+                    <button title="Cancel Request" onclick="removeFriend('${req.shortId}')" style="font-size: 0.8rem; padding: 5px;">
+                        Cancel Request
                     </button>
                 </div>
             `;
@@ -214,7 +220,7 @@ async function renderFeedUI() {
         return;
     }
 
-    const todayStr = getLocalISODate(); // Fixed: Now matches the local day correctly
+    const todayStr = getLocalISODate();
     
     // Extract My Telemetry
     const myBio = (userData.biometrics || []).find(b => b.date === todayStr) || {};
@@ -222,8 +228,8 @@ async function renderFeedUI() {
     const myFloors = myBio.floors || 0;
     
     const myFoods = (userData.food_diary || []).filter(f => f.date === todayStr);
-    let myCals = 0, myPro = 0;
-    myFoods.forEach(f => { myCals += Number(f.calories || 0); myPro += Number(f.protein || 0); });
+    let myCals = 0;
+    myFoods.forEach(f => { myCals += Number(f.calories || 0); });
     
     const myWorkouts = (userData.workouts || []).filter(w => w.date === todayStr || (w.timestamp && w.timestamp.startsWith(todayStr)));
     let myActiveCals = 0;
@@ -233,28 +239,24 @@ async function renderFeedUI() {
 
     for (const friend of activeFriends) {
         const fData = await window.BodyProDataStore.fetchFriendTelemetry(friend.uid);
-        if (!fData) continue; // Skip if failed to fetch
+        if (!fData) continue;
 
-        // Also explicitly fetch their custom recipes for the Vault block
         const recipesRef = collection(db, "users", friend.uid, "custom_recipes");
         const recSnap = await getDocs(recipesRef);
         const friendRecipes = [];
         recSnap.forEach(d => friendRecipes.push(d.data()));
 
-        // Extract Friend Telemetry
         const fBio = (fData.biometrics || []).find(b => b.date === todayStr) || {};
         const fSteps = fBio.steps || 0;
-        const fFloors = fBio.floors || 0;
 
         const fFoods = fData.food_diary || [];
-        let fCals = 0, fPro = 0;
-        fFoods.forEach(f => { fCals += Number(f.calories || 0); fPro += Number(f.protein || 0); });
+        let fCals = 0;
+        fFoods.forEach(f => { fCals += Number(f.calories || 0); });
 
         const fWorkouts = fData.workouts || [];
         let fActiveCals = 0;
         fWorkouts.forEach(w => fActiveCals += Number(w.telemetry?.activeCals || 0));
 
-        // Math for Visual Bars (Normalize to 100%)
         const maxSteps = Math.max(mySteps, fSteps, 1000);
         const maxCals = Math.max(myCals, fCals, 2000);
         const maxActiveCals = Math.max(myActiveCals, fActiveCals, 500);
@@ -323,11 +325,162 @@ async function renderFeedUI() {
                     <span><i class="fa-solid fa-utensils text-muted"></i> Saved Recipes</span>
                     <span style="font-weight: bold; color: var(--primary);">${friendRecipes.length}</span>
                 </div>
+                
+                <button class="btn btn-ghost" style="width: 100%; margin-top: 15px; padding: 6px; font-size: 0.8rem; border-color: var(--accent); color: var(--accent);" onclick="window.openFriendVault('${friend.uid}', '${friend.displayName}')">
+                    <i class="fa-solid fa-download"></i> Open Vault
+                </button>
             </div>
         `;
         analyticsFeedContainer.appendChild(card);
     }
 }
+
+// --- NEW: CROSS-USER VAULT IMPORT PROTOCOL ---
+
+// Vault Modal Tab Logic
+const vaultTabs = document.querySelectorAll('.vault-tab');
+vaultTabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
+        vaultTabs.forEach(t => {
+            t.classList.remove('active');
+            t.style.color = 'var(--text-muted)';
+            t.style.borderBottomColor = 'transparent';
+        });
+        tab.classList.add('active');
+        tab.style.color = 'var(--accent)';
+        tab.style.borderBottomColor = 'var(--accent)';
+        
+        document.getElementById('pane-vault-workouts').style.display = 'none';
+        document.getElementById('pane-vault-recipes').style.display = 'none';
+        
+        document.getElementById('pane-vault-' + tab.dataset.vault).style.display = 'block';
+    });
+});
+
+window.openFriendVault = async function(uid, displayName) {
+    const fvTitle = document.getElementById('fvTitle');
+    const fvWorkoutsList = document.getElementById('fvWorkoutsList');
+    const fvRecipesList = document.getElementById('fvRecipesList');
+
+    fvTitle.innerHTML = `<i class="fa-solid fa-box-open text-primary"></i> ${displayName}'s Vault`;
+    fvWorkoutsList.innerHTML = '<div style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Initializing Secure Link...</div>';
+    fvRecipesList.innerHTML = '<div style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Initializing Secure Link...</div>';
+
+    document.getElementById('friendVaultModal').classList.add('active');
+
+    try {
+        const fData = await window.BodyProDataStore.fetchFriendTelemetry(uid);
+        
+        const recipesRef = collection(db, "users", uid, "custom_recipes");
+        const recSnap = await getDocs(recipesRef);
+        const friendRecipes = [];
+        recSnap.forEach(d => friendRecipes.push(d.data()));
+
+        const templates = fData.workout_templates || [];
+
+        // Store into safe global variable to prevent JSON attribute parsing crashes
+        currentFriendVaultData = {
+            workouts: templates,
+            recipes: friendRecipes
+        };
+
+        // Render Workouts
+        fvWorkoutsList.innerHTML = '';
+        if (templates.length === 0) {
+            fvWorkoutsList.innerHTML = '<div class="text-muted" style="text-align:center; padding: 20px;">No workout templates found.</div>';
+        } else {
+            templates.forEach((t, index) => {
+                const div = document.createElement('div');
+                div.className = 'friend-card';
+                div.style.marginBottom = '10px';
+                div.style.padding = '10px';
+                div.innerHTML = `
+                    <div class="friend-info">
+                        <div class="friend-details">
+                            <h4 style="font-size: 0.95rem; margin:0;">${t.title || 'Workout'}</h4>
+                            <p style="font-size: 0.75rem; margin:0;">${(t.exercises || []).length} Movements</p>
+                        </div>
+                    </div>
+                    <div class="friend-actions" style="margin-top: 10px;">
+                        <button class="btn btn-ghost" style="color:var(--accent); border-color:var(--accent); font-size: 0.8rem; padding: 6px;" onclick="window.importWorkout(${index})"><i class="fa-solid fa-download"></i> Import</button>
+                    </div>
+                `;
+                fvWorkoutsList.appendChild(div);
+            });
+        }
+
+        // Render Recipes
+        fvRecipesList.innerHTML = '';
+        if (friendRecipes.length === 0) {
+            fvRecipesList.innerHTML = '<div class="text-muted" style="text-align:center; padding: 20px;">No recipes found.</div>';
+        } else {
+            friendRecipes.forEach((r, index) => {
+                const div = document.createElement('div');
+                div.className = 'friend-card';
+                div.style.marginBottom = '10px';
+                div.style.padding = '10px';
+                div.innerHTML = `
+                    <div class="friend-info">
+                        <div class="friend-details">
+                            <h4 style="font-size: 0.95rem; margin:0;">${r.name || 'Recipe'}</h4>
+                            <p style="font-size: 0.75rem; margin:0;">${r.macrosPerServing?.calories || 0} kcal | ${r.macrosPerServing?.protein || 0}g P</p>
+                        </div>
+                    </div>
+                    <div class="friend-actions" style="margin-top: 10px;">
+                        <button class="btn btn-ghost" style="color:var(--accent); border-color:var(--accent); font-size: 0.8rem; padding: 6px;" onclick="window.importRecipe(${index})"><i class="fa-solid fa-download"></i> Import</button>
+                    </div>
+                `;
+                fvRecipesList.appendChild(div);
+            });
+        }
+
+    } catch (err) {
+        console.error(err);
+        fvWorkoutsList.innerHTML = '<div class="text-danger" style="text-align:center;">Failed to load cross-user data.</div>';
+        fvRecipesList.innerHTML = '<div class="text-danger" style="text-align:center;">Failed to load cross-user data.</div>';
+    }
+};
+
+window.importWorkout = async function(index) {
+    const workout = currentFriendVaultData.workouts[index];
+    if (!workout) return;
+    
+    if (!userData.workout_templates) userData.workout_templates = [];
+    
+    // Deep clone and assign new ID to prevent cross-user mutations
+    const newWorkout = JSON.parse(JSON.stringify(workout));
+    newWorkout.id = 'wt_' + Date.now();
+    newWorkout.title = workout.title + ' (Imported)';
+    
+    userData.workout_templates.push(newWorkout);
+    await window.BodyProDataStore.saveData(userData);
+    
+    showToast("Workout template successfully imported!", "var(--accent)");
+};
+
+window.importRecipe = async function(index) {
+    const recipe = currentFriendVaultData.recipes[index];
+    if (!recipe) return;
+    
+    if (!userData.custom_recipes) userData.custom_recipes = [];
+    
+    const newId = 'rec_' + Date.now();
+    const newRecipe = JSON.parse(JSON.stringify(recipe));
+    newRecipe.id = newId;
+    newRecipe.name = recipe.name + ' (Imported)';
+    
+    try {
+        // Push recipe to the separate custom_recipes subcollection to keep it synced with recipes.js architecture
+        const recipeRef = doc(db, "users", auth.currentUser.uid, "custom_recipes", newId);
+        await setDoc(recipeRef, newRecipe);
+        
+        userData.custom_recipes.push(newRecipe);
+        showToast("Recipe successfully imported!", "var(--accent)");
+    } catch (e) {
+        console.error("DB Import Error", e);
+        showToast("Failed to synchronize recipe.", "var(--danger)");
+    }
+};
 
 // --- REQUEST HANDLING LOGIC (ACCEPT / DECLINE) ---
 window.handleRequest = async function(targetUid, isAccepted) {
@@ -443,8 +596,6 @@ btnAddFriend.addEventListener('click', async () => {
 
     try {
         const usersRef = collection(db, "users");
-        
-        // Root-level query bypasses nested map errors
         const q = query(usersRef, where("shortId", "==", targetId));
         const querySnapshot = await getDocs(q);
 
@@ -453,7 +604,6 @@ btnAddFriend.addEventListener('click', async () => {
         if (!querySnapshot.empty) {
             foundUserDoc = querySnapshot.docs[0];
         } else {
-            // Fallback scan
             const fallbackSnapshot = await getDocs(usersRef);
             fallbackSnapshot.forEach((doc) => {
                 const data = doc.data();
@@ -474,7 +624,6 @@ btnAddFriend.addEventListener('click', async () => {
         const targetName = targetData.profile?.displayName || "BodyPro User";
         const targetUid = foundUserDoc.id;
 
-        // 1. Create Outbound Pending Request (Local)
         userData.friends.push({
             uid: targetUid,
             shortId: targetId,
@@ -487,7 +636,6 @@ btnAddFriend.addEventListener('click', async () => {
         const success = await window.BodyProDataStore.saveData(userData);
 
         if (success) {
-            // 2. Push Inbound Pending Request to Target User (Remote)
             const targetFriends = targetData.friends || [];
             targetFriends.push({
                 uid: auth.currentUser.uid,
