@@ -243,20 +243,26 @@ async function updateWater(amount) {
     await window.BodyProDataStore.saveData(userData);
 }
 
-// CRITICAL FIX: Add e.preventDefault() to stop form navigation on mobile
-btnAddWater.addEventListener('click', (e) => {
+// CRITICAL FIX: Add preventDefault and stopPropagation to create a hard block against mobile routing
+btnAddWater.addEventListener('click', async (e) => {
     e.preventDefault();
-    updateWater(parseInt(customWaterInput.value) || 8);
+    e.stopPropagation();
+    await updateWater(parseInt(customWaterInput.value) || 8);
+    return false;
 });
-btnSubWater.addEventListener('click', (e) => {
+
+btnSubWater.addEventListener('click', async (e) => {
     e.preventDefault();
-    updateWater(-(parseInt(customWaterInput.value) || 8));
+    e.stopPropagation();
+    await updateWater(-(parseInt(customWaterInput.value) || 8));
+    return false;
 });
 
 // --- SLEEP TELEMETRY MODULE ---
-// CRITICAL FIX: Add e.preventDefault() to stop form navigation on mobile
 btnSaveSleep.addEventListener('click', async (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     const duration = calculateDuration(inputBedTime.value, inputWakeTime.value);
     
     const sleepEntry = {
@@ -280,6 +286,7 @@ btnSaveSleep.addEventListener('click', async (e) => {
     btnSaveSleep.innerText = 'Save Sleep Log';
     document.getElementById('sleepModal').classList.remove('active');
     renderDashboard();
+    return false;
 });
 
 function calculateDuration(start, end) {
@@ -291,9 +298,10 @@ function calculateDuration(start, end) {
 }
 
 // --- VITALS TELEMETRY MODULE ---
-// CRITICAL FIX: Add e.preventDefault() to stop form navigation on mobile
 btnSaveVitals.addEventListener('click', async (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     let todayBio = userData.biometrics.find(b => b.date === todayStr);
     if (!todayBio) {
         todayBio = { id: `bio_${Date.now()}`, date: todayStr, waterOz: 0 };
@@ -311,6 +319,7 @@ btnSaveVitals.addEventListener('click', async (e) => {
     btnSaveVitals.innerText = 'Save Vitals';
     document.getElementById('vitalsModal').classList.remove('active');
     renderDashboard();
+    return false;
 });
 
 // --- OPTICAL CHARACTER RECOGNITION (OCR) MODULE ---
