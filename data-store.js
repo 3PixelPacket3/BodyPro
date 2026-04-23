@@ -134,6 +134,7 @@ window.BodyProDataStore = {
               profile: userData.profile,
               settings: userData.settings,
               friends: userData.friends,
+              shortId: userData.profile.shortId, // Lifted to root for robust social queries
               workout_templates: userData.workout_templates,
               custom_workouts: userData.custom_workouts
           }, { merge: true });
@@ -149,7 +150,8 @@ window.BodyProDataStore = {
           }
       }
       
-      const subCollections = ['food_diary', 'workouts', 'biometrics', 'sleep_data', 'custom_recipes'];
+      // Included favorite_foods collection
+      const subCollections = ['food_diary', 'workouts', 'biometrics', 'sleep_data', 'custom_recipes', 'favorite_foods'];
       const userColPromises = subCollections.map(async (colName) => {
           const colRef = collection(db, "users", user.uid, colName);
           const snap = await getDocs(colRef);
@@ -212,6 +214,7 @@ window.BodyProDataStore = {
           settings: cleanData.settings || {},
           friends: cleanData.friends || [],
           profile: cleanData.profile || {},
+          shortId: cleanData.profile?.shortId || "", // Root level property to bypass index errors
           workout_templates: cleanData.workout_templates || [], 
           custom_workouts: cleanData.custom_workouts || []     
       }, { merge: true }); 
@@ -253,7 +256,8 @@ window.BodyProDataStore = {
           syncCollection('workouts', cleanData.workouts || [], oldData.workouts || []),
           syncCollection('biometrics', cleanData.biometrics || [], oldData.biometrics || []),
           syncCollection('sleep_data', cleanData.sleep_data || [], oldData.sleep_data || []),
-          syncCollection('custom_recipes', cleanData.custom_recipes || [], oldData.custom_recipes || [])
+          syncCollection('custom_recipes', cleanData.custom_recipes || [], oldData.custom_recipes || []),
+          syncCollection('favorite_foods', cleanData.favorite_foods || [], oldData.favorite_foods || [])
       ];
 
       await Promise.all(syncTasks);
@@ -309,6 +313,7 @@ window.BodyProDataStore = {
         biometrics: [], 
         sleep_data: [], 
         custom_recipes: [],
+        favorite_foods: [],
         workout_templates: [],
         custom_workouts: []
     };
