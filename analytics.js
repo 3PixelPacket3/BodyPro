@@ -36,10 +36,17 @@ const actDetailSets = document.getElementById('actDetailSets');
 const btnDeleteActivity = document.getElementById('btnDeleteActivity');
 
 // Calendar DOM
+const calendarToggleBtn = document.getElementById('calendarToggleBtn');
+const calendarCollapseBody = document.getElementById('calendarCollapseBody');
+const calendarChevron = document.getElementById('calendarChevron');
 const calendarGrid = document.getElementById('calendarGrid');
 const calendarMonthLabel = document.getElementById('calendarMonthLabel');
 const btnPrevMonth = document.getElementById('btnPrevMonth');
 const btnNextMonth = document.getElementById('btnNextMonth');
+
+// Edit Sub-Modals
+const btnSaveEditSleep = document.getElementById('btnSaveEditSleep');
+const btnSaveEditVitals = document.getElementById('btnSaveEditVitals');
 
 // Chart Contexts
 const ctxWeight = document.getElementById('weightChart').getContext('2d');
@@ -125,7 +132,17 @@ function renderAnalytics() {
     renderCalendar();
 }
 
-// --- CALENDAR ENGINE ---
+// --- CALENDAR ENGINE & BANNER LOGIC ---
+
+calendarToggleBtn.addEventListener('click', () => {
+    if (calendarCollapseBody.style.display === 'none') {
+        calendarCollapseBody.style.display = 'block';
+        calendarChevron.style.transform = 'rotate(180deg)';
+    } else {
+        calendarCollapseBody.style.display = 'none';
+        calendarChevron.style.transform = 'rotate(0deg)';
+    }
+});
 
 btnPrevMonth.addEventListener('click', () => {
     currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
@@ -191,7 +208,7 @@ function renderCalendar() {
     }
 }
 
-// Master Record Compiler
+// Master Record Compiler (Now with CRUD injection)
 window.viewDaySummary = function(dateStr) {
     const dsDateLabel = document.getElementById('dsDateLabel');
     const dsContent = document.getElementById('dsContent');
@@ -206,11 +223,21 @@ window.viewDaySummary = function(dateStr) {
     const workouts = (userData.workouts || []).filter(w => w.date === dateStr || (w.timestamp && w.timestamp.startsWith(dateStr)));
     if (workouts.length > 0) {
         hasAnyData = true;
-        let wHtml = `<div class="summary-card"><h4 class="text-primary"><i class="fa-solid fa-dumbbell"></i> Fitness & Training</h4>`;
+        let wHtml = `
+            <div class="summary-card">
+                <div class="summary-card-header">
+                    <h4 class="text-primary"><i class="fa-solid fa-dumbbell"></i> Fitness</h4>
+                </div>
+        `;
         workouts.forEach(wk => {
             const cals = wk.telemetry?.activeCals || 0;
             const dur = Math.round(((wk.durationLift || 0) + (wk.durationCardio || 0)) / 60);
-            wHtml += `<div style="margin-bottom: 5px;"><strong>${wk.title || 'Session'}</strong>: ${dur} mins | ${cals} kcal | ${(wk.sets || []).length} sets</div>`;
+            wHtml += `
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; margin-bottom:8px;">
+                    <div><strong>${wk.title || 'Session'}</strong>: ${dur}m | ${cals} kcal</div>
+                    <button class="btn btn-ghost" style="padding:2px 8px; font-size:0.75rem; color:var(--danger); border-color:var(--danger);" onclick="deleteWorkout('${wk.id}', '${dateStr}')"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `;
         });
         wHtml += `</div>`;
         dsContent.innerHTML += wHtml;
@@ -221,20 +248,33 @@ window.viewDaySummary = function(dateStr) {
     if (foods.length > 0) {
         hasAnyData = true;
         let cals=0, p=0, c=0, f=0;
-        foods.forEach(food => {
-            cals += Number(food.calories || 0); p += Number(food.protein || 0); c += Number(food.carbs || 0); f += Number(food.fats || 0);
-        });
-        dsContent.innerHTML += `
+        foods.forEach(food => { cals += Number(food.calories || 0); p += Number(food.protein || 0); c += Number(food.carbs || 0); f += Number(food.fats || 0); });
+        
+        let nHtml = `
             <div class="summary-card">
-                <h4 class="text-accent"><i class="fa-solid fa-utensils"></i> Nutrition Intake</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.85rem;">
+                <div class="summary-card-header">
+                    <h4 class="text-accent"><i class="fa-solid fa-utensils"></i> Nutrition</h4>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.85rem; margin-bottom: 10px;">
                     <div>Calories: <strong>${Math.round(cals)}</strong></div>
                     <div>Protein: <strong>${Math.round(p)}g</strong></div>
                     <div>Carbs: <strong>${Math.round(c)}g</strong></div>
                     <div>Fats: <strong>${Math.round(f)}g</strong></div>
                 </div>
-            </div>
+                <div style="border-top:1px solid var(--border-color); padding-top:10px;">
         `;
+        
+        foods.forEach(food => {
+            nHtml += `
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; margin-bottom:6px;">
+                    <div>${food.name} <span class="text-muted">(${food.calories} kcal)</span></div>
+                    <button class="btn btn-ghost" style="padding:2px 6px; font-size:0.7rem; color:var(--danger); border:none;" onclick="deleteFood('${food.id}', '${dateStr}')"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            `;
+        });
+        
+        nHtml += `</div></div>`;
+        dsContent.innerHTML += nHtml;
     }
 
     // 3. Sleep Telemetry
@@ -243,7 +283,13 @@ window.viewDaySummary = function(dateStr) {
         hasAnyData = true;
         dsContent.innerHTML += `
             <div class="summary-card">
-                <h4 class="text-warning"><i class="fa-solid fa-bed"></i> Sleep Telemetry</h4>
+                <div class="summary-card-header">
+                    <h4 class="text-warning"><i class="fa-solid fa-bed"></i> Sleep</h4>
+                    <div>
+                        <button class="btn btn-ghost" style="padding:2px 8px; font-size:0.75rem;" onclick="openEditSleep('${dateStr}')"><i class="fa-solid fa-pen"></i></button>
+                        <button class="btn btn-ghost" style="padding:2px 8px; font-size:0.75rem; color:var(--danger); border-color:var(--danger);" onclick="deleteSleep('${dateStr}')"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.85rem;">
                     <div>Duration: <strong>${sleepData.durationHrs || 0}h</strong></div>
                     <div>Score: <strong>${sleepData.score || '--'} / 100</strong></div>
@@ -256,12 +302,18 @@ window.viewDaySummary = function(dateStr) {
 
     // 4. Daily Vitals
     const vitals = (userData.biometrics || []).find(b => b.date === dateStr);
-    if (vitals && (vitals.steps || vitals.restingHR || vitals.water || vitals.waterOz)) {
+    if (vitals && (vitals.steps || vitals.restingHR || vitals.water || vitals.waterOz || vitals.floors)) {
         hasAnyData = true;
         const water = vitals.waterOz || vitals.water || 0;
         dsContent.innerHTML += `
             <div class="summary-card">
-                <h4 class="text-danger"><i class="fa-solid fa-heart-pulse"></i> Vitals & Activity</h4>
+                <div class="summary-card-header">
+                    <h4 class="text-danger"><i class="fa-solid fa-heart-pulse"></i> Vitals</h4>
+                    <div>
+                        <button class="btn btn-ghost" style="padding:2px 8px; font-size:0.75rem;" onclick="openEditVitals('${dateStr}')"><i class="fa-solid fa-pen"></i></button>
+                        <button class="btn btn-ghost" style="padding:2px 8px; font-size:0.75rem; color:var(--danger); border-color:var(--danger);" onclick="deleteVitals('${dateStr}')"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.85rem;">
                     <div>Steps: <strong>${(vitals.steps || 0).toLocaleString()}</strong></div>
                     <div>Water: <strong>${water} fl oz</strong></div>
@@ -278,6 +330,115 @@ window.viewDaySummary = function(dateStr) {
 
     document.getElementById('daySummaryModal').classList.add('active');
 };
+
+// --- DATA MANIPULATION HANDLERS ---
+
+window.deleteWorkout = async function(id, dateStr) {
+    if(!confirm("Permanently delete this workout session?")) return;
+    userData.workouts = userData.workouts.filter(w => w.id !== id);
+    await window.BodyProDataStore.saveData(userData);
+    renderAnalytics();
+    window.viewDaySummary(dateStr);
+};
+
+window.deleteFood = async function(id, dateStr) {
+    if(!confirm("Remove this food from your diary?")) return;
+    userData.food_diary = userData.food_diary.filter(f => f.id !== id);
+    await window.BodyProDataStore.saveData(userData);
+    renderAnalytics();
+    window.viewDaySummary(dateStr);
+};
+
+window.deleteSleep = async function(dateStr) {
+    if(!confirm("Delete sleep data for this date?")) return;
+    userData.sleep_data = userData.sleep_data.filter(s => s.date !== dateStr);
+    await window.BodyProDataStore.saveData(userData);
+    renderAnalytics();
+    window.viewDaySummary(dateStr);
+};
+
+window.deleteVitals = async function(dateStr) {
+    if(!confirm("Delete vitals for this date? (Weight records remain)")) return;
+    // We filter out daily vitals but preserve weight if present. 
+    const idx = userData.biometrics.findIndex(b => b.date === dateStr);
+    if(idx !== -1) {
+        if(userData.biometrics[idx].weight) {
+            // Scrub daily data, keep weight
+            userData.biometrics[idx].steps = null;
+            userData.biometrics[idx].water = null;
+            userData.biometrics[idx].waterOz = null;
+            userData.biometrics[idx].restingHR = null;
+            userData.biometrics[idx].floors = null;
+        } else {
+            userData.biometrics.splice(idx, 1);
+        }
+        await window.BodyProDataStore.saveData(userData);
+        renderAnalytics();
+        window.viewDaySummary(dateStr);
+    }
+};
+
+window.openEditSleep = function(dateStr) {
+    const sleep = userData.sleep_data.find(s => s.date === dateStr) || {};
+    document.getElementById('esDate').value = dateStr;
+    document.getElementById('esDuration').value = sleep.durationHrs || '';
+    document.getElementById('esScore').value = sleep.score || '';
+    document.getElementById('esDeep').value = sleep.deepHrs || '';
+    document.getElementById('esRem').value = sleep.remHrs || '';
+    document.getElementById('editSleepModal').classList.add('active');
+};
+
+btnSaveEditSleep.addEventListener('click', async () => {
+    const dateStr = document.getElementById('esDate').value;
+    let sleep = userData.sleep_data.find(s => s.date === dateStr);
+    
+    if(!sleep) {
+        sleep = { id: `slp_${Date.now()}`, date: dateStr };
+        userData.sleep_data.push(sleep);
+    }
+    
+    sleep.durationHrs = parseFloat(document.getElementById('esDuration').value) || null;
+    sleep.score = parseInt(document.getElementById('esScore').value) || null;
+    sleep.deepHrs = parseFloat(document.getElementById('esDeep').value) || null;
+    sleep.remHrs = parseFloat(document.getElementById('esRem').value) || null;
+    
+    await window.BodyProDataStore.saveData(userData);
+    document.getElementById('editSleepModal').classList.remove('active');
+    renderAnalytics();
+    window.viewDaySummary(dateStr);
+});
+
+window.openEditVitals = function(dateStr) {
+    const bio = userData.biometrics.find(b => b.date === dateStr) || {};
+    document.getElementById('evDate').value = dateStr;
+    document.getElementById('evSteps').value = bio.steps || '';
+    document.getElementById('evWater').value = bio.waterOz || bio.water || '';
+    document.getElementById('evHR').value = bio.restingHR || '';
+    document.getElementById('evFloors').value = bio.floors || '';
+    document.getElementById('editVitalsModal').classList.add('active');
+};
+
+btnSaveEditVitals.addEventListener('click', async () => {
+    const dateStr = document.getElementById('evDate').value;
+    let bio = userData.biometrics.find(b => b.date === dateStr);
+    
+    if(!bio) {
+        bio = { id: `bio_${Date.now()}`, date: dateStr };
+        userData.biometrics.push(bio);
+    }
+    
+    bio.steps = parseInt(document.getElementById('evSteps').value) || null;
+    bio.waterOz = parseInt(document.getElementById('evWater').value) || null;
+    bio.water = bio.waterOz; // Backwards compatibility 
+    bio.restingHR = parseInt(document.getElementById('evHR').value) || null;
+    bio.floors = parseInt(document.getElementById('evFloors').value) || null;
+    
+    await window.BodyProDataStore.saveData(userData);
+    document.getElementById('editVitalsModal').classList.remove('active');
+    renderAnalytics();
+    window.viewDaySummary(dateStr);
+});
+
 
 // 1. Body Mass Tracking
 function updateWeightChart() {
@@ -658,7 +819,7 @@ window.viewActivity = function(id) {
         actDetailSets.innerHTML = '<div class="text-muted" style="font-size: 0.85rem; padding: 10px 0; text-align:center;">No movement data recorded. Telemetry only.</div>';
     }
 
-    activityDetailModal.classList.add('active');
+    document.getElementById('activityDetailModal').classList.add('active');
 };
 
 btnDeleteActivity.addEventListener('click', async () => {
@@ -667,7 +828,7 @@ btnDeleteActivity.addEventListener('click', async () => {
     if(confirm("Permanently delete this session? This will recalculate your historical data.")) {
         userData.workouts = userData.workouts.filter(w => w.id !== currentViewActivityId);
         await window.BodyProDataStore.saveData(userData);
-        activityDetailModal.classList.remove('active');
+        document.getElementById('activityDetailModal').classList.remove('active');
         renderAnalytics();
     }
 });
