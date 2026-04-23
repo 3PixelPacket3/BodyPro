@@ -214,7 +214,7 @@ window.BodyProDataStore = {
           settings: cleanData.settings || {},
           friends: cleanData.friends || [],
           profile: cleanData.profile || {},
-          shortId: cleanData.profile?.shortId || "", // Root level property to bypass index errors
+          shortId: cleanData.profile?.shortId || "", 
           workout_templates: cleanData.workout_templates || [], 
           custom_workouts: cleanData.custom_workouts || []     
       }, { merge: true }); 
@@ -261,6 +261,55 @@ window.BodyProDataStore = {
       ];
 
       await Promise.all(syncTasks);
+  },
+
+  // --- NEW: CROSS-USER CLOUD SYNC FOR SOCIAL REQUESTS ---
+  async pushCrossUserFriendUpdate(targetUid, newTargetFriendsArray) {
+      try {
+          const targetRef = doc(db, "users", targetUid);
+          await setDoc(targetRef, { friends: newTargetFriendsArray }, { merge: true });
+          return true;
+      } catch(err) {
+          console.error("Cross-user sync failed. Ensure Firestore Security Rules allow social updates.", err);
+          return false;
+      }
+  },
+
+  // --- NEW: FETCH SPECIFIC FRIEND TELEMETRY (Avoids pulling whole DB) ---
+  async fetchFriendTelemetry(friendUid) {
+      try {
+          const userRef = doc(db, "users", friendUid);
+          const userSnap = await getDoc(userRef);
+          if(!userSnap.exists()) return null;
+
+          const friendData = userSnap.data();
+          friendData.uid = friendUid;
+
+          // Only fetch today's data to keep queries light and preserve privacy
+          const today = new Date().toISOString().split('T')[0];
+
+          const workoutsRef = collection(db, "users", friendUid, "workouts");
+          const wSnap = await getDocs(workoutsRef);
+          friendData.workouts = [];
+          wSnap.forEach(d => friendData.workouts.push(d.data()));
+
+          const foodRef = collection(db, "users", friendUid, "food_diary");
+          const qFood = query(foodRef, where("date", "==", today));
+          const fSnap = await getDocs(qFood);
+          friendData.food_diary = [];
+          fSnap.forEach(d => friendData.food_diary.push(d.data()));
+
+          const bioRef = collection(db, "users", friendUid, "biometrics");
+          const qBio = query(bioRef, where("date", "==", today));
+          const bSnap = await getDocs(qBio);
+          friendData.biometrics = [];
+          bSnap.forEach(d => friendData.biometrics.push(d.data()));
+
+          return friendData;
+      } catch(err) {
+          console.error("Failed to fetch friend telemetry", err);
+          return null;
+      }
   },
 
   getEmptyDB() {
