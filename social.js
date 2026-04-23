@@ -19,6 +19,7 @@ const requestsListContainer = document.getElementById('requestsListContainer');
 const sentRequestsContainer = document.getElementById('sentRequestsContainer');
 const requestBadge = document.getElementById('requestBadge');
 const analyticsFeedContainer = document.getElementById('analyticsFeedContainer');
+const btnRefreshSocial = document.getElementById('btnRefreshSocial');
 
 // --- STATE MANAGEMENT ---
 let userData = null;
@@ -55,6 +56,26 @@ onAuthStateChanged(auth, async (user) => {
         });
     });
 });
+
+// --- REFRESH LOGIC ---
+if (btnRefreshSocial) {
+    btnRefreshSocial.addEventListener('click', async () => {
+        btnRefreshSocial.innerHTML = '<i class="fa-solid fa-rotate-right fa-spin"></i>';
+        
+        // Force pull from cloud
+        userData = await window.BodyProDataStore.getData(); 
+        
+        renderNetworkUI();
+        renderRequestsUI();
+        
+        if (feedLoaded) {
+            await renderFeedUI();
+        }
+        
+        btnRefreshSocial.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Refresh';
+        showToast("Network synchronized.", "var(--accent)");
+    });
+}
 
 // --- RENDER UI: NETWORK CIRCLE ---
 function renderNetworkUI() {
