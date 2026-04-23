@@ -6,7 +6,6 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/fi
 // --- PROGRESSIVE WEB APP REGISTRATION ---
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // Corrected to relative path for GitHub Pages subdirectory compatibility
         navigator.serviceWorker.register('./service-worker.js')
             .then(reg => console.log('[BodyPro System] SW Analytics Handshake Successful'))
             .catch(err => console.error('[BodyPro System] SW Analytics Registration Failed', err));
@@ -36,6 +35,12 @@ const actDetailCals = document.getElementById('actDetailCals');
 const actDetailSets = document.getElementById('actDetailSets');
 const btnDeleteActivity = document.getElementById('btnDeleteActivity');
 
+// Calendar DOM
+const calendarGrid = document.getElementById('calendarGrid');
+const calendarMonthLabel = document.getElementById('calendarMonthLabel');
+const btnPrevMonth = document.getElementById('btnPrevMonth');
+const btnNextMonth = document.getElementById('btnNextMonth');
+
 // Chart Contexts
 const ctxWeight = document.getElementById('weightChart').getContext('2d');
 const ctx1RM = document.getElementById('oneRMChart').getContext('2d');
@@ -56,6 +61,9 @@ let chartSleepInstance = null;
 let chartHydrationInstance = null;
 
 let currentViewActivityId = null;
+
+let currentCalendarDate = new Date();
+currentCalendarDate.setDate(1); // Lock to 1st of month to avoid overflow
 
 // --- THE SECURITY GUARD ---
 onAuthStateChanged(auth, async (user) => {
@@ -114,7 +122,162 @@ function renderAnalytics() {
     updateSleepChart();
     updateHydrationChart();
     renderActivityHistory();
+    renderCalendar();
 }
+
+// --- CALENDAR ENGINE ---
+
+btnPrevMonth.addEventListener('click', () => {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+    renderCalendar();
+});
+
+btnNextMonth.addEventListener('click', () => {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+    renderCalendar();
+});
+
+function renderCalendar() {
+    if (!calendarGrid) return;
+    
+    calendarGrid.innerHTML = '';
+    
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    calendarMonthLabel.innerText = `${monthNames[month]} ${year}`;
+    
+    const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    days.forEach(d => {
+        const el = document.createElement('div');
+        el.className = 'cal-header';
+        el.innerText = d;
+        calendarGrid.appendChild(el);
+    });
+    
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    // Empty prefix cells
+    for (let i = 0; i < firstDayIndex; i++) {
+        const el = document.createElement('div');
+        el.className = 'cal-day empty';
+        calendarGrid.appendChild(el);
+    }
+    
+    // Populate Days
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        
+        const hasWorkout = (userData.workouts || []).some(w => w.date === dateStr || (w.timestamp && w.timestamp.startsWith(dateStr)));
+        const hasFood = (userData.food_diary || []).some(f => f.date === dateStr);
+        const hasSleep = (userData.sleep_data || []).some(s => s.date === dateStr);
+        const hasVitals = (userData.biometrics || []).some(b => b.date === dateStr && (b.steps > 0 || (b.waterOz || b.water) > 0 || b.restingHR > 0));
+        
+        const el = document.createElement('div');
+        el.className = 'cal-day';
+        el.onclick = () => window.viewDaySummary(dateStr);
+        
+        let html = `<div>${d}</div><div class="cal-indicators">`;
+        if (hasWorkout) html += `<div class="cal-dot dot-workout"></div>`;
+        if (hasFood) html += `<div class="cal-dot dot-food"></div>`;
+        if (hasSleep) html += `<div class="cal-dot dot-sleep"></div>`;
+        if (hasVitals) html += `<div class="cal-dot dot-vitals"></div>`;
+        html += `</div>`;
+        
+        el.innerHTML = html;
+        calendarGrid.appendChild(el);
+    }
+}
+
+// Master Record Compiler
+window.viewDaySummary = function(dateStr) {
+    const dsDateLabel = document.getElementById('dsDateLabel');
+    const dsContent = document.getElementById('dsContent');
+    
+    const dObj = new Date(dateStr + "T12:00:00");
+    dsDateLabel.innerText = dObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    
+    dsContent.innerHTML = '';
+    let hasAnyData = false;
+
+    // 1. Fitness Telemetry
+    const workouts = (userData.workouts || []).filter(w => w.date === dateStr || (w.timestamp && w.timestamp.startsWith(dateStr)));
+    if (workouts.length > 0) {
+        hasAnyData = true;
+        let wHtml = `<div class="summary-card"><h4 class="text-primary"><i class="fa-solid fa-dumbbell"></i> Fitness & Training</h4>`;
+        workouts.forEach(wk => {
+            const cals = wk.telemetry?.activeCals || 0;
+            const dur = Math.round(((wk.durationLift || 0) + (wk.durationCardio || 0)) / 60);
+            wHtml += `<div style="margin-bottom: 5px;"><strong>${wk.title || 'Session'}</strong>: ${dur} mins | ${cals} kcal | ${(wk.sets || []).length} sets</div>`;
+        });
+        wHtml += `</div>`;
+        dsContent.innerHTML += wHtml;
+    }
+
+    // 2. Nutrition Intake
+    const foods = (userData.food_diary || []).filter(f => f.date === dateStr);
+    if (foods.length > 0) {
+        hasAnyData = true;
+        let cals=0, p=0, c=0, f=0;
+        foods.forEach(food => {
+            cals += Number(food.calories || 0); p += Number(food.protein || 0); c += Number(food.carbs || 0); f += Number(food.fats || 0);
+        });
+        dsContent.innerHTML += `
+            <div class="summary-card">
+                <h4 class="text-accent"><i class="fa-solid fa-utensils"></i> Nutrition Intake</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.85rem;">
+                    <div>Calories: <strong>${Math.round(cals)}</strong></div>
+                    <div>Protein: <strong>${Math.round(p)}g</strong></div>
+                    <div>Carbs: <strong>${Math.round(c)}g</strong></div>
+                    <div>Fats: <strong>${Math.round(f)}g</strong></div>
+                </div>
+            </div>
+        `;
+    }
+
+    // 3. Sleep Telemetry
+    const sleepData = (userData.sleep_data || []).find(s => s.date === dateStr);
+    if (sleepData) {
+        hasAnyData = true;
+        dsContent.innerHTML += `
+            <div class="summary-card">
+                <h4 class="text-warning"><i class="fa-solid fa-bed"></i> Sleep Telemetry</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.85rem;">
+                    <div>Duration: <strong>${sleepData.durationHrs || 0}h</strong></div>
+                    <div>Score: <strong>${sleepData.score || '--'} / 100</strong></div>
+                    <div>Deep: <strong>${sleepData.deepHrs || '--'}h</strong></div>
+                    <div>REM: <strong>${sleepData.remHrs || '--'}h</strong></div>
+                </div>
+            </div>
+        `;
+    }
+
+    // 4. Daily Vitals
+    const vitals = (userData.biometrics || []).find(b => b.date === dateStr);
+    if (vitals && (vitals.steps || vitals.restingHR || vitals.water || vitals.waterOz)) {
+        hasAnyData = true;
+        const water = vitals.waterOz || vitals.water || 0;
+        dsContent.innerHTML += `
+            <div class="summary-card">
+                <h4 class="text-danger"><i class="fa-solid fa-heart-pulse"></i> Vitals & Activity</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.85rem;">
+                    <div>Steps: <strong>${(vitals.steps || 0).toLocaleString()}</strong></div>
+                    <div>Water: <strong>${water} fl oz</strong></div>
+                    <div>Resting HR: <strong>${vitals.restingHR || '--'} bpm</strong></div>
+                    <div>Floors: <strong>${vitals.floors || 0}</strong></div>
+                </div>
+            </div>
+        `;
+    }
+
+    if (!hasAnyData) {
+        dsContent.innerHTML = `<div class="text-muted" style="text-align:center; padding: 20px; font-style: italic;">No telemetry recorded on this date.</div>`;
+    }
+
+    document.getElementById('daySummaryModal').classList.add('active');
+};
 
 // 1. Body Mass Tracking
 function updateWeightChart() {
@@ -230,7 +393,7 @@ function update1RMChart() {
             datasets: [{
                 label: `Estimated 1RM (lbs)`,
                 data: ormData,
-                borderColor: '#ef4444', // danger
+                borderColor: '#ef4444', 
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
                 borderWidth: 3,
                 pointRadius: 5,
@@ -280,7 +443,7 @@ function updateVolumeChart() {
             datasets: [{
                 label: 'Total Tonnage (lbs)',
                 data: volumeData,
-                backgroundColor: '#10b981', // accent
+                backgroundColor: '#10b981', 
                 borderRadius: 4
             }]
         },
@@ -402,7 +565,7 @@ function updateHydrationChart() {
 
     dateLabels.forEach(date => {
         const bio = (userData.biometrics || []).find(b => b.date === date);
-        hydrationData.push(bio && bio.water ? bio.water : 0);
+        hydrationData.push(bio && (bio.waterOz || bio.water) ? (bio.waterOz || bio.water) : 0);
     });
 
     if (chartHydrationInstance) chartHydrationInstance.destroy();
@@ -428,7 +591,7 @@ function updateHydrationChart() {
     });
 }
 
-// 7. Activity History List & Modal Logic
+// 7. Activity History List
 function renderActivityHistory() {
     activityHistoryList.innerHTML = '';
     const workouts = [...(userData.workouts || [])].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 15);
