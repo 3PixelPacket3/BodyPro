@@ -25,6 +25,13 @@ const btnRefreshSocial = document.getElementById('btnRefreshSocial');
 let userData = null;
 let feedLoaded = false;
 
+// CRITICAL FIX: Synchronize timezone with the rest of the application
+function getLocalISODate() {
+    const d = new Date();
+    const offset = d.getTimezoneOffset() * 60000;
+    return (new Date(d - offset)).toISOString().split('T')[0];
+}
+
 // --- INITIALIZATION ---
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
@@ -207,7 +214,7 @@ async function renderFeedUI() {
         return;
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalISODate(); // Fixed: Now matches the local day correctly
     
     // Extract My Telemetry
     const myBio = (userData.biometrics || []).find(b => b.date === todayStr) || {};
