@@ -89,7 +89,7 @@ onAuthStateChanged(auth, async (user) => {
     if (!userData.food_diary) userData.food_diary = [];
     if (!userData.biometrics) userData.biometrics = [];
     if (!userData.sleep_data) userData.sleep_data = [];
-    if (!userData.workout_templates) userData.workout_templates = []; // Correctly sync to fitness.js vault
+    if (!userData.workout_templates) userData.workout_templates = []; 
 
     renderDashboard();
     loadHeroImage();
@@ -115,7 +115,7 @@ function loadHeroImage() {
 
 // --- CORE RENDER ENGINE ---
 function renderDashboard() {
-    const todayStr = getLocalISODate(); // Compute dynamically on every render
+    const todayStr = getLocalISODate(); 
     const name = userData.profile?.displayName || "Commander";
     const hour = new Date().getHours();
     let timeGreeting = "Good Evening";
@@ -123,7 +123,6 @@ function renderDashboard() {
     else if (hour < 17) timeGreeting = "Good Afternoon";
     userGreeting.innerText = `${timeGreeting}, ${name}.`;
 
-    // Today's Protocol Setup (Fixed Database Pathway)
     protocolSelect.innerHTML = '<option value="">-- Select Protocol --</option>';
     if (userData.workout_templates && userData.workout_templates.length > 0) {
         protocolSelect.style.display = 'block';
@@ -210,6 +209,33 @@ function renderDashboard() {
     }
 }
 
+// --- MODAL AUTO-FILL CONTROLLERS ---
+window.openSleepModal = function() {
+    const todayStr = getLocalISODate();
+    const sleep = userData.sleep_data.find(s => s.date === todayStr) || {};
+    
+    inputBedTime.value = sleep.bedTime || '';
+    inputWakeTime.value = sleep.wakeTime || '';
+    inputDeepSleep.value = sleep.deepHrs || '';
+    inputRemSleep.value = sleep.remHrs || '';
+    inputRestfulness.value = sleep.score || '';
+    inputLatency.value = sleep.latencyMins || '';
+    
+    document.getElementById('sleepModal').classList.add('active');
+};
+
+window.openVitalsModal = function() {
+    const todayStr = getLocalISODate();
+    const bio = userData.biometrics.find(b => b.date === todayStr) || {};
+    
+    inputSteps.value = bio.steps || '';
+    inputFloors.value = bio.floors || '';
+    inputRestingHR.value = bio.restingHR || '';
+    inputActiveCals.value = bio.activeCals || '';
+    
+    document.getElementById('vitalsModal').classList.add('active');
+};
+
 // --- PROTOCOL RENDERING & TIME-CRUNCH ENGINE ---
 function renderSelectedProtocol(workoutId, isTimeCrunch = false) {
     if (!workoutId) {
@@ -224,7 +250,6 @@ function renderSelectedProtocol(workoutId, isTimeCrunch = false) {
             const exName = ex.exercise || ex.name || 'Unknown Movement';
             let setsCount = (ex.sets && Array.isArray(ex.sets)) ? ex.sets.length : 1;
             
-            // Time-Crunch Injection: Cut volume in half if toggled
             if (isTimeCrunch && setsCount > 1) {
                 setsCount = Math.ceil(setsCount / 2);
             }
@@ -246,7 +271,6 @@ function renderSelectedProtocol(workoutId, isTimeCrunch = false) {
         html += `</ul>`;
         todayProtocolContainer.innerHTML = html;
 
-        // Wire up interactive checkboxes
         setTimeout(() => {
             todayProtocolContainer.querySelectorAll('.check-btn').forEach(btn => {
                 btn.addEventListener('click', function(e) {
@@ -282,7 +306,6 @@ if (btnTimeCrunch) {
             alert("Please select a protocol from the dropdown first to enable Time-Crunch mode.");
             return;
         }
-        // Force the protocol to re-render with sets cut in half
         renderSelectedProtocol(currentWorkoutId, true);
     });
 }
@@ -291,7 +314,7 @@ if (btnTimeCrunch) {
 async function updateWater(amount) {
     if (!userData) return;
     
-    const todayStr = getLocalISODate(); // Compute dynamically
+    const todayStr = getLocalISODate(); 
     let todayBio = userData.biometrics.find(b => b.date === todayStr);
     if (!todayBio) {
         todayBio = { id: `bio_${Date.now()}`, date: todayStr, waterOz: 0 };
@@ -304,8 +327,6 @@ async function updateWater(amount) {
     await window.BodyProDataStore.saveData(userData);
 }
 
-// CRITICAL FIX: Pointerdown Event Binding. This bypasses mobile keyboard focus trapping entirely 
-// by reading the screen touch milliseconds before the OS closes the virtual keyboard.
 let isWaterProcessing = false;
 
 async function handleWaterTap(isAdd, e) {
@@ -317,7 +338,6 @@ async function handleWaterTap(isAdd, e) {
     if (isWaterProcessing) return;
     isWaterProcessing = true;
 
-    // Defocus to forcefully dismiss the keyboard on mobile
     if (document.activeElement) document.activeElement.blur();
 
     let val = parseInt(customWaterInput.value);
@@ -325,7 +345,6 @@ async function handleWaterTap(isAdd, e) {
     
     await updateWater(isAdd ? val : -val);
     
-    // Debouncer
     setTimeout(() => { isWaterProcessing = false; }, 300);
 }
 
@@ -333,11 +352,29 @@ btnAddWater.addEventListener('pointerdown', (e) => handleWaterTap(true, e));
 btnSubWater.addEventListener('pointerdown', (e) => handleWaterTap(false, e));
 
 // --- SLEEP TELEMETRY MODULE ---
+// Re-engineered to pure mathematical calculation to circumvent Javascript Date/Timezone offset bugs.
+function calculateDuration(start, end) {
+    if (!start || !end) return null;
+    
+    const [h1, m1] = start.split(':').map(Number);
+    const [h2, m2] = end.split(':').map(Number);
+    
+    let startMins = (h1 * 60) + m1;
+    let endMins = (h2 * 60) + m2;
+    
+    // If end time is mathematically smaller than start time, it means they crossed midnight into the next day.
+    if (endMins < startMins) {
+        endMins += (24 * 60); 
+    }
+    
+    return parseFloat(((endMins - startMins) / 60).toFixed(1));
+}
+
 btnSaveSleep.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
-    const todayStr = getLocalISODate(); // Compute dynamically
+    const todayStr = getLocalISODate(); 
     const duration = calculateDuration(inputBedTime.value, inputWakeTime.value);
     
     const sleepEntry = {
@@ -355,13 +392,6 @@ btnSaveSleep.addEventListener('click', async (e) => {
     userData.sleep_data = userData.sleep_data.filter(s => s.date !== todayStr);
     userData.sleep_data.push(sleepEntry);
 
-    inputBedTime.value = '';
-    inputWakeTime.value = '';
-    inputDeepSleep.value = '';
-    inputRemSleep.value = '';
-    inputRestfulness.value = '';
-    inputLatency.value = '';
-
     btnSaveSleep.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
     await window.BodyProDataStore.saveData(userData);
     
@@ -371,20 +401,12 @@ btnSaveSleep.addEventListener('click', async (e) => {
     return false;
 });
 
-function calculateDuration(start, end) {
-    if (!start || !end) return null;
-    const d1 = new Date(`2000-01-01T${start}`);
-    let d2 = new Date(`2000-01-01T${end}`);
-    if (d2 < d1) d2.setDate(d2.getDate() + 1); 
-    return parseFloat(((d2 - d1) / (1000 * 60 * 60)).toFixed(1));
-}
-
 // --- VITALS TELEMETRY MODULE ---
 btnSaveVitals.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
-    const todayStr = getLocalISODate(); // Compute dynamically
+    const todayStr = getLocalISODate(); 
     let todayBio = userData.biometrics.find(b => b.date === todayStr);
     if (!todayBio) {
         todayBio = { id: `bio_${Date.now()}`, date: todayStr, waterOz: 0 };
@@ -395,11 +417,6 @@ btnSaveVitals.addEventListener('click', async (e) => {
     if (inputFloors.value) todayBio.floors = parseInt(inputFloors.value);
     if (inputRestingHR.value) todayBio.restingHR = parseInt(inputRestingHR.value);
     if (inputActiveCals.value) todayBio.activeCals = parseInt(inputActiveCals.value);
-
-    inputSteps.value = '';
-    inputFloors.value = '';
-    inputRestingHR.value = '';
-    inputActiveCals.value = '';
 
     btnSaveVitals.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
     await window.BodyProDataStore.saveData(userData);
