@@ -14,7 +14,7 @@
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   
   <style>
-  /* Global Mobile Scroll Fixes - Resolves Samsung Ultra scrolling lock */
+  /* Global Mobile Scroll Fixes */
   html, body {
     overflow-x: hidden;
     width: 100%;
@@ -25,16 +25,6 @@
     padding-bottom: 100px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-  }
-
-  /* FAB Touch Target Fix - Prevents the container from blocking right-side interaction */
-  .fab-container {
-    pointer-events: none; 
-    z-index: 2001;
-  }
-  
-  .fab, .fab-item button, .fab-label {
-    pointer-events: auto; /* Re-enables interaction for actual buttons */
   }
 
   /* Dashboard Specific Styles & UI Polish */
@@ -155,7 +145,7 @@
     top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(8px);
-    z-index: 9999; /* CRITICAL FIX: Elevated to 9999 to prevent FAB overlap Ghost Taps */
+    z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -301,7 +291,7 @@
       <div class="card" style="border-top: 4px solid var(--warning);">
         <div class="card-header">
           <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-bed text-warning"></i> Sleep Telemetry</h3>
-          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openModal('sleepModal')"><i class="fa-solid fa-pen"></i> Log Data</button>
+          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openSleepModal()"><i class="fa-solid fa-pen"></i> Log Data</button>
         </div>
         
         <div class="telemetry-grid">
@@ -341,7 +331,7 @@
       <div class="card" style="border-top: 4px solid var(--primary);">
         <div class="card-header">
           <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-heart-pulse text-primary"></i> Daily Vitals & Activity</h3>
-          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openModal('vitalsModal')"><i class="fa-solid fa-pen"></i> Update</button>
+          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openVitalsModal()"><i class="fa-solid fa-pen"></i> Update</button>
         </div>
         
         <div class="telemetry-grid">
@@ -506,7 +496,6 @@
     const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', dateOptions);
 
-    // Basic UI Modal & FAB interaction logic
     const fabContainer = document.getElementById('fabContainer');
     const mainFab = document.getElementById('mainFab');
 
@@ -519,10 +508,6 @@
         fabContainer.classList.remove('active');
       }
     });
-
-    function openModal(modalId) {
-      document.getElementById(modalId).classList.add('active');
-    }
 
     function closeModals() {
       document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
