@@ -63,18 +63,16 @@ const waterCount = document.getElementById('waterCount');
 const waterTargetLabel = document.getElementById('waterTargetLabel');
 const btnAddWater = document.getElementById('btnAddWater');
 const btnSubWater = document.getElementById('btnSubWater');
-const customWaterInput = document.getElementById('customWaterInput');
 
 // --- STATE MANAGEMENT ---
 let userData = null;
 
-// CRITICAL FIX: Synchronize timezone with the nutrition tracking module
+// CRITICAL FIX: Make this a function that is called dynamically so it never gets stuck on "yesterday"
 function getLocalISODate() {
     const d = new Date();
     const offset = d.getTimezoneOffset() * 60000;
     return (new Date(d - offset)).toISOString().split('T')[0];
 }
-const todayStr = getLocalISODate();
 
 // --- INITIALIZATION ---
 onAuthStateChanged(auth, async (user) => {
@@ -99,8 +97,6 @@ onAuthStateChanged(auth, async (user) => {
 function loadHeroImage() {
     if (!heroBanner) return;
 
-    // The Unsplash Source API was shut down causing dynamic APIs to fail. 
-    // We use a curated array of high-quality direct links that rotate based on the day.
     const fitnessImages = [
         'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80', 
         'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80', 
@@ -109,7 +105,6 @@ function loadHeroImage() {
         'https://images.unsplash.com/photo-1558611848-73f7eb4001a1?auto=format&fit=crop&w=1200&q=80'
     ];
     
-    // Determine the day of the year to rotate the image daily consistently
     const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
     const selectedImage = fitnessImages[dayOfYear % fitnessImages.length];
     
@@ -118,6 +113,7 @@ function loadHeroImage() {
 
 // --- CORE RENDER ENGINE ---
 function renderDashboard() {
+    const todayStr = getLocalISODate(); // Compute dynamically on every render
     const name = userData.profile?.displayName || "Commander";
     const hour = new Date().getHours();
     let timeGreeting = "Good Evening";
@@ -135,7 +131,7 @@ function renderDashboard() {
             opt.textContent = workout.name;
             protocolSelect.appendChild(opt);
         });
-        todayProtocolContainer.innerHTML = ''; // Clear container until selected
+        todayProtocolContainer.innerHTML = ''; 
     } else {
         protocolSelect.style.display = 'none';
         todayProtocolContainer.innerHTML = '<p class="text-muted" style="font-size: 0.85rem; text-align: center; padding: 10px;">No custom protocols found. Create one in the Fitness tab.</p>';
@@ -179,6 +175,7 @@ function renderDashboard() {
     const sleepGoal = userData.settings.goals?.sleepHrs || 7.5;
     sleepTarget.innerText = `/ ${sleepGoal}h`;
 
+    // CRITICAL FIX: Explicitly reset UI to empty/zero if it's a new day
     const todaysSleep = userData.sleep_data.find(s => s.date === todayStr);
     if (todaysSleep) {
         sleepDuration.innerText = todaysSleep.durationHrs ? `${todaysSleep.durationHrs}h` : '--';
@@ -186,18 +183,30 @@ function renderDashboard() {
         sleepRem.innerText = todaysSleep.remHrs ? `${todaysSleep.remHrs}h` : '--';
         sleepRestfulness.innerText = todaysSleep.score || '--';
         sleepLatency.innerText = todaysSleep.latencyMins ? `${todaysSleep.latencyMins}m` : '--';
+    } else {
+        sleepDuration.innerText = '--';
+        sleepDeep.innerText = '--';
+        sleepRem.innerText = '--';
+        sleepRestfulness.innerText = '--';
+        sleepLatency.innerText = '--';
     }
 
     const goals = userData.settings.goals || {};
     stepTarget.innerText = `/ ${goals.steps?.toLocaleString() || '10,000'}`;
     floorTarget.innerText = `/ ${goals.floors || 10}`;
 
+    // CRITICAL FIX: Explicitly reset UI to empty/zero if it's a new day
     const todaysVitals = userData.biometrics.find(b => b.date === todayStr);
     if (todaysVitals) {
         stepCount.innerText = todaysVitals.steps?.toLocaleString() || '0';
         floorCount.innerText = todaysVitals.floors || '0';
         restingHR.innerText = todaysVitals.restingHR || '--';
         activeCals.innerText = todaysVitals.activeCals || '0';
+    } else {
+        stepCount.innerText = '0';
+        floorCount.innerText = '0';
+        restingHR.innerText = '--';
+        activeCals.innerText = '0';
     }
 }
 
@@ -231,6 +240,7 @@ protocolSelect.addEventListener('change', (e) => {
 async function updateWater(amount) {
     if (!userData) return;
     
+    const todayStr = getLocalISODate(); // Compute dynamically
     let todayBio = userData.biometrics.find(b => b.date === todayStr);
     if (!todayBio) {
         todayBio = { id: `bio_${Date.now()}`, date: todayStr, waterOz: 0 };
@@ -243,18 +253,20 @@ async function updateWater(amount) {
     await window.BodyProDataStore.saveData(userData);
 }
 
-// CRITICAL FIX: Add preventDefault and stopPropagation to create a hard block against mobile routing
+// CRITICAL FIX: Fetch customWaterInput directly from DOM at time of click
 btnAddWater.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    await updateWater(parseInt(customWaterInput.value) || 8);
+    const val = parseInt(document.getElementById('customWaterInput').value);
+    await updateWater(isNaN(val) ? 8 : val);
     return false;
 });
 
 btnSubWater.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    await updateWater(-(parseInt(customWaterInput.value) || 8));
+    const val = parseInt(document.getElementById('customWaterInput').value);
+    await updateWater(-(isNaN(val) ? 8 : val));
     return false;
 });
 
@@ -263,6 +275,7 @@ btnSaveSleep.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
+    const todayStr = getLocalISODate(); // Compute dynamically
     const duration = calculateDuration(inputBedTime.value, inputWakeTime.value);
     
     const sleepEntry = {
@@ -279,6 +292,14 @@ btnSaveSleep.addEventListener('click', async (e) => {
 
     userData.sleep_data = userData.sleep_data.filter(s => s.date !== todayStr);
     userData.sleep_data.push(sleepEntry);
+
+    // CRITICAL FIX: Clear the inputs so old data doesn't persist to the next day's modal view
+    inputBedTime.value = '';
+    inputWakeTime.value = '';
+    inputDeepSleep.value = '';
+    inputRemSleep.value = '';
+    inputRestfulness.value = '';
+    inputLatency.value = '';
 
     btnSaveSleep.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
     await window.BodyProDataStore.saveData(userData);
@@ -302,6 +323,7 @@ btnSaveVitals.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
+    const todayStr = getLocalISODate(); // Compute dynamically
     let todayBio = userData.biometrics.find(b => b.date === todayStr);
     if (!todayBio) {
         todayBio = { id: `bio_${Date.now()}`, date: todayStr, waterOz: 0 };
@@ -312,6 +334,12 @@ btnSaveVitals.addEventListener('click', async (e) => {
     if (inputFloors.value) todayBio.floors = parseInt(inputFloors.value);
     if (inputRestingHR.value) todayBio.restingHR = parseInt(inputRestingHR.value);
     if (inputActiveCals.value) todayBio.activeCals = parseInt(inputActiveCals.value);
+
+    // CRITICAL FIX: Clear the inputs so old data doesn't persist to the next day's modal view
+    inputSteps.value = '';
+    inputFloors.value = '';
+    inputRestingHR.value = '';
+    inputActiveCals.value = '';
 
     btnSaveVitals.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
     await window.BodyProDataStore.saveData(userData);
@@ -328,7 +356,6 @@ uploadSleepScreenshot.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Fix: Target the span instead of destroying the input
     const textSpan = document.getElementById('sleepOcrText');
     const originalText = textSpan.innerHTML;
     textSpan.innerHTML = '<i class="fa-solid fa-cog fa-spin"></i> Scanning Telemetry...';
@@ -365,7 +392,6 @@ uploadVitalsScreenshot.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Fix: Target the span instead of destroying the input
     const textSpan = document.getElementById('vitalsOcrText');
     const originalText = textSpan.innerHTML;
     textSpan.innerHTML = '<i class="fa-solid fa-cog fa-spin"></i> Scanning Telemetry...';
