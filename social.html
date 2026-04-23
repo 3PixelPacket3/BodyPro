@@ -4,18 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>BodyPro | Social Network</title>
-  
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#09090b">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
-  
+
   <style>
-    /* Global Mobile Scroll Fixes */
     html, body {
       overflow-x: hidden;
       width: 100%;
@@ -28,47 +21,53 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    /* Social Specific Styles */
-    .id-display-box {
-      background: var(--bg-surface-elevated);
-      border: 2px dashed var(--primary);
+    .social-header {
+      background: var(--bg-surface);
       border-radius: var(--border-radius-md);
-      padding: 25px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border-color);
       text-align: center;
-      margin-top: 15px;
-      margin-bottom: 15px;
-      position: relative;
     }
 
-    .short-id-text {
-      font-size: 2.5rem;
-      font-weight: 900;
-      letter-spacing: 4px;
-      color: var(--text-main);
+    .my-id-box {
+      background: var(--bg-base);
+      border: 2px dashed var(--primary);
+      padding: 15px;
+      border-radius: var(--border-radius-sm);
+      margin: 15px 0;
+      font-size: 1.8rem;
+      font-weight: 800;
       font-family: monospace;
-      margin-bottom: 10px;
+      letter-spacing: 5px;
+      color: var(--primary);
     }
 
-    .friend-list {
+    .add-friend-section {
       display: flex;
-      flex-direction: column;
-      gap: 12px;
+      gap: 10px;
       margin-top: 15px;
     }
 
-    .friend-card {
-      background: var(--bg-surface-elevated);
+    .add-friend-section input {
+      flex: 1;
+      text-align: center;
+      font-family: monospace;
+      font-size: 1.2rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .friend-card, .feed-card {
+      background: var(--bg-surface);
       border: 1px solid var(--border-color);
       border-radius: var(--border-radius-sm);
       padding: 15px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      transition: transform 0.2s;
+      margin-bottom: 15px;
+      transition: border-color 0.2s;
     }
 
     .friend-card:hover {
-      transform: translateX(5px);
       border-color: var(--primary);
     }
 
@@ -87,65 +86,52 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      font-weight: bold;
       font-size: 1.2rem;
-      font-weight: 700;
-      flex-shrink: 0;
     }
 
     .friend-details h4 {
-      margin: 0;
-      font-size: 1rem;
+      margin: 0 0 5px 0;
+      font-size: 1.1rem;
     }
 
     .friend-details p {
       margin: 0;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       color: var(--text-muted);
       font-family: monospace;
     }
 
-    .friend-actions button {
-      background: transparent;
-      border: 1px solid var(--border-color);
-      color: var(--text-muted);
-      width: 35px;
-      height: 35px;
-      border-radius: 50%;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-left: 5px;
-    }
-
-    .friend-actions button:hover {
-      background: var(--danger);
-      color: white;
-      border-color: var(--danger);
-    }
-
-    .friend-actions button.btn-accept:hover {
-      background: var(--accent);
-      border-color: var(--accent);
-    }
-
-    .search-box {
+    .friend-actions {
       display: flex;
       gap: 10px;
       margin-top: 15px;
     }
-    
-    .search-box input {
-      text-transform: uppercase;
-      font-family: monospace;
-      letter-spacing: 2px;
-      font-weight: bold;
+
+    .friend-actions button {
+      flex: 1;
+      padding: 8px;
+      border-radius: var(--border-radius-sm);
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      transition: all 0.2s;
     }
 
-    /* --- NEW STYLES: Tabs & Feed --- */
+    .friend-actions button:hover {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: white;
+    }
+
     .social-tabs {
       display: flex;
       border-bottom: 1px solid var(--border-color);
       margin-bottom: 20px;
     }
+
     .social-tab {
       flex: 1;
       text-align: center;
@@ -157,81 +143,107 @@
       cursor: pointer;
       border-bottom: 2px solid transparent;
       transition: all 0.2s;
-      position: relative;
     }
+
     .social-tab.active {
       color: var(--accent);
       border-bottom-color: var(--accent);
     }
-    .tab-pane {
-      display: none;
-    }
-    .tab-pane.active {
-      display: block;
-    }
-    .badge-indicator {
-      background: var(--danger);
-      color: white;
-      font-size: 0.7rem;
-      padding: 2px 6px;
-      border-radius: 10px;
-      position: absolute;
-      top: 5px;
-      right: 5px;
-      display: none;
-    }
 
-    .feed-card {
-      background: var(--bg-surface-elevated);
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-md);
-      padding: 15px;
-      margin-bottom: 15px;
-    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
     .feed-header {
       display: flex;
       align-items: center;
       gap: 10px;
       margin-bottom: 15px;
-      border-bottom: 1px solid var(--border-color);
       padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-color);
     }
+
+    .feed-section-title {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: bold;
+      margin-bottom: 10px;
+      margin-top: 15px;
+    }
+
     .compare-row {
       display: grid;
       grid-template-columns: 1fr 2fr 1fr;
-      align-items: center;
       gap: 10px;
+      align-items: center;
       margin-bottom: 10px;
       font-size: 0.9rem;
     }
+
     .compare-bar-container {
-      height: 10px;
+      width: 100%;
+      height: 8px;
       background: var(--bg-base);
-      border-radius: 5px;
-      overflow: hidden;
+      border-radius: 4px;
       display: flex;
+      overflow: hidden;
     }
-    .compare-bar-self {
-      background: var(--accent);
-      height: 100%;
+
+    .compare-bar-self { background: var(--accent); height: 100%; transition: width 0.5s; }
+    .compare-bar-friend { background: var(--primary); height: 100%; transition: width 0.5s; }
+
+    .badge {
+      background: var(--danger);
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 10px;
+      margin-left: 5px;
+      vertical-align: middle;
+      display: none;
     }
-    .compare-bar-friend {
-      background: var(--primary);
-      height: 100%;
+
+    /* Modal for Friend's Vault */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
     }
-    .feed-section-title {
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      font-weight: bold;
-      color: var(--text-muted);
-      margin: 15px 0 10px 0;
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: var(--bg-surface);
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: var(--border-radius-md);
+      border: 1px solid var(--border-color);
+      padding: 25px;
+      transform: translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: translateY(0);
     }
   </style>
 </head>
 <body>
 
   <div class="app-container">
-    
     <nav class="app-nav">
       <a href="dashboard.html" class="nav-item">
         <i class="fa-solid fa-house"></i>
@@ -265,123 +277,93 @@
 
     <main class="main-content">
       
-      <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <div>
-          <h2 style="margin-bottom: 5px;">Network</h2>
-          <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Connect & Compete</p>
+          <h2 style="margin-bottom: 5px;">Social Network</h2>
+          <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Cross-User Telemetry Sync</p>
         </div>
-        <button id="btnRefreshSocial" class="btn btn-ghost" style="width: auto; padding: 8px 15px; font-size: 0.9rem;">
+        <button class="btn btn-ghost" id="btnRefreshSocial" style="padding: 8px 15px; font-size: 0.85rem;">
           <i class="fa-solid fa-rotate-right"></i> Refresh
         </button>
       </div>
 
-      <div class="social-tabs">
-        <button class="social-tab active" data-tab="pane-network">My Circle</button>
-        <button class="social-tab" data-tab="pane-requests">
-          Requests <span class="badge-indicator" id="requestBadge">0</span>
+      <div class="social-header">
+        <h3 style="margin-top: 0;">Your Connection ID</h3>
+        <p class="text-muted" style="font-size: 0.85rem;">Share this secure 6-character code to link telemetry feeds with other athletes.</p>
+        
+        <div class="my-id-box" id="myShortId">------</div>
+        
+        <button class="btn btn-ghost" id="btnCopyId" style="width: 100%;">
+          <i class="fa-regular fa-copy"></i> Copy ID
         </button>
-        <button class="social-tab" data-tab="pane-feed">Feed</button>
+
+        <div style="border-top: 1px dashed var(--border-color); margin-top: 20px; padding-top: 20px;">
+          <h4 style="margin: 0 0 10px 0; text-align: left;">Add Connection</h4>
+          <div class="add-friend-section">
+            <input type="text" id="inputFriendId" placeholder="ENTER ID" maxlength="6">
+            <button class="btn" id="btnAddFriend" style="width: auto; padding: 0 20px;"><i class="fa-solid fa-paper-plane"></i></button>
+          </div>
+          <div id="addFriendMsg" style="font-size: 0.8rem; margin-top: 8px; display: none; text-align: left;"></div>
+        </div>
+      </div>
+
+      <div class="social-tabs">
+        <button class="social-tab active" data-tab="pane-network">My Network <span class="badge" id="friendCountBadge" style="display:inline-block; background:var(--bg-surface-elevated); color:var(--text-muted);">0</span></button>
+        <button class="social-tab" data-tab="pane-feed">Telemetry Feed</button>
+        <button class="social-tab" data-tab="pane-requests">Requests <span class="badge" id="requestBadge"></span></button>
       </div>
 
       <div id="pane-network" class="tab-pane active">
-        <div class="card" style="border-top: 4px solid var(--primary);">
-          <div class="card-header">
-            <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-id-badge text-primary"></i> My Network ID</h3>
-          </div>
-          <p class="text-muted" style="font-size: 0.85rem;">Share this 6-character code with friends so they can add you to their BodyPro network.</p>
-          
-          <div class="id-display-box">
-            <div class="short-id-text" id="myShortId">------</div>
-            <button class="btn btn-ghost" id="btnCopyId" style="width: auto; padding: 8px 20px; font-size: 0.9rem;">
-              <i class="fa-solid fa-copy"></i> Copy to Clipboard
-            </button>
-          </div>
-        </div>
+        <div id="friendListContainer"></div>
+      </div>
 
-        <div class="card" style="border-top: 4px solid var(--accent);">
-          <div class="card-header">
-            <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-user-plus text-accent"></i> Add Connection</h3>
-          </div>
-          <p class="text-muted" style="font-size: 0.85rem;">Enter a friend's 6-character Network ID to send them a connection request.</p>
-          
-          <div class="search-box">
-            <input type="text" id="inputFriendId" placeholder="e.g. X7B9K2" maxlength="6">
-            <button class="btn btn-accent" id="btnAddFriend" style="width: auto; padding: 0 25px;">
-              <i class="fa-solid fa-paper-plane"></i>
-            </button>
-          </div>
-          <div id="addFriendMsg" style="margin-top: 10px; font-size: 0.85rem; font-weight: bold; display: none;"></div>
-        </div>
-
-        <div class="card" style="border-top: 4px solid var(--text-main);">
-          <div class="card-header">
-            <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-users text-main"></i> My Circle</h3>
-            <span class="text-muted" style="font-size: 0.85rem; font-weight: bold;" id="friendCountBadge">0 Connections</span>
-          </div>
-          
-          <div class="friend-list" id="friendListContainer">
-            <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.9rem;">
-              <i class="fa-solid fa-satellite-dish" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;"></i><br>
-              Scanning for connections...
-            </div>
+      <div id="pane-feed" class="tab-pane">
+        <div id="analyticsFeedContainer">
+          <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 15px;"></i><br>
+            Synchronizing Cross-User Data...
           </div>
         </div>
       </div>
 
       <div id="pane-requests" class="tab-pane">
-        <div class="card" style="border-top: 4px solid var(--warning);">
-          <div class="card-header">
-            <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-envelope-open-text text-warning"></i> Pending Invites</h3>
-          </div>
-          <p class="text-muted" style="font-size: 0.85rem;">Review connection requests from other athletes.</p>
-          
-          <div class="friend-list" id="requestsListContainer">
-            <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.9rem;">
-              No pending requests.
-            </div>
-          </div>
-        </div>
+        <h4 style="margin-bottom: 10px; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Inbound Requests</h4>
+        <div id="requestsListContainer" style="margin-bottom: 20px;"></div>
         
-        <div class="card" style="margin-top: 15px; opacity: 0.7;">
-          <div class="card-header">
-             <h3 style="margin: 0; font-size: 1rem;">Sent Requests</h3>
-          </div>
-          <div class="friend-list" id="sentRequestsContainer" style="margin-top: 10px;">
-             </div>
-        </div>
-      </div>
-
-      <div id="pane-feed" class="tab-pane">
-        <div id="analyticsFeedContainer">
-           <div style="text-align: center; padding: 30px; color: var(--text-muted);">
-              <i class="fa-solid fa-chart-pie fa-spin" style="font-size: 2rem; margin-bottom: 10px;"></i><br>
-              Compiling network telemetry...
-           </div>
-        </div>
+        <h4 style="margin-bottom: 10px; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Outbound Pending</h4>
+        <div id="sentRequestsContainer"></div>
       </div>
 
     </main>
   </div>
 
-  <div class="toast" id="systemToast">System Notification</div>
+  <div id="systemToast" class="toast">Notification</div>
 
-  <script>
-    // Simple Tab Switching Logic
-    document.querySelectorAll('.social-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.social-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-            
-            tab.classList.add('active');
-            document.getElementById(tab.dataset.tab).classList.add('active');
-        });
-    });
-  </script>
+  <div class="modal-overlay" id="friendVaultModal">
+    <div class="modal-content">
+      <h3 style="margin-top: 0; margin-bottom: 5px;" id="fvTitle"><i class="fa-solid fa-box-open text-primary"></i> Friend's Vault</h3>
+      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px;">Import custom workout protocols and recipes directly into your database.</p>
+
+      <div style="display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 15px;">
+        <button class="vault-tab active" data-vault="workouts" style="flex: 1; padding: 10px; background: none; border: none; color: var(--accent); font-weight: bold; border-bottom: 2px solid var(--accent); cursor: pointer;">Workouts</button>
+        <button class="vault-tab" data-vault="recipes" style="flex: 1; padding: 10px; background: none; border: none; color: var(--text-muted); font-weight: bold; border-bottom: 2px solid transparent; cursor: pointer;">Recipes</button>
+      </div>
+
+      <div id="pane-vault-workouts" style="display: block;">
+        <div id="fvWorkoutsList" style="max-height: 350px; overflow-y: auto;"></div>
+      </div>
+
+      <div id="pane-vault-recipes" style="display: none;">
+        <div id="fvRecipesList" style="max-height: 350px; overflow-y: auto;"></div>
+      </div>
+
+      <button class="btn btn-ghost" style="width: 100%; margin-top: 20px;" onclick="document.getElementById('friendVaultModal').classList.remove('active')">Close Vault</button>
+    </div>
+  </div>
 
   <script type="module" src="data-store.js"></script>
   <script type="module" src="social.js"></script>
 </body>
-  
 <footer style="text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: 20px;">
   &copy; 2026 Joshua Michael Smolak. All Rights Reserved. <br>
   BodyPro System v2.0.0
