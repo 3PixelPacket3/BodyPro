@@ -77,6 +77,80 @@
       font-weight: 800;
     }
 
+    /* Calendar Grid */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+    .cal-header {
+      text-align: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding-bottom: 5px;
+      text-transform: uppercase;
+    }
+    .cal-day {
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      min-height: 55px;
+      padding: 5px;
+      text-align: right;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    .cal-day:hover {
+      border-color: var(--primary);
+      background: var(--bg-surface-elevated);
+    }
+    .cal-day.empty {
+      background: transparent;
+      border: none;
+      cursor: default;
+    }
+    .cal-day.empty:hover {
+      background: transparent;
+    }
+    .cal-indicators {
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      margin-top: 4px;
+    }
+    .cal-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .dot-workout { background: var(--primary); }
+    .dot-food { background: var(--accent); }
+    .dot-sleep { background: var(--warning); }
+    .dot-vitals { background: var(--danger); }
+    
+    .summary-card {
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      padding: 12px;
+    }
+    .summary-card h4 {
+      margin: 0 0 10px 0;
+      font-size: 0.9rem;
+      border-bottom: 1px dashed var(--border-color);
+      padding-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
     /* History Log List */
     .history-list {
       max-height: 400px;
@@ -339,6 +413,26 @@
         </div>
       </div>
 
+      <div class="card" style="border-top: 4px solid var(--text-main);">
+        <div class="chart-header">
+          <h3><i class="fa-regular fa-calendar text-main"></i> Telemetry Calendar</h3>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="btn btn-ghost" id="btnPrevMonth" style="padding: 2px 10px;"><i class="fa-solid fa-chevron-left"></i></button>
+            <span id="calendarMonthLabel" style="font-weight: 800; font-size: 0.95rem; min-width: 120px; text-align: center;">Month Year</span>
+            <button class="btn btn-ghost" id="btnNextMonth" style="padding: 2px 10px;"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; font-size: 0.7rem; color: var(--text-muted); flex-wrap: wrap;">
+            <div><span class="cal-dot dot-workout" style="display:inline-block; margin-right:4px;"></span>Workout</div>
+            <div><span class="cal-dot dot-food" style="display:inline-block; margin-right:4px;"></span>Nutrition</div>
+            <div><span class="cal-dot dot-sleep" style="display:inline-block; margin-right:4px;"></span>Sleep</div>
+            <div><span class="cal-dot dot-vitals" style="display:inline-block; margin-right:4px;"></span>Vitals</div>
+        </div>
+
+        <div id="calendarGrid" class="calendar-grid"></div>
+      </div>
+
       <div class="card">
         <div class="chart-header">
           <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Activity Log</h3>
@@ -375,6 +469,18 @@
         <button class="btn btn-ghost" style="flex: 1;" onclick="closeModals()">Close</button>
         <button class="btn btn-ghost" style="color: var(--danger); border-color: var(--danger); flex: 1;" id="btnDeleteActivity">Delete</button>
       </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="daySummaryModal">
+    <div class="modal-content">
+      <h3 style="margin-top: 0; margin-bottom: 5px;"><i class="fa-regular fa-calendar-check text-primary"></i> Daily Summary</h3>
+      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px; font-weight:bold;" id="dsDateLabel"></p>
+      
+      <div id="dsContent" style="display: flex; flex-direction: column; gap: 15px;">
+          </div>
+
+      <button class="btn btn-ghost" style="width: 100%; margin-top: 20px;" onclick="closeModals()">Close Summary</button>
     </div>
   </div>
 
