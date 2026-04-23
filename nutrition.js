@@ -268,6 +268,21 @@ function renderDiary() {
     else calProgressBar.classList.remove('overage');
 }
 
+// --- API FETCH ENGINE WITH RETRY LOGIC ---
+async function fetchWithRetry(url, retries = 3, delayMs = 1000) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return await response.json();
+        } catch (err) {
+            console.warn(`[BodyPro Network] API attempt ${i + 1} failed. Re-engaging...`, err);
+            if (i === retries - 1) throw err; // If last attempt, fail out
+            await new Promise(resolve => setTimeout(resolve, delayMs)); // Wait before retry
+        }
+    }
+}
+
 // --- OPTICAL SCANNER ---
 window.openScannerModal = function() {
     document.getElementById('scannerModal').classList.add('active');
@@ -306,10 +321,10 @@ async function onScanSuccess(decodedText, decodedResult) {
     }
 
     try {
-        const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
-        const data = await response.json();
+        // Implemented aggressive retry logic (3 attempts, 1s delay)
+        const data = await fetchWithRetry(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`, 3, 1000);
         
-        if (data.status === 1 && data.product) {
+        if (data && data.status === 1 && data.product) {
             currentScannedFood = parseOpenFoodFactsProduct(data.product);
             updateNutritionLabelDisplay();
             checkIfFavorite(currentScannedFood.name, nlFavoriteBtn);
@@ -320,7 +335,7 @@ async function onScanSuccess(decodedText, decodedResult) {
             window.openQuickAddModal('Snacks');
         }
     } catch (err) {
-        alert("Network failure. Unable to retrieve nutritional telemetry.");
+        alert("Network failure. Unable to retrieve nutritional telemetry after multiple attempts.");
         document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
         window.openQuickAddModal('Snacks');
     }
@@ -334,12 +349,12 @@ btnApiSearch.addEventListener('click', async () => {
     apiSearchResults.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Querying global registry...</div>';
     
     try {
-        const response = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=15`);
-        const data = await response.json();
+        // Implemented aggressive retry logic (3 attempts, 1s delay)
+        const data = await fetchWithRetry(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=15`, 3, 1000);
 
         apiSearchResults.innerHTML = '';
 
-        if (!data.products || data.products.length === 0) {
+        if (!data || !data.products || data.products.length === 0) {
             apiSearchResults.innerHTML = '<p class="text-muted" style="text-align:center; padding: 20px;">No matching items found.</p>';
             return;
         }
@@ -373,7 +388,7 @@ btnApiSearch.addEventListener('click', async () => {
 
     } catch (err) {
         console.error(err);
-        apiSearchResults.innerHTML = '<p class="text-danger" style="text-align:center; padding: 20px;">Connection failed.</p>';
+        apiSearchResults.innerHTML = '<p class="text-danger" style="text-align:center; padding: 20px;">Connection failed after multiple attempts. API may be temporarily down.</p>';
     }
 });
 
