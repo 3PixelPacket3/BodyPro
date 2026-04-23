@@ -67,7 +67,14 @@ const customWaterInput = document.getElementById('customWaterInput');
 
 // --- STATE MANAGEMENT ---
 let userData = null;
-const todayStr = new Date().toISOString().split('T')[0];
+
+// CRITICAL FIX: Synchronize timezone with the nutrition tracking module
+function getLocalISODate() {
+    const d = new Date();
+    const offset = d.getTimezoneOffset() * 60000;
+    return (new Date(d - offset)).toISOString().split('T')[0];
+}
+const todayStr = getLocalISODate();
 
 // --- INITIALIZATION ---
 onAuthStateChanged(auth, async (user) => {
@@ -236,11 +243,20 @@ async function updateWater(amount) {
     await window.BodyProDataStore.saveData(userData);
 }
 
-btnAddWater.addEventListener('click', () => updateWater(parseInt(customWaterInput.value) || 8));
-btnSubWater.addEventListener('click', () => updateWater(-(parseInt(customWaterInput.value) || 8)));
+// CRITICAL FIX: Add e.preventDefault() to stop form navigation on mobile
+btnAddWater.addEventListener('click', (e) => {
+    e.preventDefault();
+    updateWater(parseInt(customWaterInput.value) || 8);
+});
+btnSubWater.addEventListener('click', (e) => {
+    e.preventDefault();
+    updateWater(-(parseInt(customWaterInput.value) || 8));
+});
 
 // --- SLEEP TELEMETRY MODULE ---
-btnSaveSleep.addEventListener('click', async () => {
+// CRITICAL FIX: Add e.preventDefault() to stop form navigation on mobile
+btnSaveSleep.addEventListener('click', async (e) => {
+    e.preventDefault();
     const duration = calculateDuration(inputBedTime.value, inputWakeTime.value);
     
     const sleepEntry = {
@@ -275,7 +291,9 @@ function calculateDuration(start, end) {
 }
 
 // --- VITALS TELEMETRY MODULE ---
-btnSaveVitals.addEventListener('click', async () => {
+// CRITICAL FIX: Add e.preventDefault() to stop form navigation on mobile
+btnSaveVitals.addEventListener('click', async (e) => {
+    e.preventDefault();
     let todayBio = userData.biometrics.find(b => b.date === todayStr);
     if (!todayBio) {
         todayBio = { id: `bio_${Date.now()}`, date: todayStr, waterOz: 0 };
