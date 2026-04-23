@@ -224,6 +224,7 @@ a:hover {
   flex-direction: column;
   align-items: flex-end;
   gap: 15px;
+  pointer-events: none; /* CRITICAL FIX: Disables the invisible bounding box */
 }
 
 .fab {
@@ -240,6 +241,7 @@ a:hover {
   justify-content: center;
   cursor: pointer;
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s;
+  pointer-events: auto; /* CRITICAL FIX: Re-enables touch explicitly for the button */
 }
 
 .fab:hover {
@@ -263,7 +265,7 @@ a:hover {
 
 .fab-container.active .fab-menu {
   opacity: 1;
-  pointer-events: auto;
+  /* pointer-events: auto will be handled on the children below to prevent empty space taps */
   transform: translateY(0);
 }
 
@@ -277,6 +279,7 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 10px;
+  pointer-events: auto; /* CRITICAL FIX: Re-enables touch explicitly for menu items */
 }
 
 .fab-label {
@@ -286,6 +289,7 @@ a:hover {
   font-size: 0.85rem;
   font-weight: 600;
   box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  pointer-events: auto;
 }
 
 .fab-mini {
@@ -301,6 +305,7 @@ a:hover {
   cursor: pointer;
   box-shadow: 0 4px 6px rgba(0,0,0,0.3);
   transition: all 0.2s;
+  pointer-events: auto; /* CRITICAL FIX: Re-enables touch explicitly for mini buttons */
 }
 
 .fab-mini:hover {
