@@ -145,8 +145,8 @@ btnAddFriend.addEventListener('click', async () => {
     try {
         const usersRef = collection(db, "users");
         
-        // Use an explicit query to find the user via shortId instead of fetching the whole collection
-        const q = query(usersRef, where("profile.shortId", "==", targetId));
+        // CRITICAL FIX: Query the root-level shortId to bypass nested mapping issues
+        const q = query(usersRef, where("shortId", "==", targetId));
         const querySnapshot = await getDocs(q);
 
         let foundUserDoc = null;
@@ -159,7 +159,8 @@ btnAddFriend.addEventListener('click', async () => {
             const fallbackSnapshot = await getDocs(usersRef);
             fallbackSnapshot.forEach((doc) => {
                 const data = doc.data();
-                if (data.profile && data.profile.shortId === targetId) {
+                // Check both root and nested profile for maximum compatibility
+                if (data.shortId === targetId || (data.profile && data.profile.shortId === targetId)) {
                     foundUserDoc = doc;
                 }
             });
