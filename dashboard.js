@@ -12,6 +12,7 @@ const heroBanner = document.getElementById('heroBanner');
 // Today's Protocol Elements
 const protocolSelect = document.getElementById('protocolSelect');
 const todayProtocolContainer = document.getElementById('todayProtocolContainer');
+const btnTimeCrunch = document.getElementById('btnTimeCrunch');
 
 // Nutrition Elements
 const calsRemaining = document.getElementById('calsRemaining');
@@ -63,11 +64,12 @@ const waterCount = document.getElementById('waterCount');
 const waterTargetLabel = document.getElementById('waterTargetLabel');
 const btnAddWater = document.getElementById('btnAddWater');
 const btnSubWater = document.getElementById('btnSubWater');
+const customWaterInput = document.getElementById('customWaterInput');
 
 // --- STATE MANAGEMENT ---
 let userData = null;
 
-// CRITICAL FIX: Make this a function that is called dynamically so it never gets stuck on "yesterday"
+// Ensure accurate local timing to prevent midnight rollover caching bugs
 function getLocalISODate() {
     const d = new Date();
     const offset = d.getTimezoneOffset() * 60000;
@@ -87,7 +89,7 @@ onAuthStateChanged(auth, async (user) => {
     if (!userData.food_diary) userData.food_diary = [];
     if (!userData.biometrics) userData.biometrics = [];
     if (!userData.sleep_data) userData.sleep_data = [];
-    if (!userData.custom_workouts) userData.custom_workouts = [];
+    if (!userData.workout_templates) userData.workout_templates = []; // Correctly sync to fitness.js vault
 
     renderDashboard();
     loadHeroImage();
@@ -121,14 +123,14 @@ function renderDashboard() {
     else if (hour < 17) timeGreeting = "Good Afternoon";
     userGreeting.innerText = `${timeGreeting}, ${name}.`;
 
-    // Today's Protocol Setup
+    // Today's Protocol Setup (Fixed Database Pathway)
     protocolSelect.innerHTML = '<option value="">-- Select Protocol --</option>';
-    if (userData.custom_workouts && userData.custom_workouts.length > 0) {
+    if (userData.workout_templates && userData.workout_templates.length > 0) {
         protocolSelect.style.display = 'block';
-        userData.custom_workouts.forEach(workout => {
+        userData.workout_templates.forEach(workout => {
             const opt = document.createElement('option');
             opt.value = workout.id;
-            opt.textContent = workout.name;
+            opt.textContent = workout.title; 
             protocolSelect.appendChild(opt);
         });
         todayProtocolContainer.innerHTML = ''; 
@@ -208,31 +210,82 @@ function renderDashboard() {
     }
 }
 
-// --- TODAY'S PROTOCOL HANDLER ---
-protocolSelect.addEventListener('change', (e) => {
-    const workoutId = e.target.value;
+// --- PROTOCOL RENDERING & TIME-CRUNCH ENGINE ---
+function renderSelectedProtocol(workoutId, isTimeCrunch = false) {
     if (!workoutId) {
         todayProtocolContainer.innerHTML = '';
         return;
     }
 
-    const workout = userData.custom_workouts.find(w => w.id === workoutId);
+    const workout = userData.workout_templates.find(w => w.id === workoutId);
     if (workout && workout.exercises) {
         let html = `<ul style="list-style: none; padding: 0; margin: 0;">`;
         workout.exercises.forEach(ex => {
+            const exName = ex.exercise || ex.name || 'Unknown Movement';
+            let setsCount = (ex.sets && Array.isArray(ex.sets)) ? ex.sets.length : 1;
+            
+            // Time-Crunch Injection: Cut volume in half if toggled
+            if (isTimeCrunch && setsCount > 1) {
+                setsCount = Math.ceil(setsCount / 2);
+            }
+            
+            let repsText = "Var Reps";
+            if (ex.sets && ex.sets.length > 0 && ex.sets[0].reps) {
+                repsText = ex.sets[0].reps + " Reps";
+            }
+
             html += `
-            <li style="padding: 10px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <li style="padding: 10px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; transition: opacity 0.2s;">
                 <div>
-                    <div style="font-weight: 600; font-size: 0.95rem;">${ex.name}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">${ex.sets} Sets x ${ex.reps} Reps</div>
+                    <div style="font-weight: 600; font-size: 0.95rem;">${exName} ${isTimeCrunch ? '<span style="color:var(--warning); font-size:0.75rem; margin-left: 5px;"><i class="fa-solid fa-bolt"></i></span>' : ''}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">${setsCount} Sets x ${repsText}</div>
                 </div>
-                <button class="btn btn-ghost" style="padding: 5px 10px; font-size: 0.8rem;"><i class="fa-regular fa-circle"></i></button>
+                <button class="btn btn-ghost check-btn" style="padding: 5px 10px; font-size: 1rem; color: var(--text-muted);"><i class="fa-regular fa-circle"></i></button>
             </li>`;
         });
         html += `</ul>`;
         todayProtocolContainer.innerHTML = html;
+
+        // Wire up interactive checkboxes
+        setTimeout(() => {
+            todayProtocolContainer.querySelectorAll('.check-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const icon = this.querySelector('i');
+                    if (icon.classList.contains('fa-circle')) {
+                        icon.classList.replace('fa-regular', 'fa-solid');
+                        icon.classList.replace('fa-circle', 'fa-circle-check');
+                        icon.style.color = 'var(--primary)';
+                        this.closest('li').style.opacity = '0.4';
+                    } else {
+                        icon.classList.replace('fa-solid', 'fa-regular');
+                        icon.classList.replace('fa-circle-check', 'fa-circle');
+                        icon.style.color = 'var(--text-muted)';
+                        this.closest('li').style.opacity = '1';
+                    }
+                });
+            });
+        }, 50);
     }
+}
+
+protocolSelect.addEventListener('change', (e) => {
+    renderSelectedProtocol(e.target.value, false);
 });
+
+if (btnTimeCrunch) {
+    btnTimeCrunch.addEventListener('click', (e) => {
+        e.preventDefault();
+        const currentWorkoutId = protocolSelect.value;
+        if (!currentWorkoutId) {
+            alert("Please select a protocol from the dropdown first to enable Time-Crunch mode.");
+            return;
+        }
+        // Force the protocol to re-render with sets cut in half
+        renderSelectedProtocol(currentWorkoutId, true);
+    });
+}
 
 // --- HYDRATION MODULE ---
 async function updateWater(amount) {
@@ -251,39 +304,33 @@ async function updateWater(amount) {
     await window.BodyProDataStore.saveData(userData);
 }
 
-// CRITICAL FIX: Universal Touch & Click Handler to bypass mobile keyboard focus trapping
-function bindHydrationButton(btn, isAdd) {
-    let isProcessing = false;
-    
-    const handler = async (e) => {
-        // Prevent ghost clicks if touchstart fires first
-        if (e.type === 'touchstart') e.preventDefault();
-        e.stopPropagation();
-        
-        if (isProcessing) return false;
-        isProcessing = true;
-        
-        const inputEl = document.getElementById('customWaterInput');
-        
-        // Force the mobile keyboard to close and commit the buffered input value to the DOM
-        inputEl.blur(); 
-        
-        const val = parseInt(inputEl.value);
-        const amount = isNaN(val) ? 8 : val;
-        
-        await updateWater(isAdd ? amount : -amount);
-        
-        // Debounce to prevent double-logging from rapid taps or dual event firing
-        setTimeout(() => { isProcessing = false; }, 300); 
-        return false;
-    };
+// CRITICAL FIX: Pointerdown Event Binding. This bypasses mobile keyboard focus trapping entirely 
+// by reading the screen touch milliseconds before the OS closes the virtual keyboard.
+let isWaterProcessing = false;
 
-    btn.addEventListener('touchstart', handler, { passive: false });
-    btn.addEventListener('click', handler);
+async function handleWaterTap(isAdd, e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    if (isWaterProcessing) return;
+    isWaterProcessing = true;
+
+    // Defocus to forcefully dismiss the keyboard on mobile
+    if (document.activeElement) document.activeElement.blur();
+
+    let val = parseInt(customWaterInput.value);
+    if (isNaN(val)) val = 8;
+    
+    await updateWater(isAdd ? val : -val);
+    
+    // Debouncer
+    setTimeout(() => { isWaterProcessing = false; }, 300);
 }
 
-bindHydrationButton(btnAddWater, true);
-bindHydrationButton(btnSubWater, false);
+btnAddWater.addEventListener('pointerdown', (e) => handleWaterTap(true, e));
+btnSubWater.addEventListener('pointerdown', (e) => handleWaterTap(false, e));
 
 // --- SLEEP TELEMETRY MODULE ---
 btnSaveSleep.addEventListener('click', async (e) => {
