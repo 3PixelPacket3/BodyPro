@@ -175,7 +175,6 @@ function renderDashboard() {
     const sleepGoal = userData.settings.goals?.sleepHrs || 7.5;
     sleepTarget.innerText = `/ ${sleepGoal}h`;
 
-    // CRITICAL FIX: Explicitly reset UI to empty/zero if it's a new day
     const todaysSleep = userData.sleep_data.find(s => s.date === todayStr);
     if (todaysSleep) {
         sleepDuration.innerText = todaysSleep.durationHrs ? `${todaysSleep.durationHrs}h` : '--';
@@ -195,7 +194,6 @@ function renderDashboard() {
     stepTarget.innerText = `/ ${goals.steps?.toLocaleString() || '10,000'}`;
     floorTarget.innerText = `/ ${goals.floors || 10}`;
 
-    // CRITICAL FIX: Explicitly reset UI to empty/zero if it's a new day
     const todaysVitals = userData.biometrics.find(b => b.date === todayStr);
     if (todaysVitals) {
         stepCount.innerText = todaysVitals.steps?.toLocaleString() || '0';
@@ -253,22 +251,39 @@ async function updateWater(amount) {
     await window.BodyProDataStore.saveData(userData);
 }
 
-// CRITICAL FIX: Fetch customWaterInput directly from DOM at time of click
-btnAddWater.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const val = parseInt(document.getElementById('customWaterInput').value);
-    await updateWater(isNaN(val) ? 8 : val);
-    return false;
-});
+// CRITICAL FIX: Universal Touch & Click Handler to bypass mobile keyboard focus trapping
+function bindHydrationButton(btn, isAdd) {
+    let isProcessing = false;
+    
+    const handler = async (e) => {
+        // Prevent ghost clicks if touchstart fires first
+        if (e.type === 'touchstart') e.preventDefault();
+        e.stopPropagation();
+        
+        if (isProcessing) return false;
+        isProcessing = true;
+        
+        const inputEl = document.getElementById('customWaterInput');
+        
+        // Force the mobile keyboard to close and commit the buffered input value to the DOM
+        inputEl.blur(); 
+        
+        const val = parseInt(inputEl.value);
+        const amount = isNaN(val) ? 8 : val;
+        
+        await updateWater(isAdd ? amount : -amount);
+        
+        // Debounce to prevent double-logging from rapid taps or dual event firing
+        setTimeout(() => { isProcessing = false; }, 300); 
+        return false;
+    };
 
-btnSubWater.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const val = parseInt(document.getElementById('customWaterInput').value);
-    await updateWater(-(isNaN(val) ? 8 : val));
-    return false;
-});
+    btn.addEventListener('touchstart', handler, { passive: false });
+    btn.addEventListener('click', handler);
+}
+
+bindHydrationButton(btnAddWater, true);
+bindHydrationButton(btnSubWater, false);
 
 // --- SLEEP TELEMETRY MODULE ---
 btnSaveSleep.addEventListener('click', async (e) => {
@@ -293,7 +308,6 @@ btnSaveSleep.addEventListener('click', async (e) => {
     userData.sleep_data = userData.sleep_data.filter(s => s.date !== todayStr);
     userData.sleep_data.push(sleepEntry);
 
-    // CRITICAL FIX: Clear the inputs so old data doesn't persist to the next day's modal view
     inputBedTime.value = '';
     inputWakeTime.value = '';
     inputDeepSleep.value = '';
@@ -335,7 +349,6 @@ btnSaveVitals.addEventListener('click', async (e) => {
     if (inputRestingHR.value) todayBio.restingHR = parseInt(inputRestingHR.value);
     if (inputActiveCals.value) todayBio.activeCals = parseInt(inputActiveCals.value);
 
-    // CRITICAL FIX: Clear the inputs so old data doesn't persist to the next day's modal view
     inputSteps.value = '';
     inputFloors.value = '';
     inputRestingHR.value = '';
