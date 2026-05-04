@@ -1,5 +1,3 @@
-// settings.js - BodyPro Profile & Configuration Logic
-
 import { auth } from './data-store.js';
 import { onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -14,6 +12,23 @@ const profGoalWeight = document.getElementById('profGoalWeight');
 const profActivity = document.getElementById('profActivity');
 const profObjective = document.getElementById('profObjective');
 const btnSaveIdentity = document.getElementById('btnSaveIdentity');
+
+// Section 1.1: Supplements
+const profSupplements = document.getElementById('profSupplements');
+const btnSaveSupplements = document.getElementById('btnSaveSupplements');
+
+// Section 1.2: Log Health Metrics
+const logWeight = document.getElementById('logWeight');
+const logSys = document.getElementById('logSys');
+const logDia = document.getElementById('logDia');
+const logPinch1 = document.getElementById('logPinch1');
+const logPinch2 = document.getElementById('logPinch2');
+const logPinch3 = document.getElementById('logPinch3');
+const logBodyFat = document.getElementById('logBodyFat');
+const btnLogMetrics = document.getElementById('btnLogMetrics');
+const lblPinch1 = document.getElementById('lblPinch1');
+const lblPinch2 = document.getElementById('lblPinch2');
+const lblPinch3 = document.getElementById('lblPinch3');
 
 // Section 1.5: Macro Calculator
 const calcSex = document.getElementById('calcSex');
@@ -35,9 +50,16 @@ const goalProt = document.getElementById('goalProt');
 const goalCarb = document.getElementById('goalCarb');
 const goalFat = document.getElementById('goalFat');
 
-const goalSleep = document.getElementById('goalSleep');
-const goalSteps = document.getElementById('goalSteps');
-const goalFloors = document.getElementById('goalFloors');
+const goalSugar = document.getElementById('goalSugar');
+const goalSodium = document.getElementById('goalSodium');
+const goalIron = document.getElementById('goalIron');
+const goalPotassium = document.getElementById('goalPotassium');
+const goalFiber = document.getElementById('goalFiber');
+const goalVitA = document.getElementById('goalVitA');
+const goalVitC = document.getElementById('goalVitC');
+const goalCalcium = document.getElementById('goalCalcium');
+const goalSatFat = document.getElementById('goalSatFat');
+
 const goalWater = document.getElementById('goalWater');
 const goalWorkoutDays = document.getElementById('goalWorkoutDays');
 const goalLiftMins = document.getElementById('goalLiftMins');
@@ -74,12 +96,15 @@ onAuthStateChanged(auth, async (user) => {
     
     // Ensure nested objects exist to prevent null reference errors
     if (!userData.profile) userData.profile = {};
-    if (!userData.settings) userData.settings = { macroTargets: {}, goals: {}, preferences: {} };
+    if (!userData.settings) userData.settings = { macroTargets: {}, microTargets: {}, goals: {}, preferences: {} };
     if (!userData.settings.macroTargets) userData.settings.macroTargets = {};
+    if (!userData.settings.microTargets) userData.settings.microTargets = {};
     if (!userData.settings.goals) userData.settings.goals = {};
     if (!userData.settings.preferences) userData.settings.preferences = {};
+    if (!userData.biometrics) userData.biometrics = [];
 
     populateUI(user);
+    updatePinchLabels();
 });
 
 // --- UI POPULATION ---
@@ -101,6 +126,9 @@ function populateUI(user) {
         profObjective.value = userData.profile.objective;
     }
 
+    // Supplements
+    profSupplements.value = userData.profile?.supplements || '';
+
     // Pre-fill Macro Calculator based on identity
     calcAge.value = userData.profile?.age || '';
     calcHeight.value = userData.profile?.heightInches || '';
@@ -114,10 +142,18 @@ function populateUI(user) {
     goalCarb.value = userData.settings?.macroTargets?.carbs || 150;
     goalFat.value = userData.settings?.macroTargets?.fats || 88;
 
+    // Micronutrient Targets (Load defaults if missing)
+    goalSugar.value = userData.settings?.microTargets?.sugar || 50;
+    goalSodium.value = userData.settings?.microTargets?.sodium || 2300;
+    goalIron.value = userData.settings?.microTargets?.iron || 18;
+    goalPotassium.value = userData.settings?.microTargets?.potassium || 4700;
+    goalFiber.value = userData.settings?.microTargets?.fiber || 30;
+    goalVitA.value = userData.settings?.microTargets?.vitA || 900;
+    goalVitC.value = userData.settings?.microTargets?.vitC || 90;
+    goalCalcium.value = userData.settings?.microTargets?.calcium || 1000;
+    goalSatFat.value = userData.settings?.microTargets?.satFat || 20;
+
     // 3. Biometric & Activity Goals
-    goalSleep.value = userData.settings?.goals?.sleepHrs || 7.5;
-    goalSteps.value = userData.settings?.goals?.steps || 10000;
-    goalFloors.value = userData.settings?.goals?.floors || 10;
     goalWater.value = userData.settings?.goals?.waterOz || 120;
     goalWorkoutDays.value = userData.settings?.goals?.workoutDaysPerWeek || 6;
     goalLiftMins.value = userData.settings?.goals?.targetLiftingMinutes || 90;
@@ -131,7 +167,49 @@ function populateUI(user) {
     if (userData.settings?.preferences?.defaultMeal) prefMeal.value = userData.settings.preferences.defaultMeal;
 }
 
-// --- MODULE 1: IDENTITY MANAGEMENT ---
+// --- MODULE 1: IDENTITY & HEALTH METRICS ---
+profSex.addEventListener('change', updatePinchLabels);
+
+function updatePinchLabels() {
+    if(profSex.value === 'male') {
+        lblPinch1.innerText = 'Chest (mm)';
+        lblPinch2.innerText = 'Abdomen (mm)';
+        lblPinch3.innerText = 'Thigh (mm)';
+    } else {
+        lblPinch1.innerText = 'Triceps (mm)';
+        lblPinch2.innerText = 'Suprailiac (mm)';
+        lblPinch3.innerText = 'Thigh (mm)';
+    }
+    calculateBodyFat();
+}
+
+function calculateBodyFat() {
+    const p1 = parseFloat(logPinch1.value) || 0;
+    const p2 = parseFloat(logPinch2.value) || 0;
+    const p3 = parseFloat(logPinch3.value) || 0;
+    const age = parseInt(profAge.value) || 25;
+    const sex = profSex.value || 'male';
+
+    if(p1 > 0 && p2 > 0 && p3 > 0) {
+        const sum = p1 + p2 + p3;
+        let bd = 0;
+        // Jackson-Pollock 3-Site Algorithm
+        if(sex === 'male') {
+            bd = 1.10938 - (0.0008267 * sum) + (0.0000016 * sum * sum) - (0.0002574 * age);
+        } else {
+            bd = 1.0994921 - (0.0009929 * sum) + (0.0000023 * sum * sum) - (0.0001392 * age);
+        }
+        const bf = (495 / bd) - 450;
+        logBodyFat.value = Math.max(2, Math.min(60, bf)).toFixed(1); // Cap between 2% and 60%
+    } else if (p1 === 0 && p2 === 0 && p3 === 0) {
+        // Only clear if all are empty so user can manually type BF%
+    }
+}
+
+logPinch1.addEventListener('input', calculateBodyFat);
+logPinch2.addEventListener('input', calculateBodyFat);
+logPinch3.addEventListener('input', calculateBodyFat);
+
 btnSaveIdentity.addEventListener('click', async () => {
     btnSaveIdentity.disabled = true;
     btnSaveIdentity.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
@@ -149,6 +227,7 @@ btnSaveIdentity.addEventListener('click', async () => {
         goalWeight: parseInt(profGoalWeight.value) || null,
         activityLevel: parseFloat(profActivity.value),
         objective: profObjective.value,
+        supplements: userData.profile?.supplements || '', // Preserve supplements
         shortId: userData.profile.shortId // Preserve the Short ID
     };
 
@@ -159,6 +238,70 @@ btnSaveIdentity.addEventListener('click', async () => {
         setTimeout(() => {
             btnSaveIdentity.disabled = false;
             btnSaveIdentity.innerText = 'Update Identity';
+        }, 2000);
+    }
+});
+
+btnSaveSupplements.addEventListener('click', async () => {
+    btnSaveSupplements.disabled = true;
+    btnSaveSupplements.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
+
+    userData.profile.supplements = profSupplements.value;
+
+    const success = await window.BodyProDataStore.saveData(userData);
+    
+    if (success) {
+        btnSaveSupplements.innerHTML = '<i class="fa-solid fa-check"></i> Stack Saved';
+        setTimeout(() => {
+            btnSaveSupplements.disabled = false;
+            btnSaveSupplements.innerText = 'Update Stack';
+        }, 2000);
+    }
+});
+
+btnLogMetrics.addEventListener('click', async () => {
+    const w = parseFloat(logWeight.value);
+    const bf = parseFloat(logBodyFat.value);
+    const sys = parseInt(logSys.value);
+    const dia = parseInt(logDia.value);
+
+    if(!w && !bf && !sys && !dia) {
+        alert("Please enter at least one metric to log.");
+        return;
+    }
+
+    btnLogMetrics.disabled = true;
+    btnLogMetrics.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+    const d = new Date();
+    const offset = d.getTimezoneOffset() * 60000;
+    const todayStr = (new Date(d - offset)).toISOString().split('T')[0];
+
+    let bio = userData.biometrics.find(b => b.date === todayStr);
+    if (!bio) {
+        bio = { id: `bio_${Date.now()}`, date: todayStr };
+        userData.biometrics.push(bio);
+    }
+
+    if(w) bio.weight = w;
+    if(bf) bio.bodyFat = bf;
+    if(sys) bio.systolic = sys;
+    if(dia) bio.diastolic = dia;
+
+    const success = await window.BodyProDataStore.saveData(userData);
+    
+    if (success) {
+        btnLogMetrics.innerHTML = '<i class="fa-solid fa-check"></i> Metrics Saved';
+        logWeight.value = '';
+        logBodyFat.value = '';
+        logSys.value = '';
+        logDia.value = '';
+        logPinch1.value = '';
+        logPinch2.value = '';
+        logPinch3.value = '';
+        setTimeout(() => {
+            btnLogMetrics.disabled = false;
+            btnLogMetrics.innerText = "Save Today's Metrics";
         }, 2000);
     }
 });
@@ -246,11 +389,20 @@ btnSaveTargets.addEventListener('click', async () => {
         carbs: parseInt(goalCarb.value) || 150,
         fats: parseInt(goalFat.value) || 88
     };
+    
+    userData.settings.microTargets = {
+        sugar: parseInt(goalSugar.value) || 50,
+        sodium: parseInt(goalSodium.value) || 2300,
+        iron: parseInt(goalIron.value) || 18,
+        potassium: parseInt(goalPotassium.value) || 4700,
+        fiber: parseInt(goalFiber.value) || 30,
+        vitA: parseInt(goalVitA.value) || 900,
+        vitC: parseInt(goalVitC.value) || 90,
+        calcium: parseInt(goalCalcium.value) || 1000,
+        satFat: parseInt(goalSatFat.value) || 20
+    };
 
     userData.settings.goals = {
-        sleepHrs: parseFloat(goalSleep.value) || 7.5,
-        steps: parseInt(goalSteps.value) || 10000,
-        floors: parseInt(goalFloors.value) || 10,
         waterOz: parseInt(goalWater.value) || 120,
         workoutDaysPerWeek: parseInt(goalWorkoutDays.value) || 6,
         targetLiftingMinutes: parseInt(goalLiftMins.value) || 90,
@@ -394,8 +546,9 @@ btnWipeAccount.addEventListener('click', async () => {
         profile: userData.profile, // Keep identity/Short ID intact
         settings: {
             macroTargets: { calories: 2200, protein: 200, carbs: 150, fats: 88 },
+            microTargets: { sugar: 50, sodium: 2300, iron: 18, potassium: 4700, fiber: 30, vitA: 900, vitC: 90, calcium: 1000, satFat: 20 },
             goals: {
-                sleepHrs: 7.5, steps: 10000, floors: 10, waterOz: 120,
+                waterOz: 120,
                 workoutDaysPerWeek: 6, targetLiftingMinutes: 90, targetCardioMinutes: 20
             },
             preferences: { theme: 'dark', weightUnit: 'lbs', fluidUnit: 'oz', timeFormat: '12', defaultMeal: 'Snacks' }
