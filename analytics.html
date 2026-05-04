@@ -143,8 +143,7 @@
     }
     .dot-workout { background: var(--primary); }
     .dot-food { background: var(--accent); }
-    .dot-sleep { background: var(--warning); }
-    .dot-vitals { background: var(--danger); }
+    .dot-comp { background: var(--warning); }
     
     .summary-card {
       background: var(--bg-base);
@@ -328,8 +327,7 @@
           <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; font-size: 0.7rem; color: var(--text-muted); flex-wrap: wrap;">
               <div><span class="cal-dot dot-workout" style="display:inline-block; margin-right:4px;"></span>Workout</div>
               <div><span class="cal-dot dot-food" style="display:inline-block; margin-right:4px;"></span>Nutrition</div>
-              <div><span class="cal-dot dot-sleep" style="display:inline-block; margin-right:4px;"></span>Sleep</div>
-              <div><span class="cal-dot dot-vitals" style="display:inline-block; margin-right:4px;"></span>Vitals</div>
+              <div><span class="cal-dot dot-comp" style="display:inline-block; margin-right:4px;"></span>Body Data</div>
           </div>
 
           <div id="calendarGrid" class="calendar-grid"></div>
@@ -338,7 +336,7 @@
 
       <div class="card" style="border-top: 4px solid var(--primary);">
         <div class="chart-header">
-          <h3><i class="fa-solid fa-scale-balanced text-primary"></i> Body Mass Tracking</h3>
+          <h3><i class="fa-solid fa-weight-scale text-primary"></i> Body Mass Tracking</h3>
           <div class="chart-filters">
             <select id="weightRangeSelect">
               <option value="30">30 Days</option>
@@ -368,9 +366,56 @@
         </div>
       </div>
 
+      <div class="card" style="border-top: 4px solid var(--warning);">
+        <div class="chart-header">
+          <h3><i class="fa-solid fa-ruler-combined text-warning"></i> Body Composition (Pinch Data)</h3>
+          <div class="chart-filters">
+            <select id="compRangeSelect">
+              <option value="90">90 Days</option>
+              <option value="180">6 Months</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="chart-container">
+          <canvas id="bodyCompChart"></canvas>
+        </div>
+
+        <div class="stat-summary-grid">
+          <div class="stat-box">
+            <div class="lbl">Est Body Fat</div>
+            <div class="val text-warning" id="valBodyFat">-- %</div>
+          </div>
+          <div class="stat-box">
+            <div class="lbl">Lean Mass</div>
+            <div class="val" id="valLeanMass">-- lbs</div>
+          </div>
+          <div class="stat-box">
+            <div class="lbl">Fat Mass</div>
+            <div class="val" id="valFatMass">-- lbs</div>
+          </div>
+        </div>
+      </div>
+
       <div class="card" style="border-top: 4px solid var(--danger);">
         <div class="chart-header">
-          <h3><i class="fa-solid fa-arrow-trend-up text-danger"></i> Strength Projections (1RM)</h3>
+          <h3><i class="fa-solid fa-heart-pulse text-danger"></i> Blood Pressure</h3>
+          <div class="chart-filters">
+            <select id="bpRangeSelect">
+              <option value="30">30 Days</option>
+              <option value="90">90 Days</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="chart-container">
+          <canvas id="bpChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--info, #3b82f6);">
+        <div class="chart-header">
+          <h3><i class="fa-solid fa-arrow-trend-up" style="color: var(--info, #3b82f6);"></i> Strength Projections (1RM)</h3>
           <div class="chart-filters">
             <select id="liftSelect">
               <option value="Bench Press (Barbell) [Chest]">Bench Press</option>
@@ -404,9 +449,9 @@
         </div>
       </div>
 
-      <div class="card" style="border-top: 4px solid var(--warning);">
+      <div class="card" style="border-top: 4px solid var(--success, #10b981);">
         <div class="chart-header">
-          <h3><i class="fa-solid fa-chart-column text-warning"></i> Caloric Adherence</h3>
+          <h3><i class="fa-solid fa-chart-column" style="color: var(--success, #10b981);"></i> Caloric Adherence</h3>
           <div class="chart-filters">
             <select id="macroRangeSelect">
               <option value="7">7 Days</option>
@@ -434,29 +479,12 @@
 
       <div class="card" style="border-top: 4px solid var(--primary);">
         <div class="chart-header">
-          <h3><i class="fa-solid fa-bed text-primary"></i> Sleep Quality Score</h3>
-          <div class="chart-filters">
-            <select id="sleepRangeSelect">
-              <option value="7">7 Days</option>
-              <option value="14">14 Days</option>
-              <option value="30">30 Days</option>
-            </select>
-          </div>
+          <h3><i class="fa-solid fa-microscope text-primary"></i> Micronutrient Averages</h3>
+          <p class="text-muted" style="font-size: 0.8rem; margin: 0;">(% of Daily Goal - Last 7 Days)</p>
         </div>
         
-        <div class="chart-container">
-          <canvas id="sleepChart"></canvas>
-        </div>
-      </div>
-
-      <div class="card" style="border-top: 4px solid var(--accent);">
-        <div class="chart-header">
-          <h3><i class="fa-solid fa-droplet text-accent"></i> Hydration Volume</h3>
-          <p class="text-muted" style="font-size: 0.8rem; margin: 0;">(fl oz per day)</p>
-        </div>
-        
-        <div class="chart-container" style="height: 200px;">
-          <canvas id="hydrationChart"></canvas>
+        <div class="chart-container" style="height: 250px;">
+          <canvas id="microRadarChart"></canvas>
         </div>
       </div>
 
@@ -507,48 +535,6 @@
       </div>
 
       <button class="btn btn-ghost" style="width: 100%; margin-top: 20px;" onclick="closeAllModals()">Close Summary</button>
-    </div>
-  </div>
-
-  <div class="modal-overlay sub-modal" id="editSleepModal">
-    <div class="modal-content">
-      <h3 style="margin-top: 0;"><i class="fa-solid fa-bed text-warning"></i> Edit Sleep Data</h3>
-      <input type="hidden" id="esDate">
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="form-group"><label for="esDuration">Duration (hrs)</label><input type="number" step="0.1" id="esDuration"></div>
-        <div class="form-group"><label for="esScore">Score (0-100)</label><input type="number" id="esScore"></div>
-      </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="form-group"><label for="esDeep">Deep (hrs)</label><input type="number" step="0.1" id="esDeep"></div>
-        <div class="form-group"><label for="esRem">REM (hrs)</label><input type="number" step="0.1" id="esRem"></div>
-      </div>
-
-      <div style="display: flex; gap: 10px; margin-top: 15px;">
-        <button class="btn btn-ghost" onclick="closeSubModal('editSleepModal')">Cancel</button>
-        <button class="btn" id="btnSaveEditSleep">Save Changes</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-overlay sub-modal" id="editVitalsModal">
-    <div class="modal-content">
-      <h3 style="margin-top: 0;"><i class="fa-solid fa-heart-pulse text-danger"></i> Edit Daily Vitals</h3>
-      <input type="hidden" id="evDate">
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="form-group"><label for="evSteps">Steps</label><input type="number" id="evSteps"></div>
-        <div class="form-group"><label for="evWater">Water (fl oz)</label><input type="number" id="evWater"></div>
-      </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="form-group"><label for="evHR">Resting HR</label><input type="number" id="evHR"></div>
-        <div class="form-group"><label for="evFloors">Floors</label><input type="number" id="evFloors"></div>
-      </div>
-
-      <div style="display: flex; gap: 10px; margin-top: 15px;">
-        <button class="btn btn-ghost" onclick="closeSubModal('editVitalsModal')">Cancel</button>
-        <button class="btn" id="btnSaveEditVitals">Save Changes</button>
-      </div>
     </div>
   </div>
 
