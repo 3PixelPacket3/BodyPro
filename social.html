@@ -21,127 +21,6 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    .social-header {
-      background: var(--bg-surface);
-      border-radius: var(--border-radius-md);
-      padding: 20px;
-      margin-bottom: 20px;
-      border: 1px solid var(--border-color);
-      text-align: center;
-    }
-
-    .my-id-box {
-      background: var(--bg-base);
-      border: 2px dashed var(--primary);
-      padding: 15px;
-      border-radius: var(--border-radius-sm);
-      margin: 15px 0;
-      font-size: 1.8rem;
-      font-weight: 800;
-      font-family: monospace;
-      letter-spacing: 5px;
-      color: var(--primary);
-    }
-
-    .add-friend-section {
-      display: flex;
-      gap: 10px;
-      margin-top: 15px;
-    }
-
-    .add-friend-section input {
-      flex: 1;
-      text-align: center;
-      font-family: monospace;
-      font-size: 1.2rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      background: var(--bg-surface-elevated);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      border-radius: var(--border-radius-sm);
-    }
-
-    .add-friend-section input:focus {
-      border-color: var(--primary);
-      outline: none;
-    }
-
-    .friend-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-md);
-      padding: 15px;
-      margin-bottom: 15px;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-
-    .friend-card:hover {
-      border-color: var(--primary);
-      transform: translateY(-2px);
-    }
-
-    .friend-info {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .friend-avatar {
-      width: 45px;
-      height: 45px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 1.2rem;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    }
-
-    .friend-details h4 {
-      margin: 0 0 5px 0;
-      font-size: 1.1rem;
-    }
-
-    .friend-details p {
-      margin: 0;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      font-family: monospace;
-    }
-
-    .friend-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 15px;
-    }
-
-    .friend-actions button {
-      flex: 1;
-      padding: 10px;
-      border-radius: var(--border-radius-sm);
-      font-weight: 600;
-      cursor: pointer;
-      background: var(--bg-base);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      transition: all 0.2s;
-    }
-
-    .friend-actions button:hover {
-      background: var(--bg-surface-elevated);
-      border-color: var(--text-main);
-    }
-
-    .friend-actions button.btn-danger:hover {
-      background: var(--danger);
-      border-color: var(--danger);
-      color: white;
-    }
-
     /* Social Tabs Styling */
     .social-tabs {
       display: flex;
@@ -180,7 +59,50 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Modern Feed Styles */
+    /* Modern Feed Layout */
+    .stream-layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 850px) {
+      .stream-layout {
+        grid-template-columns: 1fr;
+      }
+      .stream-sidebar {
+        order: -1; /* Puts news/tips at the top on mobile */
+      }
+    }
+
+    /* Create Post UI */
+    .create-post-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-md);
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .create-post-card textarea {
+      width: 100%;
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      padding: 12px;
+      color: var(--text-main);
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+      margin-bottom: 10px;
+    }
+
+    .create-post-card textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    /* Feed Events */
     .feed-event {
       background: var(--bg-surface);
       border: 1px solid var(--border-color);
@@ -218,8 +140,9 @@
 
     .feed-event-metrics {
       display: flex;
-      gap: 15px;
+      gap: 10px;
       margin-bottom: 15px;
+      flex-wrap: wrap;
     }
 
     .metric-pill {
@@ -241,44 +164,44 @@
       padding: 10px;
       border-radius: var(--border-radius-sm);
       border-left: 3px solid var(--primary);
+      margin-bottom: 15px;
     }
 
+    /* Social Action Bar */
     .feed-action-bar {
       display: flex;
       padding: 10px 15px;
       border-top: 1px solid var(--border-color);
       background: var(--bg-surface-elevated);
+      gap: 15px;
     }
 
     .feed-btn {
-      background: none;
-      border: none;
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
       color: var(--text-muted);
       font-weight: 600;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       cursor: pointer;
-      transition: color 0.2s, transform 0.2s;
+      transition: all 0.2s;
+      padding: 6px 12px;
     }
 
     .feed-btn:hover {
-      color: var(--accent);
+      background: var(--bg-surface);
+      color: var(--text-main);
+      border-color: var(--text-main);
     }
     
-    .feed-btn.active {
-      color: var(--accent);
-      animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
+    .feed-btn.active-like { color: var(--info, #3b82f6); border-color: var(--info, #3b82f6); }
+    .feed-btn.active-fire { color: var(--danger); border-color: var(--danger); }
+    .feed-btn.active-flex { color: var(--accent); border-color: var(--accent); }
 
-    @keyframes pop {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.2); }
-      100% { transform: scale(1); }
-    }
-
-    /* Head to Head Card styling */
+    /* Head to Head Card */
     .h2h-card {
       background: linear-gradient(145deg, var(--bg-surface), var(--bg-base));
       border: 1px solid var(--border-color);
@@ -286,7 +209,21 @@
       padding: 20px;
       margin-bottom: 25px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      position: relative;
     }
+
+    .pin-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .pin-btn.pinned { color: var(--accent); }
 
     .h2h-header {
       text-align: center;
@@ -320,6 +257,85 @@
     .compare-bar-self { background: var(--accent); height: 100%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
     .compare-bar-friend { background: var(--primary); height: 100%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
 
+    /* API Widgets */
+    .widget-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-md);
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .widget-header {
+      font-size: 0.9rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .news-item {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 15px;
+      border-bottom: 1px dashed var(--border-color);
+      padding-bottom: 15px;
+    }
+    .news-item:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+    
+    .news-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-main);
+      text-decoration: none;
+    }
+    .news-title:hover { color: var(--primary); text-decoration: underline; }
+    .news-source { font-size: 0.75rem; color: var(--accent); font-weight: bold; }
+
+    .daily-tip {
+      font-size: 1rem;
+      font-style: italic;
+      color: var(--text-main);
+      line-height: 1.5;
+      border-left: 3px solid var(--warning);
+      padding-left: 10px;
+    }
+
+    /* Basic Network Styles */
+    .my-id-box {
+      background: var(--bg-base);
+      border: 2px dashed var(--primary);
+      padding: 15px;
+      border-radius: var(--border-radius-sm);
+      margin: 15px 0;
+      font-size: 1.8rem;
+      font-weight: 800;
+      font-family: monospace;
+      letter-spacing: 5px;
+      color: var(--primary);
+      text-align: center;
+    }
+    
+    .friend-avatar {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    
     .badge {
       background: var(--danger);
       color: white;
@@ -346,12 +362,7 @@
       pointer-events: none;
       transition: opacity 0.3s;
     }
-
-    .modal-overlay.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
     .modal-content {
       background: var(--bg-surface);
       width: 90%;
@@ -364,10 +375,7 @@
       transform: translateY(20px);
       transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-
-    .modal-overlay.active .modal-content {
-      transform: translateY(0);
-    }
+    .modal-overlay.active .modal-content { transform: translateY(0); }
   </style>
 </head>
 <body>
@@ -423,16 +431,47 @@
       </div>
 
       <div id="pane-feed" class="tab-pane active">
-        <div id="analyticsFeedContainer">
-          <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
-            <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 15px;"></i><br>
-            Decrypting Cross-User Telemetry...
+        <div class="stream-layout">
+          
+          <div class="stream-main">
+            
+            <div class="create-post-card">
+              <textarea id="postInput" placeholder="Share your progress, PRs, or thoughts with the squad..."></textarea>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.8rem; color: var(--text-muted);"><i class="fa-solid fa-earth-americas"></i> Visible to Connections</span>
+                <button class="btn" id="btnSubmitPost" style="padding: 8px 20px;"><i class="fa-solid fa-paper-plane"></i> Post</button>
+              </div>
+            </div>
+
+            <div id="pinnedSyncsContainer"></div>
+
+            <div id="analyticsFeedContainer">
+              <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 15px;"></i><br>
+                Decrypting Cross-User Telemetry...
+              </div>
+            </div>
+
           </div>
+
+          <div class="stream-sidebar">
+            <div class="widget-card" style="border-top: 3px solid var(--warning);">
+              <div class="widget-header"><i class="fa-solid fa-lightbulb text-warning"></i> Daily Intelligence</div>
+              <div class="daily-tip" id="dailyTipContainer">Loading optimization protocol...</div>
+            </div>
+
+            <div class="widget-card" style="border-top: 3px solid var(--info, #3b82f6);">
+              <div class="widget-header"><i class="fa-solid fa-newspaper" style="color: var(--info, #3b82f6);"></i> Global Health Feed</div>
+              <div id="newsFeedContainer">
+                <div style="text-align:center; padding: 10px; color: var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Fetching Data...</div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
       <div id="pane-network" class="tab-pane">
-        
         <div class="social-header">
           <h3 style="margin-top: 0; font-size: 1.1rem;"><i class="fa-solid fa-link text-primary"></i> Your Link ID</h3>
           <p class="text-muted" style="font-size: 0.85rem;">Share this secure 6-character code to link telemetry feeds with other athletes.</p>
@@ -445,8 +484,8 @@
 
           <div style="border-top: 1px dashed var(--border-color); margin-top: 20px; padding-top: 20px;">
             <h4 style="margin: 0 0 10px 0; text-align: left; font-size: 0.95rem;">Add Connection</h4>
-            <div class="add-friend-section">
-              <input type="text" id="inputFriendId" placeholder="ENTER ID" maxlength="6">
+            <div style="display: flex; gap: 10px;">
+              <input type="text" id="inputFriendId" placeholder="ENTER ID" maxlength="6" style="flex:1; text-align:center; font-family:monospace; font-size:1.2rem; letter-spacing:2px; text-transform:uppercase; background:var(--bg-surface-elevated); border:1px solid var(--border-color); color:var(--text-main); border-radius:var(--border-radius-sm);">
               <button class="btn" id="btnAddFriend" style="width: auto; padding: 0 20px;"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
             <div id="addFriendMsg" style="font-size: 0.8rem; margin-top: 8px; display: none; text-align: left;"></div>
