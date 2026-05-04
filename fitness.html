@@ -255,6 +255,84 @@
       color: white;
     }
 
+    /* --- BODY HEATMAP CHART STYLES --- */
+    .body-heatmap-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-md);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .body-heatmap-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .body-heatmap-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .body-figure {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    .figure-title {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .muscle-block {
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-align: center;
+      color: var(--text-muted);
+      transition: all 0.3s ease;
+      width: 100px;
+      text-transform: uppercase;
+    }
+    
+    .arms-row { display: flex; gap: 5px; }
+    .legs-row { display: flex; gap: 5px; }
+    
+    /* Heatmap Active States */
+    .muscle-block[data-level="1"] { background: #facc15; color: #000; border-color: #facc15; box-shadow: 0 0 10px rgba(250, 204, 21, 0.4); }
+    .muscle-block[data-level="2"] { background: #f97316; color: #fff; border-color: #f97316; box-shadow: 0 0 10px rgba(249, 115, 22, 0.4); }
+    .muscle-block[data-level="3"] { background: #ef4444; color: #fff; border-color: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+
+    .ancillary-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px dashed var(--border-color);
+    }
+    .ancillary-tag {
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      padding: 5px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: var(--text-muted);
+      transition: all 0.3s;
+    }
+    .ancillary-tag[data-level="1"] { background: #facc15; color: #000; border-color: #facc15; }
+    .ancillary-tag[data-level="2"] { background: #f97316; color: #fff; border-color: #f97316; }
+    .ancillary-tag[data-level="3"] { background: #ef4444; color: #fff; border-color: #ef4444; }
+
+
     /* Modals */
     .modal-overlay {
       position: fixed;
@@ -397,6 +475,51 @@
           <option value="">-- Select Template to Load --</option>
         </select>
         <button class="btn btn-ghost" id="btnLoadTemplate" style="width: 100%;"><i class="fa-solid fa-download"></i> Load to Live Session</button>
+      </div>
+
+      <div class="body-heatmap-container" style="border-top: 4px solid var(--primary);">
+        <div class="body-heatmap-header">
+          <h3 style="margin:0; font-size: 1.1rem;"><i class="fa-solid fa-fire-flame-curved text-primary"></i> Muscle Activation Map</h3>
+          <div style="display:flex; gap: 5px; align-items:center;">
+             <span style="width: 10px; height: 10px; border-radius: 50%; background: #facc15;" title="Low Volume"></span>
+             <span style="width: 10px; height: 10px; border-radius: 50%; background: #f97316;" title="Med Volume"></span>
+             <span style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;" title="High Volume"></span>
+          </div>
+        </div>
+        <div class="body-heatmap-grid">
+          <div class="body-figure">
+            <div class="figure-title">Front</div>
+            <div class="muscle-block" id="mg-shoulders" data-level="0">Shoulders</div>
+            <div class="muscle-block" id="mg-chest" data-level="0">Chest</div>
+            <div class="arms-row">
+              <div class="muscle-block" id="mg-biceps" style="width:45px;" data-level="0">Bi's</div>
+              <div class="muscle-block" id="mg-core" style="width:50px;" data-level="0">Core</div>
+            </div>
+            <div class="legs-row">
+              <div class="muscle-block" id="mg-quads" style="width:100px;" data-level="0">Quads</div>
+            </div>
+          </div>
+          <div class="body-figure">
+            <div class="figure-title">Posterior</div>
+            <div class="muscle-block" id="mg-traps" data-level="0">Traps</div>
+            <div class="muscle-block" id="mg-back" data-level="0">Lats / Back</div>
+            <div class="arms-row">
+              <div class="muscle-block" id="mg-triceps" style="width:45px;" data-level="0">Tri's</div>
+              <div class="muscle-block" id="mg-lowerback" style="width:50px;" data-level="0">L.Bk</div>
+            </div>
+            <div class="muscle-block" id="mg-glutes" data-level="0">Glutes</div>
+            <div class="legs-row">
+              <div class="muscle-block" id="mg-hamstrings" style="width:100px;" data-level="0">Hamstrings</div>
+            </div>
+            <div class="muscle-block" id="mg-calves" data-level="0" style="margin-top: 2px;">Calves</div>
+          </div>
+        </div>
+        
+        <div class="ancillary-tags">
+          <div class="ancillary-tag" id="mg-cardio" data-level="0"><i class="fa-solid fa-heart-pulse"></i> Cardio</div>
+          <div class="ancillary-tag" id="mg-yoga" data-level="0"><i class="fa-solid fa-om"></i> Yoga</div>
+          <div class="ancillary-tag" id="mg-stretching" data-level="0"><i class="fa-solid fa-person-walking"></i> Stretch</div>
+        </div>
       </div>
 
       <div class="card">
