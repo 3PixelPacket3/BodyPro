@@ -88,6 +88,29 @@
       font-weight: 700;
     }
 
+    /* Micro Grid styling aligned with dashboard */
+    .micro-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+      gap: 6px;
+      margin-top: 15px;
+      border-top: 1px dashed var(--border-color);
+      padding-top: 15px;
+    }
+    .micro-item {
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      padding: 6px 4px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .micro-item .lbl { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px; }
+    .micro-item .val { font-size: 0.85rem; font-weight: 800; font-family: monospace; }
+
     .saved-recipe-item {
       background: var(--bg-base);
       border: 1px solid var(--border-color);
@@ -253,7 +276,7 @@
         </div>
 
         <div class="macro-summary-box">
-          <div class="macro-summary-header">Per Serving Macros</div>
+          <div class="macro-summary-header">Per Serving Target</div>
           <div class="macro-grid-small">
             <div>
               <div class="val" id="recCals">0</div>
@@ -271,6 +294,18 @@
               <div class="val text-danger" id="recFat">0g</div>
               <div class="lbl">Fats</div>
             </div>
+          </div>
+          
+          <div class="micro-grid">
+            <div class="micro-item"><div class="lbl">Sugar</div><div class="val" id="recSugar">0g</div></div>
+            <div class="micro-item"><div class="lbl">Sodium</div><div class="val" id="recSodium">0mg</div></div>
+            <div class="micro-item"><div class="lbl">Iron</div><div class="val" id="recIron">0mg</div></div>
+            <div class="micro-item"><div class="lbl">Potassium</div><div class="val" id="recPotassium">0mg</div></div>
+            <div class="micro-item"><div class="lbl">Fiber</div><div class="val" id="recFiber">0g</div></div>
+            <div class="micro-item"><div class="lbl">Vit A</div><div class="val" id="recVitA">0mcg</div></div>
+            <div class="micro-item"><div class="lbl">Vit C</div><div class="val" id="recVitC">0mg</div></div>
+            <div class="micro-item"><div class="lbl">Calcium</div><div class="val" id="recCalcium">0mg</div></div>
+            <div class="micro-item"><div class="lbl">Sat Fat</div><div class="val" id="recSatFat">0g</div></div>
           </div>
         </div>
 
@@ -322,6 +357,21 @@
         </div>
       </div>
 
+      <div style="margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
+        <div style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem; margin-bottom: 10px;">Micronutrients</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group"><label for="ingSugar">Sugar (g)</label><input type="number" id="ingSugar" value="0" min="0"></div>
+          <div class="form-group"><label for="ingSodium">Sodium (mg)</label><input type="number" id="ingSodium" value="0" min="0"></div>
+          <div class="form-group"><label for="ingIron">Iron (mg)</label><input type="number" id="ingIron" value="0" min="0"></div>
+          <div class="form-group"><label for="ingPotassium">Potassium (mg)</label><input type="number" id="ingPotassium" value="0" min="0"></div>
+          <div class="form-group"><label for="ingFiber">Fiber (g)</label><input type="number" id="ingFiber" value="0" min="0"></div>
+          <div class="form-group"><label for="ingVitA">Vit A (mcg)</label><input type="number" id="ingVitA" value="0" min="0"></div>
+          <div class="form-group"><label for="ingVitC">Vit C (mg)</label><input type="number" id="ingVitC" value="0" min="0"></div>
+          <div class="form-group"><label for="ingCalcium">Calcium (mg)</label><input type="number" id="ingCalcium" value="0" min="0"></div>
+          <div class="form-group" style="grid-column: span 2;"><label for="ingSatFat">Sat Fat (g)</label><input type="number" id="ingSatFat" value="0" min="0"></div>
+        </div>
+      </div>
+
       <div style="display: flex; gap: 10px; margin-top: 20px;">
         <button class="btn btn-ghost" onclick="closeIngredientModal()">Cancel</button>
         <button class="btn" id="btnAddIngredientToRecipe">Add to Batch</button>
@@ -360,6 +410,16 @@
       document.getElementById('ingProt').value = 0;
       document.getElementById('ingCarb').value = 0;
       document.getElementById('ingFat').value = 0;
+      
+      document.getElementById('ingSugar').value = 0;
+      document.getElementById('ingSodium').value = 0;
+      document.getElementById('ingIron').value = 0;
+      document.getElementById('ingPotassium').value = 0;
+      document.getElementById('ingFiber').value = 0;
+      document.getElementById('ingVitA').value = 0;
+      document.getElementById('ingVitC').value = 0;
+      document.getElementById('ingCalcium').value = 0;
+      document.getElementById('ingSatFat').value = 0;
     }
   </script>
 
