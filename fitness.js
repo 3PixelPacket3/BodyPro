@@ -1,5 +1,3 @@
-// fitness.js - BodyPro Training Hub Logic
-
 import { auth } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -187,23 +185,42 @@ window.stopRestTimer = function() {
     displayRest.style.color = 'var(--warning)';
 };
 
-// --- CUSTOM AUTOCOMPLETE LOGIC (Bypasses Native OS Keyboard Overlays) ---
+// --- CUSTOM AUTOCOMPLETE LOGIC (Expanded for new categories) ---
 const PRESET_EXERCISES = [
+    // Chest
     "Bench Press (Barbell) [Chest]", "Bench Press (Dumbbell) [Chest]", "Incline Bench Press [Chest]", 
     "Decline Bench Press [Chest]", "Chest Fly (Cable) [Chest]", "Chest Fly (Dumbbell) [Chest]", 
-    "Push-Up [Chest]", "Pec Deck Machine [Chest]", "Deadlift (Barbell) [Back/Legs]", "Pull-Up [Back]", 
-    "Chin-Up [Back]", "Lat Pulldown (Cable) [Back]", "Bent Over Row (Barbell) [Back]", "Dumbbell Row [Back]", 
-    "Seated Cable Row [Back]", "T-Bar Row [Back]", "Overhead Press (Barbell) [Shoulders]", 
-    "Overhead Press (Dumbbell) [Shoulders]", "Arnold Press [Shoulders]", "Lateral Raise (Dumbbell) [Shoulders]", 
-    "Front Raise (Dumbbell) [Shoulders]", "Reverse Pec Deck [Shoulders]", "Face Pull (Cable) [Shoulders]", 
-    "Shrugs (Dumbbell/Barbell) [Traps]", "Squat (Barbell) [Quads/Glutes]", "Front Squat [Quads]", 
-    "Leg Press [Quads/Glutes]", "Lunge (Dumbbell) [Legs]", "Bulgarian Split Squat [Legs]", 
-    "Leg Extension (Machine) [Quads]", "Leg Curl (Machine) [Hamstrings]", "Romanian Deadlift [Hamstrings]", 
-    "Calf Raise (Standing) [Calves]", "Calf Raise (Seated) [Calves]", "Bicep Curl (Barbell) [Biceps]", 
-    "Bicep Curl (Dumbbell) [Biceps]", "Hammer Curl [Biceps]", "Preacher Curl [Biceps]", 
+    "Push-Up [Chest]", "Pec Deck Machine [Chest]", "Cable Crossover [Chest]",
+    // Back
+    "Deadlift (Barbell) [Back/Hamstrings]", "Pull-Up [Back]", "Chin-Up [Back/Biceps]", 
+    "Lat Pulldown (Cable) [Back]", "Bent Over Row (Barbell) [Back]", "Dumbbell Row [Back]", 
+    "Seated Cable Row [Back]", "T-Bar Row [Back]", "Shrugs (Dumbbell/Barbell) [Traps]",
+    // Shoulders
+    "Overhead Press (Barbell) [Shoulders]", "Overhead Press (Dumbbell) [Shoulders]", "Arnold Press [Shoulders]", 
+    "Lateral Raise (Dumbbell) [Shoulders]", "Front Raise (Dumbbell) [Shoulders]", "Reverse Pec Deck [Shoulders]", 
+    "Face Pull (Cable) [Shoulders]", 
+    // Legs
+    "Squat (Barbell) [Quads/Glutes]", "Front Squat [Quads]", "Hack Squat [Quads]",
+    "Leg Press [Quads/Glutes]", "Lunge (Dumbbell) [Quads/Glutes]", "Bulgarian Split Squat [Quads/Glutes]", 
+    "Leg Extension (Machine) [Quads]", "Leg Curl (Machine) [Hamstrings]", "Leg Curl (Seated) [Hamstrings]",
+    "Romanian Deadlift [Hamstrings/LowerBack]", "Good Mornings [Hamstrings/LowerBack]", "Hip Thrust (Barbell) [Glutes]",
+    "Calf Raise (Standing) [Calves]", "Calf Raise (Seated) [Calves]", 
+    // Arms
+    "Bicep Curl (Barbell) [Biceps]", "Bicep Curl (Dumbbell) [Biceps]", "Hammer Curl [Biceps]", "Preacher Curl [Biceps]", 
     "Tricep Extension (Cable) [Triceps]", "Skullcrusher [Triceps]", "Tricep Kickback [Triceps]", 
-    "Dips [Triceps/Chest]", "Crunch [Core]", "Plank [Core]", "Russian Twist [Core]", 
-    "Hanging Leg Raise [Core]", "Cable Woodchopper [Core]", "Ab Wheel Rollout [Core]"
+    "Dips [Triceps/Chest]", 
+    // Core
+    "Crunch [Core]", "Plank [Core]", "Russian Twist [Core]", "Hanging Leg Raise [Core]", 
+    "Cable Woodchopper [Core]", "Ab Wheel Rollout [Core]",
+    // Cardio
+    "Treadmill [Cardio]", "Elliptical [Cardio]", "Stairmaster [Cardio]", "Cycling [Cardio]", 
+    "Rowing [Cardio]", "Jump Rope [Cardio]", "Swimming [Cardio]", "Running [Cardio]",
+    // Yoga
+    "Vinyasa Flow [Yoga]", "Hatha Yoga [Yoga]", "Ashtanga [Yoga]", "Restorative Yoga [Yoga]", "Downward Dog [Yoga]",
+    "Sun Salutation [Yoga]", "Warrior Pose [Yoga]",
+    // Stretching
+    "Dynamic Stretching [Stretching]", "Static Stretching [Stretching]", "Foam Rolling [Stretching]", 
+    "Mobility Routine [Stretching]", "Hamstring Stretch [Stretching]", "Shoulder Dislocates [Stretching]", "Cat-Cow [Stretching]"
 ].sort();
 
 window.attachAutocomplete = function(inputEl, listEl) {
@@ -212,6 +229,7 @@ window.attachAutocomplete = function(inputEl, listEl) {
         listEl.innerHTML = '';
         if (!val) {
             listEl.style.display = 'none';
+            window.updateHeatmap(); // update on empty
             return;
         }
         
@@ -221,11 +239,11 @@ window.attachAutocomplete = function(inputEl, listEl) {
                 const div = document.createElement('div');
                 div.className = 'autocomplete-item';
                 div.innerText = match;
-                // onmousedown ensures click is registered BEFORE input blur fires and hides the list
                 div.onmousedown = function(e) { 
                     e.preventDefault(); 
                     inputEl.value = match;
                     listEl.style.display = 'none';
+                    window.updateHeatmap(); // trigger map update on selection
                 };
                 listEl.appendChild(div);
             });
@@ -233,6 +251,7 @@ window.attachAutocomplete = function(inputEl, listEl) {
         } else {
             listEl.style.display = 'none';
         }
+        window.updateHeatmap(); // Update map continuously on typing
     });
 
     inputEl.addEventListener('focus', function() {
@@ -246,6 +265,7 @@ window.attachAutocomplete = function(inputEl, listEl) {
                     e.preventDefault();
                     inputEl.value = match;
                     listEl.style.display = 'none';
+                    window.updateHeatmap();
                 };
                 listEl.appendChild(div);
             });
@@ -255,8 +275,58 @@ window.attachAutocomplete = function(inputEl, listEl) {
 
     inputEl.addEventListener('blur', function() {
         setTimeout(() => listEl.style.display = 'none', 150);
+        window.updateHeatmap();
     });
 };
+
+// --- MUSCLE ACTIVATION HEATMAP LOGIC ---
+window.updateHeatmap = function() {
+    // Reset all map regions
+    document.querySelectorAll('.muscle-block, .ancillary-tag').forEach(el => el.dataset.level = 0);
+    
+    let heatMapCount = {};
+
+    document.querySelectorAll('.movement-group').forEach(group => {
+        const exName = group.querySelector('.ex-name').value;
+        const match = exName.match(/\[(.*?)\]/);
+        if(match) {
+            const muscles = match[1].split('/'); // splits e.g. "Quads/Glutes"
+            
+            // Count sets. If it's cardio/yoga, we might just have 1 set row but it counts as activity.
+            let sets = group.querySelectorAll('.set-row').length;
+            if(sets === 0) sets = 1; // Give credit just for having the category active
+
+            muscles.forEach(m => {
+                const mKey = m.toLowerCase().replace(/[^a-z0-9]/g, ''); // strip spaces/symbols e.g., "lowerback"
+                heatMapCount[mKey] = (heatMapCount[mKey] || 0) + sets;
+            });
+        }
+    });
+
+    // Apply colors based on volume thresholds
+    for(const [muscle, sets] of Object.entries(heatMapCount)) {
+        const el = document.getElementById('mg-' + muscle);
+        if(el) {
+            if(sets >= 6) el.dataset.level = 3;       // Red
+            else if(sets >= 3) el.dataset.level = 2;  // Orange
+            else if(sets >= 1) el.dataset.level = 1;  // Yellow
+        }
+    }
+};
+
+
+// --- HISTORICAL PERFORMANCE LOOKUP ---
+function getLastPerformance(exName) {
+    if(!userData || !userData.workouts) return null;
+    
+    // Sort workouts newest to oldest
+    const workouts = [...userData.workouts].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+    for(let w of workouts) {
+        const exSets = (w.sets || []).filter(s => s.exercise === exName);
+        if(exSets.length > 0) return exSets; // Return the array of sets for the last time this was done
+    }
+    return null;
+}
 
 // --- NESTED SESSION LOGGER (LIVE GRID) ---
 window.handleAddMovement = function() {
@@ -276,7 +346,7 @@ window.handleAddMovement = function() {
                 <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" placeholder="Movement Name" autocomplete="off">
                 <div class="autocomplete-list"></div>
             </div>
-            <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
+            <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove(); window.updateHeatmap();"><i class="fa-solid fa-trash"></i></button>
         </div>
         <div class="movement-sets" style="margin-bottom:10px;">
             <div class="set-grid-header">
@@ -287,33 +357,42 @@ window.handleAddMovement = function() {
     `;
     workoutLogArea.appendChild(div);
     
-    // Attach the custom autocomplete engine
     const inputEl = div.querySelector('.ex-name');
     const listEl = div.querySelector('.autocomplete-list');
     window.attachAutocomplete(inputEl, listEl);
 
     window.addSetToMovement(uid); 
+    window.updateHeatmap();
 };
 
-window.addSetToMovement = function(uid, weight='', reps='', rpe='') {
+window.addSetToMovement = function(uid, weight='', reps='', rpe='', prevWeight='', prevReps='') {
     const group = document.getElementById(uid);
     if (!group) return;
     const setsContainer = group.querySelector('.movement-sets');
     const setNumber = setsContainer.querySelectorAll('.set-row').length + 1;
     const setUid = 'set_' + Date.now() + Math.random().toString(36).substr(2, 5);
     
+    // Set dynamic placeholders to guide progression based on last session
+    const weightPlaceholder = prevWeight ? `Last: ${prevWeight}` : `0`;
+    const repsPlaceholder = prevReps ? `Last: ${prevReps}` : `0`;
+    
     const row = document.createElement('div');
     row.className = 'set-row';
     
     row.innerHTML = `
         <div style="text-align:center; font-weight:bold; color:var(--text-muted);" class="set-index">${setNumber}</div>
-        <input type="number" name="weight_${setUid}" class="exercise-input ex-weight" placeholder="0" value="${weight}">
-        <input type="number" name="reps_${setUid}" class="exercise-input ex-reps" placeholder="0" value="${reps}">
+        <input type="number" name="weight_${setUid}" class="exercise-input ex-weight" placeholder="${weightPlaceholder}" value="${weight}">
+        <input type="number" name="reps_${setUid}" class="exercise-input ex-reps" placeholder="${repsPlaceholder}" value="${reps}">
         <input type="number" name="rpe_${setUid}" class="exercise-input ex-rpe" placeholder="7" max="10" value="${rpe}">
         <button class="btn-remove-set" onclick="removeSetRow(this)"><i class="fa-solid fa-xmark"></i></button>
     `;
+    
+    // Attach heatmap update listener to input fields
+    row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', window.updateHeatmap));
+    
     setsContainer.appendChild(row);
     updateSetNumbers(uid);
+    window.updateHeatmap();
 };
 
 window.removeSetRow = function(btn) {
@@ -321,6 +400,7 @@ window.removeSetRow = function(btn) {
     const row = btn.closest('.set-row');
     row.remove();
     updateSetNumbers(group.id);
+    window.updateHeatmap();
 };
 
 function updateSetNumbers(uid) {
@@ -332,7 +412,7 @@ function updateSetNumbers(uid) {
     });
 }
 
-// --- TEMPLATE MANAGEMENT ---
+// --- TEMPLATE MANAGEMENT & LOADING ---
 function updateTemplateDropdown() {
     templateSelect.innerHTML = '<option value="">-- Select Template to Load --</option>';
     (userData.workout_templates || []).forEach(t => {
@@ -405,13 +485,15 @@ btnLoadTemplate.addEventListener('click', () => {
         div.style.borderRadius = 'var(--border-radius-sm)';
         div.style.padding = '10px';
         
+        const exNameFull = ex.exercise || ex.name || '';
+        
         div.innerHTML = `
             <div class="movement-header-row">
                 <div class="autocomplete-wrapper">
-                    <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" value="${ex.exercise || ex.name || ''}" autocomplete="off">
+                    <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" value="${exNameFull}" autocomplete="off">
                     <div class="autocomplete-list"></div>
                 </div>
-                <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
+                <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove(); window.updateHeatmap();"><i class="fa-solid fa-trash"></i></button>
             </div>
             <div class="movement-sets" style="margin-bottom:10px;">
                 <div class="set-grid-header">
@@ -425,13 +507,30 @@ btnLoadTemplate.addEventListener('click', () => {
         const inputEl = div.querySelector('.ex-name');
         const listEl = div.querySelector('.autocomplete-list');
         window.attachAutocomplete(inputEl, listEl);
+        
+        // Grab Historical Data to populate placeholders
+        const prevData = getLastPerformance(exNameFull);
 
         if (ex.sets && Array.isArray(ex.sets)) {
-            ex.sets.forEach(s => window.addSetToMovement(uid, s.weight, s.reps, s.rpe));
+            ex.sets.forEach((s, idx) => {
+                let pWeight = '', pReps = '';
+                if(prevData && prevData[idx]) {
+                    pWeight = prevData[idx].weight;
+                    pReps = prevData[idx].reps;
+                }
+                window.addSetToMovement(uid, s.weight, s.reps, s.rpe, pWeight, pReps);
+            });
         } else {
-            window.addSetToMovement(uid);
+            let pWeight = '', pReps = '';
+            if(prevData && prevData[0]) {
+                pWeight = prevData[0].weight;
+                pReps = prevData[0].reps;
+            }
+            window.addSetToMovement(uid, '', '', '', pWeight, pReps);
         }
     });
+    
+    window.updateHeatmap();
 });
 
 window.renderTemplatesManager = function() {
@@ -581,7 +680,7 @@ document.getElementById('btnEditSession').addEventListener('click', () => {
                     <input type="text" name="ex_name_${uid}" class="exercise-input ex-name" value="${exName}" autocomplete="off">
                     <div class="autocomplete-list"></div>
                 </div>
-                <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove()"><i class="fa-solid fa-trash"></i></button>
+                <button class="btn btn-ghost" style="color:var(--danger); border:none; padding:5px 10px;" onclick="this.closest('.movement-group').remove(); window.updateHeatmap();"><i class="fa-solid fa-trash"></i></button>
             </div>
             <div class="movement-sets" style="margin-bottom:10px;">
                 <div class="set-grid-header">
@@ -598,6 +697,8 @@ document.getElementById('btnEditSession').addEventListener('click', () => {
 
         exSets.forEach(s => window.addSetToMovement(uid, s.weight, s.reps, s.rpe));
     }
+    
+    window.updateHeatmap();
     
     // Switch the complete button into "Update" mode
     btnFinishWorkout.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Historical Session';
@@ -697,6 +798,7 @@ btnFinishWorkout.addEventListener('click', async () => {
         inputWorkoutCals.value = '';
         workoutLogArea.innerHTML = '';
         window.handleAddMovement(); 
+        window.updateHeatmap();
         
         delete btnFinishWorkout.dataset.editModeId;
         
