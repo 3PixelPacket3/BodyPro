@@ -1,5 +1,3 @@
-// social.js - BodyPro Network & Cross-User Telemetry
-
 import { auth, db } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { collection, getDocs, doc, getDoc, query, where, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -34,6 +32,22 @@ function getLocalISODate() {
     return (new Date(d - offset)).toISOString().split('T')[0];
 }
 
+// Calculate relative time for feed
+function timeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    
+    if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays === 1) return `Yesterday`;
+    return `${diffInDays}d ago`;
+}
+
 // --- INITIALIZATION ---
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
@@ -52,10 +66,18 @@ onAuthStateChanged(auth, async (user) => {
         await window.BodyProDataStore.saveData(userData);
     }
 
+    // Fix Profile Name Desync Bug
+    await syncFriendProfiles();
+
     renderNetworkUI();
     renderRequestsUI();
     
-    // Bind Feed Rendering to Tab Click to save read operations
+    // Auto-load feed on default tab
+    if(document.querySelector('.social-tab[data-tab="pane-feed"]').classList.contains('active')) {
+        renderFeedUI();
+    }
+    
+    // Bind Tab Clicks
     document.querySelectorAll('.social-tab').forEach(tab => {
         tab.addEventListener('click', (e) => {
             const targetPane = e.target.closest('.social-tab').dataset.tab;
@@ -80,17 +102,43 @@ if (btnRefreshSocial) {
         
         // Force pull from cloud
         userData = await window.BodyProDataStore.getData(); 
+        await syncFriendProfiles(); // Ensure names are fresh
         
         renderNetworkUI();
         renderRequestsUI();
         
-        if (feedLoaded) {
+        if (document.getElementById('pane-feed').classList.contains('active')) {
             await renderFeedUI();
+        } else {
+            feedLoaded = false; // Force reload next time tab is clicked
         }
         
         btnRefreshSocial.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Refresh';
         showToast("Network synchronized.", "var(--accent)");
     });
+}
+
+// --- BUG FIX: SYNC FRIEND PROFILE NAMES ---
+async function syncFriendProfiles() {
+    let updated = false;
+    for (let f of userData.friends) {
+        if (!f.status || f.status === 'accepted') {
+            try {
+                const targetRef = doc(db, "users", f.uid);
+                const targetSnap = await getDoc(targetRef);
+                if (targetSnap.exists()) {
+                    const latestName = targetSnap.data().profile?.displayName;
+                    if (latestName && latestName !== f.displayName) {
+                        f.displayName = latestName;
+                        updated = true;
+                    }
+                }
+            } catch (e) { console.warn("Failed to sync friend:", f.uid); }
+        }
+    }
+    if (updated) {
+        await window.BodyProDataStore.saveData(userData);
+    }
 }
 
 // --- RENDER UI: NETWORK CIRCLE ---
@@ -105,7 +153,7 @@ function renderNetworkUI() {
         friendListContainer.innerHTML = `
             <div style="text-align: center; padding: 30px 20px; color: var(--text-muted); font-size: 0.9rem; background: var(--bg-surface-elevated); border-radius: var(--border-radius-sm); border: 1px dashed var(--border-color);">
                 <i class="fa-solid fa-ghost" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;"></i><br>
-                Your network is currently empty.<br>Add friends using their 6-character ID.
+                Your roster is empty.<br>Add friends using their 6-character ID.
             </div>
         `;
         friendCountBadge.innerText = "0";
@@ -125,19 +173,27 @@ function renderNetworkUI() {
             <div class="friend-info">
                 <div class="friend-avatar">${initial}</div>
                 <div class="friend-details">
-                    <h4>${name}</h4>
-                    <p>ID: ${sId}</p>
+                    <h4 style="font-size: 1.1rem;">${name}</h4>
+                    <p>Link ID: ${sId}</p>
                 </div>
             </div>
             <div class="friend-actions">
-                <button title="Remove Connection" onclick="removeFriend('${sId}')">
-                    <i class="fa-solid fa-trash-can"></i> Disconnect
+                <button title="Open Vault" onclick="window.triggerVaultFromList('${friend.uid}', '${name.replace(/'/g, "\\'")}')" style="color: var(--accent); border-color: var(--accent);">
+                    <i class="fa-solid fa-box-open"></i> Vault
+                </button>
+                <button class="btn-danger" title="Remove Connection" onclick="removeFriend('${sId}')">
+                    <i class="fa-solid fa-trash-can"></i> Sever
                 </button>
             </div>
         `;
         friendListContainer.appendChild(card);
     });
 }
+
+// Wrapper to safely pass strings to the vault function
+window.triggerVaultFromList = function(uid, name) {
+    window.openFriendVault(uid, name);
+};
 
 // --- RENDER UI: PENDING REQUESTS ---
 function renderRequestsUI() {
@@ -153,7 +209,7 @@ function renderRequestsUI() {
 
     requestsListContainer.innerHTML = '';
     if (inbound.length === 0) {
-        requestsListContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.9rem;">No pending requests.</div>';
+        requestsListContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.9rem; background: var(--bg-surface); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">No pending inbound clearances.</div>';
     } else {
         inbound.forEach(req => {
             const initial = req.displayName ? req.displayName.charAt(0).toUpperCase() : '?';
@@ -161,17 +217,17 @@ function renderRequestsUI() {
             card.className = 'friend-card';
             card.innerHTML = `
                 <div class="friend-info">
-                    <div class="friend-avatar" style="background: var(--warning);">${initial}</div>
+                    <div class="friend-avatar" style="background: linear-gradient(135deg, var(--warning), #d97706);">${initial}</div>
                     <div class="friend-details">
                         <h4>${req.displayName || 'Unknown User'}</h4>
                         <p>ID: ${req.shortId}</p>
                     </div>
                 </div>
                 <div class="friend-actions">
-                    <button class="btn-accept" title="Accept" onclick="handleRequest('${req.uid}', true)" style="color: var(--accent); border-color: var(--accent);">
+                    <button class="btn-accept" title="Accept" onclick="handleRequest('${req.uid}', true)" style="color: var(--accent); border-color: var(--accent); background: rgba(16, 185, 129, 0.1);">
                         <i class="fa-solid fa-check"></i> Accept
                     </button>
-                    <button title="Decline" onclick="handleRequest('${req.uid}', false)">
+                    <button class="btn-danger" title="Decline" onclick="handleRequest('${req.uid}', false)">
                         <i class="fa-solid fa-xmark"></i> Decline
                     </button>
                 </div>
@@ -182,22 +238,20 @@ function renderRequestsUI() {
 
     sentRequestsContainer.innerHTML = '';
     if (outbound.length === 0) {
-        sentRequestsContainer.innerHTML = '<div style="padding: 10px; color: var(--text-muted); font-size: 0.85rem; text-align: center;">No outbound requests.</div>';
+        sentRequestsContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.9rem; background: var(--bg-surface); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">No outbound pings active.</div>';
     } else {
         outbound.forEach(req => {
             const card = document.createElement('div');
             card.className = 'friend-card';
-            card.style.padding = '10px';
+            card.style.padding = '10px 15px';
             card.innerHTML = `
-                <div class="friend-info">
+                <div class="friend-info" style="justify-content: space-between; width: 100%;">
                     <div class="friend-details">
-                        <h4 style="font-size: 0.9rem;">${req.displayName || 'Unknown User'} (ID: ${req.shortId})</h4>
-                        <p style="color: var(--warning); font-size: 0.75rem;">Awaiting approval...</p>
+                        <h4 style="font-size: 0.95rem; margin-bottom: 2px;">${req.displayName || 'Unknown User'} (ID: ${req.shortId})</h4>
+                        <p style="color: var(--warning); font-size: 0.75rem;">Awaiting clearance...</p>
                     </div>
-                </div>
-                <div class="friend-actions">
-                    <button title="Cancel Request" onclick="removeFriend('${req.shortId}')" style="font-size: 0.8rem; padding: 5px;">
-                        Cancel Request
+                    <button class="btn-ghost" title="Cancel Request" onclick="removeFriend('${req.shortId}')" style="font-size: 0.8rem; padding: 6px 10px; border: 1px solid var(--danger); color: var(--danger); border-radius: var(--border-radius-sm); background: transparent; cursor: pointer;">
+                        Cancel
                     </button>
                 </div>
             `;
@@ -206,7 +260,7 @@ function renderRequestsUI() {
     }
 }
 
-// --- RENDER UI: COMPARATIVE FEED ---
+// --- RENDER UI: MODERN ACTIVITY FEED & HEAD-TO-HEAD ---
 async function renderFeedUI() {
     feedLoaded = true;
     const activeFriends = userData.friends.filter(f => !f.status || f.status === 'accepted');
@@ -214,18 +268,19 @@ async function renderFeedUI() {
     if (activeFriends.length === 0) {
         analyticsFeedContainer.innerHTML = `
             <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
-                <i class="fa-solid fa-user-group" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.3;"></i><br>
-                Your feed is empty. Connect with other athletes to view comparative telemetry.
+                <i class="fa-solid fa-bolt" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.3;"></i><br>
+                The Wire is silent. Connect with other athletes to populate the stream.
             </div>`;
         return;
     }
 
+    analyticsFeedContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Building Stream...</div>';
+
     const todayStr = getLocalISODate();
     
-    // Extract My Telemetry
+    // 1. Extract My Telemetry for Head-to-Head
     const myBio = (userData.biometrics || []).find(b => b.date === todayStr) || {};
     const mySteps = myBio.steps || 0;
-    const myFloors = myBio.floors || 0;
     
     const myFoods = (userData.food_diary || []).filter(f => f.date === todayStr);
     let myCals = 0;
@@ -235,17 +290,18 @@ async function renderFeedUI() {
     let myActiveCals = 0;
     myWorkouts.forEach(w => myActiveCals += Number(w.telemetry?.activeCals || 0));
 
-    analyticsFeedContainer.innerHTML = ''; // Clear loader
+    // 2. Fetch Friend Data and Build Event Stream
+    let htmlContent = '';
+    let feedEvents = []; // Array to hold chronologically sorted activities
 
     for (const friend of activeFriends) {
         const fData = await window.BodyProDataStore.fetchFriendTelemetry(friend.uid);
         if (!fData) continue;
 
-        const recipesRef = collection(db, "users", friend.uid, "custom_recipes");
-        const recSnap = await getDocs(recipesRef);
-        const friendRecipes = [];
-        recSnap.forEach(d => friendRecipes.push(d.data()));
+        const fName = friend.displayName || 'Unknown';
+        const fInitial = fName.charAt(0).toUpperCase();
 
+        // --- Build Head to Head Block ---
         const fBio = (fData.biometrics || []).find(b => b.date === todayStr) || {};
         const fSteps = fBio.steps || 0;
 
@@ -261,78 +317,135 @@ async function renderFeedUI() {
         const maxCals = Math.max(myCals, fCals, 2000);
         const maxActiveCals = Math.max(myActiveCals, fActiveCals, 500);
 
-        const card = document.createElement('div');
-        card.className = 'feed-card';
-        card.innerHTML = `
-            <div class="feed-header">
-                <div class="friend-avatar" style="width: 35px; height: 35px; font-size: 1rem;">${(friend.displayName || '?').charAt(0).toUpperCase()}</div>
-                <div>
-                    <h4 style="margin: 0; font-size: 1rem;">${friend.displayName}</h4>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">Today's Telemetry</div>
-                </div>
-            </div>
-
-            <div class="feed-section-title">Activity Comparison</div>
-            
-            <div class="compare-row">
-                <div style="text-align:right;">Me<br><span style="color:var(--accent); font-weight:bold;">${mySteps}</span></div>
-                <div style="text-align:center;">
-                    <div style="font-size:0.7rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px;">Steps</div>
-                    <div class="compare-bar-container">
-                        <div class="compare-bar-self" style="width: ${(mySteps/maxSteps)*100}%"></div>
-                        <div class="compare-bar-friend" style="width: ${(fSteps/maxSteps)*100}%"></div>
-                    </div>
-                </div>
-                <div>Them<br><span style="color:var(--primary); font-weight:bold;">${fSteps}</span></div>
-            </div>
-
-            <div class="compare-row">
-                <div style="text-align:right;">Me<br><span style="color:var(--accent); font-weight:bold;">${myActiveCals}</span></div>
-                <div style="text-align:center;">
-                    <div style="font-size:0.7rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px;">Active Kcal</div>
-                    <div class="compare-bar-container">
-                        <div class="compare-bar-self" style="width: ${(myActiveCals/maxActiveCals)*100}%"></div>
-                        <div class="compare-bar-friend" style="width: ${(fActiveCals/maxActiveCals)*100}%"></div>
-                    </div>
-                </div>
-                <div>Them<br><span style="color:var(--primary); font-weight:bold;">${fActiveCals}</span></div>
-            </div>
-
-            <div class="feed-section-title" style="margin-top: 20px;">Nutrition Status</div>
-            
-            <div class="compare-row">
-                <div style="text-align:right;">Me<br><span style="color:var(--accent); font-weight:bold;">${myCals}</span></div>
-                <div style="text-align:center;">
-                    <div style="font-size:0.7rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px;">Intake Kcal</div>
-                    <div class="compare-bar-container">
-                        <div class="compare-bar-self" style="width: ${(myCals/maxCals)*100}%"></div>
-                        <div class="compare-bar-friend" style="width: ${(fCals/maxCals)*100}%"></div>
-                    </div>
-                </div>
-                <div>Them<br><span style="color:var(--primary); font-weight:bold;">${fCals}</span></div>
-            </div>
-
-            <div style="margin-top: 20px; background: var(--bg-base); padding: 10px; border-radius: var(--border-radius-sm); font-size: 0.85rem;">
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; margin-bottom: 5px;">
-                    <span><i class="fa-solid fa-dumbbell text-muted"></i> Sessions Today</span>
-                    <span style="font-weight: bold; color: var(--primary);">${fWorkouts.length}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; margin-bottom: 5px;">
-                    <span><i class="fa-solid fa-book text-muted"></i> Custom Templates</span>
-                    <span style="font-weight: bold; color: var(--primary);">${(fData.workout_templates || []).length}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span><i class="fa-solid fa-utensils text-muted"></i> Saved Recipes</span>
-                    <span style="font-weight: bold; color: var(--primary);">${friendRecipes.length}</span>
+        htmlContent += `
+            <div class="h2h-card">
+                <div class="h2h-header">
+                    <i class="fa-solid fa-satellite-dish text-primary" style="margin-right: 8px;"></i>
+                    Sync: You vs. ${fName}
                 </div>
                 
-                <button class="btn btn-ghost" style="width: 100%; margin-top: 15px; padding: 6px; font-size: 0.8rem; border-color: var(--accent); color: var(--accent);" onclick="window.openFriendVault('${friend.uid}', '${friend.displayName}')">
-                    <i class="fa-solid fa-download"></i> Open Vault
-                </button>
+                <div class="compare-row">
+                    <div style="text-align:right;"><span style="color:var(--text-muted); font-size:0.75rem; text-transform:uppercase;">Me</span><br><span style="color:var(--accent); font-weight:800; font-size: 1.1rem;">${myActiveCals}</span></div>
+                    <div style="text-align:center;">
+                        <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-main); font-weight: bold; margin-bottom:6px;">Active Kcal</div>
+                        <div class="compare-bar-container">
+                            <div class="compare-bar-self" style="width: ${(myActiveCals/maxActiveCals)*100}%"></div>
+                            <div class="compare-bar-friend" style="width: ${(fActiveCals/maxActiveCals)*100}%"></div>
+                        </div>
+                    </div>
+                    <div style="text-align:left;"><span style="color:var(--text-muted); font-size:0.75rem; text-transform:uppercase;">Them</span><br><span style="color:var(--primary); font-weight:800; font-size: 1.1rem;">${fActiveCals}</span></div>
+                </div>
+
+                <div class="compare-row">
+                    <div style="text-align:right;"><span style="color:var(--accent); font-weight:800; font-size: 1.1rem;">${myCals}</span></div>
+                    <div style="text-align:center;">
+                        <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-main); font-weight: bold; margin-bottom:6px;">Intake Kcal</div>
+                        <div class="compare-bar-container">
+                            <div class="compare-bar-self" style="width: ${(myCals/maxCals)*100}%"></div>
+                            <div class="compare-bar-friend" style="width: ${(fCals/maxCals)*100}%"></div>
+                        </div>
+                    </div>
+                    <div style="text-align:left;"><span style="color:var(--primary); font-weight:800; font-size: 1.1rem;">${fCals}</span></div>
+                </div>
             </div>
         `;
-        analyticsFeedContainer.appendChild(card);
+
+        // --- Harvest Feed Events (Last 3 days) ---
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - 3);
+
+        // Harvest Workouts
+        (fData.workouts || []).forEach(w => {
+            if (new Date(w.timestamp) >= cutoffDate) {
+                const totalDur = Math.round(((w.durationLift || 0) + (w.durationCardio || 0)) / 60);
+                const exCount = w.sets ? new Set(w.sets.map(s => s.exercise)).size : 0;
+                let primaryFocus = "";
+                if(exCount > 0) {
+                    primaryFocus = `Executed ${exCount} distinct movements including ${w.sets[0].exercise.split(' ')[0]}.`;
+                }
+
+                feedEvents.push({
+                    type: 'workout',
+                    timestamp: w.timestamp,
+                    html: `
+                        <div class="feed-event">
+                            <div class="feed-event-header">
+                                <div class="friend-avatar" style="width: 35px; height: 35px; font-size: 1rem;">${fInitial}</div>
+                                <div>
+                                    <div style="font-size: 0.9rem; font-weight: bold; color: var(--text-main);">${fName}</div>
+                                    <div style="font-size: 0.75rem; color: var(--accent);">Completed a Session</div>
+                                </div>
+                                <div class="time-ago">${timeAgo(w.timestamp)}</div>
+                            </div>
+                            <div class="feed-event-body">
+                                <h4 class="feed-event-title">${w.title || 'Untitled Session'}</h4>
+                                <div class="feed-event-metrics">
+                                    <div class="metric-pill"><i class="fa-regular fa-clock text-muted"></i> ${totalDur} mins</div>
+                                    <div class="metric-pill"><i class="fa-solid fa-fire text-accent"></i> ${w.telemetry?.activeCals || 0} kcal</div>
+                                </div>
+                                ${primaryFocus ? `<div class="feed-event-details">${primaryFocus}</div>` : ''}
+                            </div>
+                            <div class="feed-action-bar">
+                                <button class="feed-btn" onclick="this.classList.toggle('active'); this.innerHTML = this.classList.contains('active') ? '<i class=\\'fa-solid fa-hand-fist\\'></i> Props Given!' : '<i class=\\'fa-regular fa-hand-fist\\'></i> Give Props';"><i class="fa-regular fa-hand-fist"></i> Give Props</button>
+                            </div>
+                        </div>
+                    `
+                });
+            }
+        });
+
+        // Harvest Recipes (Requires subcollection fetch)
+        const recipesRef = collection(db, "users", friend.uid, "custom_recipes");
+        const recSnap = await getDocs(recipesRef);
+        recSnap.forEach(d => {
+            const r = d.data();
+            if (r.timestamp && new Date(r.timestamp) >= cutoffDate) {
+                feedEvents.push({
+                    type: 'recipe',
+                    timestamp: r.timestamp,
+                    html: `
+                        <div class="feed-event">
+                            <div class="feed-event-header">
+                                <div class="friend-avatar" style="width: 35px; height: 35px; font-size: 1rem; background: linear-gradient(135deg, var(--warning), #d97706);">${fInitial}</div>
+                                <div>
+                                    <div style="font-size: 0.9rem; font-weight: bold; color: var(--text-main);">${fName}</div>
+                                    <div style="font-size: 0.75rem; color: var(--warning);">Added a New Recipe</div>
+                                </div>
+                                <div class="time-ago">${timeAgo(r.timestamp)}</div>
+                            </div>
+                            <div class="feed-event-body">
+                                <h4 class="feed-event-title">${r.name || 'Untitled Recipe'}</h4>
+                                <div class="feed-event-metrics">
+                                    <div class="metric-pill"><i class="fa-solid fa-fire text-muted"></i> ${r.macrosPerServing?.calories || 0} kcal</div>
+                                    <div class="metric-pill"><i class="fa-solid fa-drumstick-bite text-primary"></i> ${r.macrosPerServing?.protein || 0}g P</div>
+                                </div>
+                            </div>
+                            <div class="feed-action-bar">
+                                <button class="feed-btn" onclick="window.triggerVaultFromList('${friend.uid}', '${fName.replace(/'/g, "\\'")}')"><i class="fa-solid fa-download"></i> Get Recipe</button>
+                            </div>
+                        </div>
+                    `
+                });
+            }
+        });
     }
+
+    // Sort events by timestamp descending
+    feedEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    // Append sorted events to UI
+    if (feedEvents.length > 0) {
+        htmlContent += `<div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin: 25px 0 15px 0; letter-spacing: 1px;">Activity Stream</div>`;
+        feedEvents.forEach(ev => htmlContent += ev.html);
+    } else {
+        htmlContent += `
+            <div style="text-align: center; padding: 30px; margin-top: 20px; border-radius: var(--border-radius-md); background: var(--bg-surface); border: 1px dashed var(--border-color);">
+                <p class="text-muted" style="margin: 0; font-size: 0.9rem;">No recent activities from your squad in the last 72 hours.</p>
+            </div>
+        `;
+    }
+
+    analyticsFeedContainer.innerHTML = htmlContent;
 }
 
 // --- NEW: CROSS-USER VAULT IMPORT PROTOCOL ---
@@ -387,22 +500,22 @@ window.openFriendVault = async function(uid, displayName) {
         // Render Workouts
         fvWorkoutsList.innerHTML = '';
         if (templates.length === 0) {
-            fvWorkoutsList.innerHTML = '<div class="text-muted" style="text-align:center; padding: 20px;">No workout templates found.</div>';
+            fvWorkoutsList.innerHTML = '<div class="text-muted" style="text-align:center; padding: 20px; background: var(--bg-base); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">No workout templates found.</div>';
         } else {
             templates.forEach((t, index) => {
                 const div = document.createElement('div');
                 div.className = 'friend-card';
                 div.style.marginBottom = '10px';
-                div.style.padding = '10px';
+                div.style.padding = '15px';
                 div.innerHTML = `
-                    <div class="friend-info">
+                    <div class="friend-info" style="align-items: flex-start;">
                         <div class="friend-details">
-                            <h4 style="font-size: 0.95rem; margin:0;">${t.title || 'Workout'}</h4>
-                            <p style="font-size: 0.75rem; margin:0;">${(t.exercises || []).length} Movements</p>
+                            <h4 style="font-size: 1rem; margin:0 0 5px 0; color: var(--text-main);">${t.title || 'Workout'}</h4>
+                            <p style="font-size: 0.8rem; margin:0; color: var(--text-muted);"><i class="fa-solid fa-list-check"></i> ${(t.exercises || []).length} Movements mapped.</p>
                         </div>
                     </div>
-                    <div class="friend-actions" style="margin-top: 10px;">
-                        <button class="btn btn-ghost" style="color:var(--accent); border-color:var(--accent); font-size: 0.8rem; padding: 6px;" onclick="window.importWorkout(${index})"><i class="fa-solid fa-download"></i> Import</button>
+                    <div class="friend-actions" style="margin-top: 15px;">
+                        <button class="btn btn-ghost" style="color:var(--accent); border-color:var(--accent); font-size: 0.85rem; padding: 8px; width: 100%;" onclick="window.importWorkout(${index})"><i class="fa-solid fa-download"></i> Import Protocol</button>
                     </div>
                 `;
                 fvWorkoutsList.appendChild(div);
@@ -412,22 +525,27 @@ window.openFriendVault = async function(uid, displayName) {
         // Render Recipes
         fvRecipesList.innerHTML = '';
         if (friendRecipes.length === 0) {
-            fvRecipesList.innerHTML = '<div class="text-muted" style="text-align:center; padding: 20px;">No recipes found.</div>';
+            fvRecipesList.innerHTML = '<div class="text-muted" style="text-align:center; padding: 20px; background: var(--bg-base); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">No recipes found.</div>';
         } else {
             friendRecipes.forEach((r, index) => {
                 const div = document.createElement('div');
                 div.className = 'friend-card';
                 div.style.marginBottom = '10px';
-                div.style.padding = '10px';
+                div.style.padding = '15px';
                 div.innerHTML = `
-                    <div class="friend-info">
+                    <div class="friend-info" style="align-items: flex-start;">
                         <div class="friend-details">
-                            <h4 style="font-size: 0.95rem; margin:0;">${r.name || 'Recipe'}</h4>
-                            <p style="font-size: 0.75rem; margin:0;">${r.macrosPerServing?.calories || 0} kcal | ${r.macrosPerServing?.protein || 0}g P</p>
+                            <h4 style="font-size: 1rem; margin:0 0 5px 0; color: var(--text-main);">${r.name || 'Recipe'}</h4>
+                            <p style="font-size: 0.8rem; margin:0; color: var(--text-muted);">
+                                ${r.macrosPerServing?.calories || 0} kcal | 
+                                <span class="text-primary">${r.macrosPerServing?.protein || 0}g P</span> | 
+                                <span class="text-warning">${r.macrosPerServing?.carbs || 0}g C</span> | 
+                                <span class="text-danger">${r.macrosPerServing?.fats || 0}g F</span>
+                            </p>
                         </div>
                     </div>
-                    <div class="friend-actions" style="margin-top: 10px;">
-                        <button class="btn btn-ghost" style="color:var(--accent); border-color:var(--accent); font-size: 0.8rem; padding: 6px;" onclick="window.importRecipe(${index})"><i class="fa-solid fa-download"></i> Import</button>
+                    <div class="friend-actions" style="margin-top: 15px;">
+                        <button class="btn btn-ghost" style="color:var(--accent); border-color:var(--accent); font-size: 0.85rem; padding: 8px; width: 100%;" onclick="window.importRecipe(${index})"><i class="fa-solid fa-download"></i> Import Recipe</button>
                     </div>
                 `;
                 fvRecipesList.appendChild(div);
@@ -455,7 +573,7 @@ window.importWorkout = async function(index) {
     userData.workout_templates.push(newWorkout);
     await window.BodyProDataStore.saveData(userData);
     
-    showToast("Workout template successfully imported!", "var(--accent)");
+    showToast("Workout protocol imported!", "var(--accent)");
 };
 
 window.importRecipe = async function(index) {
@@ -475,7 +593,7 @@ window.importRecipe = async function(index) {
         await setDoc(recipeRef, newRecipe);
         
         userData.custom_recipes.push(newRecipe);
-        showToast("Recipe successfully imported!", "var(--accent)");
+        showToast("Recipe data imported!", "var(--accent)");
     } catch (e) {
         console.error("DB Import Error", e);
         showToast("Failed to synchronize recipe.", "var(--danger)");
@@ -525,7 +643,7 @@ window.handleRequest = async function(targetUid, isAccepted) {
 
 // --- REMOVE CONNECTION LOGIC (BI-DIRECTIONAL) ---
 window.removeFriend = async function(shortIdToRemove) {
-    if (!confirm(`Remove connection ${shortIdToRemove}? This will delete the link for both users.`)) return;
+    if (!confirm(`Sever connection ${shortIdToRemove}? This will delete the link for both athletes.`)) return;
 
     const friendToRemove = userData.friends.find(f => f.shortId === shortIdToRemove);
     if(!friendToRemove) return;
@@ -649,7 +767,7 @@ btnAddFriend.addEventListener('click', async () => {
             const remoteSuccess = await window.BodyProDataStore.pushCrossUserFriendUpdate(targetUid, targetFriends);
 
             if (remoteSuccess) {
-                showMsg(`Request sent to ${targetName}!`, "var(--accent)");
+                showMsg(`Clearance request sent to ${targetName}!`, "var(--accent)");
             } else {
                 showMsg(`Local link saved, but target ping failed.`, "var(--warning)");
             }
