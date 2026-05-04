@@ -255,7 +255,7 @@
       color: white;
     }
 
-    /* --- BODY HEATMAP CHART STYLES --- */
+    /* --- BODY HEATMAP CHART STYLES (SVG UPGRADE) --- */
     .body-heatmap-container {
       background: var(--bg-surface);
       border: 1px solid var(--border-color);
@@ -269,45 +269,18 @@
       align-items: center;
       margin-bottom: 15px;
     }
-    .body-heatmap-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
+
+    .muscle-path {
+      fill: var(--bg-surface-elevated);
+      stroke: var(--border-color);
+      stroke-width: 2;
+      transition: fill 0.3s, stroke 0.3s;
     }
-    .body-figure {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
-    }
-    .figure-title {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-    .muscle-block {
-      background: var(--bg-base);
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      padding: 6px 10px;
-      font-size: 0.75rem;
-      font-weight: 800;
-      text-align: center;
-      color: var(--text-muted);
-      transition: all 0.3s ease;
-      width: 100px;
-      text-transform: uppercase;
-    }
-    
-    .arms-row { display: flex; gap: 5px; }
-    .legs-row { display: flex; gap: 5px; }
-    
-    /* Heatmap Active States */
-    .muscle-block[data-level="1"] { background: #facc15; color: #000; border-color: #facc15; box-shadow: 0 0 10px rgba(250, 204, 21, 0.4); }
-    .muscle-block[data-level="2"] { background: #f97316; color: #fff; border-color: #f97316; box-shadow: 0 0 10px rgba(249, 115, 22, 0.4); }
-    .muscle-block[data-level="3"] { background: #ef4444; color: #fff; border-color: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+
+    /* Heatmap Active States (SVG) */
+    .muscle-path[data-level="1"] { fill: #facc15; stroke: #ca8a04; }
+    .muscle-path[data-level="2"] { fill: #f97316; stroke: #c2410c; }
+    .muscle-path[data-level="3"] { fill: #ef4444; stroke: #b91c1c; }
 
     .ancillary-tags {
       display: flex;
@@ -328,6 +301,8 @@
       color: var(--text-muted);
       transition: all 0.3s;
     }
+    
+    /* Heatmap Active States (Tags) */
     .ancillary-tag[data-level="1"] { background: #facc15; color: #000; border-color: #facc15; }
     .ancillary-tag[data-level="2"] { background: #f97316; color: #fff; border-color: #f97316; }
     .ancillary-tag[data-level="3"] { background: #ef4444; color: #fff; border-color: #ef4444; }
@@ -486,32 +461,43 @@
              <span style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;" title="High Volume"></span>
           </div>
         </div>
-        <div class="body-heatmap-grid">
-          <div class="body-figure">
-            <div class="figure-title">Front</div>
-            <div class="muscle-block" id="mg-shoulders" data-level="0">Shoulders</div>
-            <div class="muscle-block" id="mg-chest" data-level="0">Chest</div>
-            <div class="arms-row">
-              <div class="muscle-block" id="mg-biceps" style="width:45px;" data-level="0">Bi's</div>
-              <div class="muscle-block" id="mg-core" style="width:50px;" data-level="0">Core</div>
-            </div>
-            <div class="legs-row">
-              <div class="muscle-block" id="mg-quads" style="width:100px;" data-level="0">Quads</div>
-            </div>
+        
+        <div style="display: flex; justify-content: space-around; padding: 20px 0;">
+          <div style="text-align: center;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; font-weight: bold; text-transform: uppercase;">Front</div>
+            <svg viewBox="0 0 120 280" style="width: 120px; height: auto;">
+              <circle cx="60" cy="25" r="15" fill="var(--bg-surface-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+              <path d="M 35 45 L 85 45 L 95 65 L 25 65 Z" class="muscle-path" data-muscle="shoulders" />
+              <path d="M 40 65 L 80 65 L 80 95 L 40 95 Z" class="muscle-path" data-muscle="chest" />
+              <path d="M 42 97 L 78 97 L 75 135 L 45 135 Z" class="muscle-path" data-muscle="core" />
+              <rect x="18" y="68" width="12" height="35" rx="5" class="muscle-path" data-muscle="biceps" />
+              <rect x="90" y="68" width="12" height="35" rx="5" class="muscle-path" data-muscle="biceps" />
+              <rect x="14" y="106" width="10" height="35" rx="4" fill="var(--bg-surface-elevated)" stroke="var(--border-color)" />
+              <rect x="96" y="106" width="10" height="35" rx="4" fill="var(--bg-surface-elevated)" stroke="var(--border-color)" />
+              <path d="M 45 140 L 58 140 L 55 210 L 40 210 Z" class="muscle-path" data-muscle="quads" />
+              <path d="M 62 140 L 75 140 L 80 210 L 65 210 Z" class="muscle-path" data-muscle="quads" />
+              <path d="M 40 215 L 53 215 L 50 265 L 42 265 Z" class="muscle-path" data-muscle="calves" />
+              <path d="M 67 215 L 80 215 L 78 265 L 70 265 Z" class="muscle-path" data-muscle="calves" />
+            </svg>
           </div>
-          <div class="body-figure">
-            <div class="figure-title">Posterior</div>
-            <div class="muscle-block" id="mg-traps" data-level="0">Traps</div>
-            <div class="muscle-block" id="mg-back" data-level="0">Lats / Back</div>
-            <div class="arms-row">
-              <div class="muscle-block" id="mg-triceps" style="width:45px;" data-level="0">Tri's</div>
-              <div class="muscle-block" id="mg-lowerback" style="width:50px;" data-level="0">L.Bk</div>
-            </div>
-            <div class="muscle-block" id="mg-glutes" data-level="0">Glutes</div>
-            <div class="legs-row">
-              <div class="muscle-block" id="mg-hamstrings" style="width:100px;" data-level="0">Hamstrings</div>
-            </div>
-            <div class="muscle-block" id="mg-calves" data-level="0" style="margin-top: 2px;">Calves</div>
+          
+          <div style="text-align: center;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; font-weight: bold; text-transform: uppercase;">Posterior</div>
+            <svg viewBox="0 0 120 280" style="width: 120px; height: auto;">
+              <circle cx="60" cy="25" r="15" fill="var(--bg-surface-elevated)" stroke="var(--border-color)" stroke-width="2"/>
+              <path d="M 45 40 L 75 40 L 85 55 L 35 55 Z" class="muscle-path" data-muscle="traps" />
+              <path d="M 35 55 L 85 55 L 78 95 L 42 95 Z" class="muscle-path" data-muscle="back" />
+              <path d="M 42 97 L 78 97 L 75 125 L 45 125 Z" class="muscle-path" data-muscle="lowerback" />
+              <path d="M 42 127 L 78 127 L 82 150 L 38 150 Z" class="muscle-path" data-muscle="glutes" />
+              <rect x="18" y="58" width="12" height="35" rx="5" class="muscle-path" data-muscle="triceps" />
+              <rect x="90" y="58" width="12" height="35" rx="5" class="muscle-path" data-muscle="triceps" />
+              <rect x="14" y="96" width="10" height="35" rx="4" fill="var(--bg-surface-elevated)" stroke="var(--border-color)" />
+              <rect x="96" y="96" width="10" height="35" rx="4" fill="var(--bg-surface-elevated)" stroke="var(--border-color)" />
+              <path d="M 40 155 L 58 155 L 55 210 L 42 210 Z" class="muscle-path" data-muscle="hamstrings" />
+              <path d="M 62 155 L 80 155 L 78 210 L 65 210 Z" class="muscle-path" data-muscle="hamstrings" />
+              <path d="M 42 215 L 53 215 L 50 265 L 44 265 Z" class="muscle-path" data-muscle="calves" />
+              <path d="M 67 215 L 78 215 L 76 265 L 70 265 Z" class="muscle-path" data-muscle="calves" />
+            </svg>
           </div>
         </div>
         
@@ -540,7 +526,7 @@
       
       <div class="session-logger" id="workoutLogger">
         <div class="logger-header">
-          <input type="text" class="exercise-input" id="workoutTitle" name="workoutTitle" placeholder="Workout Title (e.g. Push Day, Pull, Legs)" style="font-weight: bold; background: transparent; border: none; font-size: 1.1rem; padding: 0;">
+          <input type="text" class="exercise-input" id="workoutTitle" name="workoutTitle" placeholder="Workout Title (e.g. Push Day, Pull, Cardio Circuit)" style="font-weight: bold; background: transparent; border: none; font-size: 1.1rem; padding: 0;">
         </div>
         
         <div id="workoutLogArea" style="padding: 15px; background: var(--bg-surface);">
@@ -548,7 +534,7 @@
         </div>
 
         <button class="add-set-btn" id="btnAddMovement" onclick="handleAddMovement()">
-          <i class="fa-solid fa-plus"></i> Add Movement Group
+          <i class="fa-solid fa-plus"></i> Add Movement / Activity
         </button>
       </div>
 
