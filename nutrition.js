@@ -1,5 +1,3 @@
-// nutrition.js - BodyPro Dietary Tracking, Optical Scanner, API Search & Offline Cache Logic
-
 import { auth } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -29,7 +27,16 @@ const calProgressBar = document.getElementById('calProgressBar');
 // Quick Add Elements
 const btnSaveQuickAdd = document.getElementById('btnSaveQuickAdd');
 const qaRecipeSelect = document.getElementById('qaRecipeSelect');
-const qaFavoriteBtn = document.getElementById('qaFavoriteBtn'); // New
+const qaFavoriteBtn = document.getElementById('qaFavoriteBtn'); 
+const qaSugar = document.getElementById('qaSugar');
+const qaSodium = document.getElementById('qaSodium');
+const qaIron = document.getElementById('qaIron');
+const qaPotassium = document.getElementById('qaPotassium');
+const qaFiber = document.getElementById('qaFiber');
+const qaVitA = document.getElementById('qaVitA');
+const qaVitC = document.getElementById('qaVitC');
+const qaCalcium = document.getElementById('qaCalcium');
+const qaSatFat = document.getElementById('qaSatFat');
 
 // Macro Calc Elements
 const btnRunMacroCalc = document.getElementById('btnRunMacroCalc');
@@ -42,11 +49,20 @@ const labelCalories = document.getElementById('labelCalories');
 const labelFat = document.getElementById('labelFat');
 const labelCarb = document.getElementById('labelCarb');
 const labelProtein = document.getElementById('labelProtein');
+const labelSatFat = document.getElementById('labelSatFat');
+const labelSodium = document.getElementById('labelSodium');
+const labelFiber = document.getElementById('labelFiber');
+const labelSugar = document.getElementById('labelSugar');
+const labelVitA = document.getElementById('labelVitA');
+const labelVitC = document.getElementById('labelVitC');
+const labelCalcium = document.getElementById('labelCalcium');
+const labelIron = document.getElementById('labelIron');
+const labelPotassium = document.getElementById('labelPotassium');
 const btnLogScannedFood = document.getElementById('btnLogScannedFood');
 const labelMealSelect = document.getElementById('labelMealSelect');
-const nlFavoriteBtn = document.getElementById('nlFavoriteBtn'); // New
+const nlFavoriteBtn = document.getElementById('nlFavoriteBtn'); 
 
-// API Search & Favorites Elements (New)
+// API Search & Favorites Elements 
 const apiSearchInput = document.getElementById('apiSearchInput');
 const btnApiSearch = document.getElementById('btnApiSearch');
 const apiSearchResults = document.getElementById('apiSearchResults');
@@ -341,7 +357,7 @@ async function onScanSuccess(decodedText, decodedResult) {
     }
 }
 
-// --- OPENFOODFACTS TEXT API SEARCH (NEW) ---
+// --- OPENFOODFACTS TEXT API SEARCH ---
 btnApiSearch.addEventListener('click', async () => {
     const query = apiSearchInput.value.trim();
     if (!query) return;
@@ -396,10 +412,19 @@ function parseOpenFoodFactsProduct(p) {
     const nut = p.nutriments || {};
     return {
         name: p.product_name || p.generic_name || "Unknown Product",
-        cals: Math.round(nut['energy-kcal_serving'] || nut['energy-kcal_100g'] || nut['energy-kcal'] || 0),
-        prot: Math.round(nut['proteins_serving'] || nut['proteins_100g'] || nut['proteins'] || 0),
-        carb: Math.round(nut['carbohydrates_serving'] || nut['carbohydrates_100g'] || nut['carbohydrates'] || 0),
-        fat: Math.round(nut['fat_serving'] || nut['fat_100g'] || nut['fat'] || 0)
+        cals: Math.round(nut['energy-kcal_serving'] || nut['energy-kcal_100g'] || 0),
+        prot: Math.round(nut['proteins_serving'] || nut['proteins_100g'] || 0),
+        carb: Math.round(nut['carbohydrates_serving'] || nut['carbohydrates_100g'] || 0),
+        fat: Math.round(nut['fat_serving'] || nut['fat_100g'] || 0),
+        sugar: Math.round(nut['sugars_serving'] || nut['sugars_100g'] || 0),
+        fiber: Math.round(nut['fiber_serving'] || nut['fiber_100g'] || 0),
+        satFat: Math.round(nut['saturated-fat_serving'] || nut['saturated-fat_100g'] || 0),
+        sodium: Math.round((nut['sodium_serving'] || nut['sodium_100g'] || 0) * 1000),
+        iron: Math.round((nut['iron_serving'] || nut['iron_100g'] || 0) * 1000),
+        potassium: Math.round((nut['potassium_serving'] || nut['potassium_100g'] || 0) * 1000),
+        vitC: Math.round((nut['vitamin-c_serving'] || nut['vitamin-c_100g'] || 0) * 1000),
+        calcium: Math.round((nut['calcium_serving'] || nut['calcium_100g'] || 0) * 1000),
+        vitA: Math.round((nut['vitamin-a_serving'] || nut['vitamin-a_100g'] || 0) * 1000000)
     };
 }
 
@@ -413,6 +438,16 @@ function updateNutritionLabelDisplay() {
     labelFat.innerText = Math.round(currentScannedFood.fat * multiplier);
     labelCarb.innerText = Math.round(currentScannedFood.carb * multiplier);
     labelProtein.innerText = Math.round(currentScannedFood.prot * multiplier);
+    
+    labelSatFat.innerText = Math.round((currentScannedFood.satFat || 0) * multiplier);
+    labelSodium.innerText = Math.round((currentScannedFood.sodium || 0) * multiplier);
+    labelFiber.innerText = Math.round((currentScannedFood.fiber || 0) * multiplier);
+    labelSugar.innerText = Math.round((currentScannedFood.sugar || 0) * multiplier);
+    labelVitA.innerText = Math.round((currentScannedFood.vitA || 0) * multiplier);
+    labelVitC.innerText = Math.round((currentScannedFood.vitC || 0) * multiplier);
+    labelCalcium.innerText = Math.round((currentScannedFood.calcium || 0) * multiplier);
+    labelIron.innerText = Math.round((currentScannedFood.iron || 0) * multiplier);
+    labelPotassium.innerText = Math.round((currentScannedFood.potassium || 0) * multiplier);
 }
 
 labelServingMultiplier.addEventListener('input', updateNutritionLabelDisplay);
@@ -434,6 +469,15 @@ btnLogScannedFood.addEventListener('click', async () => {
         protein: Math.round(currentScannedFood.prot * multiplier),
         carbs: Math.round(currentScannedFood.carb * multiplier),
         fats: Math.round(currentScannedFood.fat * multiplier),
+        sugar: Math.round((currentScannedFood.sugar || 0) * multiplier),
+        sodium: Math.round((currentScannedFood.sodium || 0) * multiplier),
+        iron: Math.round((currentScannedFood.iron || 0) * multiplier),
+        potassium: Math.round((currentScannedFood.potassium || 0) * multiplier),
+        fiber: Math.round((currentScannedFood.fiber || 0) * multiplier),
+        vitA: Math.round((currentScannedFood.vitA || 0) * multiplier),
+        vitC: Math.round((currentScannedFood.vitC || 0) * multiplier),
+        calcium: Math.round((currentScannedFood.calcium || 0) * multiplier),
+        satFat: Math.round((currentScannedFood.satFat || 0) * multiplier),
         timestamp: new Date().toISOString()
     };
 
@@ -449,7 +493,7 @@ btnLogScannedFood.addEventListener('click', async () => {
 });
 
 
-// --- FAVORITES SYSTEM (NEW) ---
+// --- FAVORITES SYSTEM ---
 function checkIfFavorite(foodName, btnElement) {
     const isFav = userData.favorite_foods.some(f => f.name.toLowerCase() === foodName.toLowerCase());
     if (isFav) {
@@ -476,7 +520,16 @@ async function toggleFavoriteStatus(foodObj, btnElement) {
             cals: foodObj.cals,
             prot: foodObj.prot,
             carb: foodObj.carb,
-            fat: foodObj.fat
+            fat: foodObj.fat,
+            sugar: foodObj.sugar || 0,
+            sodium: foodObj.sodium || 0,
+            iron: foodObj.iron || 0,
+            potassium: foodObj.potassium || 0,
+            fiber: foodObj.fiber || 0,
+            vitA: foodObj.vitA || 0,
+            vitC: foodObj.vitC || 0,
+            calcium: foodObj.calcium || 0,
+            satFat: foodObj.satFat || 0
         });
         btnElement.classList.add('active');
         btnElement.innerHTML = '<i class="fa-solid fa-heart"></i>';
@@ -497,9 +550,18 @@ qaFavoriteBtn.addEventListener('click', () => {
     const prot = Number(document.getElementById('qaProt').value) || 0;
     const carb = Number(document.getElementById('qaCarb').value) || 0;
     const fat = Number(document.getElementById('qaFat').value) || 0;
+    const sugar = Number(qaSugar.value) || 0;
+    const sodium = Number(qaSodium.value) || 0;
+    const iron = Number(qaIron.value) || 0;
+    const potassium = Number(qaPotassium.value) || 0;
+    const fiber = Number(qaFiber.value) || 0;
+    const vitA = Number(qaVitA.value) || 0;
+    const vitC = Number(qaVitC.value) || 0;
+    const calcium = Number(qaCalcium.value) || 0;
+    const satFat = Number(qaSatFat.value) || 0;
     
     if(!name || name === "Custom Entry") return alert("Please provide a name to save as a favorite.");
-    toggleFavoriteStatus({ name, cals, prot, carb, fat }, qaFavoriteBtn);
+    toggleFavoriteStatus({ name, cals, prot, carb, fat, sugar, sodium, iron, potassium, fiber, vitA, vitC, calcium, satFat }, qaFavoriteBtn);
 });
 
 function renderFavorites() {
@@ -553,12 +615,21 @@ qaRecipeSelect.addEventListener('change', (e) => {
     const recipe = (userData.custom_recipes || []).find(r => r.id === recipeId);
     if (recipe) {
         document.getElementById('qaName').value = recipe.name;
-        document.getElementById('qaCals').value = recipe.macrosPerServing.calories;
-        document.getElementById('qaProt').value = recipe.macrosPerServing.protein;
-        document.getElementById('qaCarb').value = recipe.macrosPerServing.carbs;
-        document.getElementById('qaFat').value = recipe.macrosPerServing.fats;
+        document.getElementById('qaCals').value = recipe.macrosPerServing.calories || 0;
+        document.getElementById('qaProt').value = recipe.macrosPerServing.protein || 0;
+        document.getElementById('qaCarb').value = recipe.macrosPerServing.carbs || 0;
+        document.getElementById('qaFat').value = recipe.macrosPerServing.fats || 0;
         
-        // Update heart status based on name
+        qaSugar.value = recipe.macrosPerServing.sugar || 0;
+        qaSodium.value = recipe.macrosPerServing.sodium || 0;
+        qaIron.value = recipe.macrosPerServing.iron || 0;
+        qaPotassium.value = recipe.macrosPerServing.potassium || 0;
+        qaFiber.value = recipe.macrosPerServing.fiber || 0;
+        qaVitA.value = recipe.macrosPerServing.vitA || 0;
+        qaVitC.value = recipe.macrosPerServing.vitC || 0;
+        qaCalcium.value = recipe.macrosPerServing.calcium || 0;
+        qaSatFat.value = recipe.macrosPerServing.satFat || 0;
+
         checkIfFavorite(recipe.name, qaFavoriteBtn);
     }
 });
@@ -586,6 +657,15 @@ window.openQuickAddModal = function(meal = 'Snacks') {
     document.getElementById('qaProt').value = 0;
     document.getElementById('qaCarb').value = 0;
     document.getElementById('qaFat').value = 0;
+    qaSugar.value = 0;
+    qaSodium.value = 0;
+    qaIron.value = 0;
+    qaPotassium.value = 0;
+    qaFiber.value = 0;
+    qaVitA.value = 0;
+    qaVitC.value = 0;
+    qaCalcium.value = 0;
+    qaSatFat.value = 0;
     
     qaFavoriteBtn.classList.remove('active');
     qaFavoriteBtn.innerHTML = '<i class="fa-regular fa-heart"></i>';
@@ -600,6 +680,15 @@ btnSaveQuickAdd.addEventListener('click', async () => {
     const prot = Number(document.getElementById('qaProt').value) || 0;
     const carb = Number(document.getElementById('qaCarb').value) || 0;
     const fat = Number(document.getElementById('qaFat').value) || 0;
+    const sugar = Number(qaSugar.value) || 0;
+    const sodium = Number(qaSodium.value) || 0;
+    const iron = Number(qaIron.value) || 0;
+    const potassium = Number(qaPotassium.value) || 0;
+    const fiber = Number(qaFiber.value) || 0;
+    const vitA = Number(qaVitA.value) || 0;
+    const vitC = Number(qaVitC.value) || 0;
+    const calcium = Number(qaCalcium.value) || 0;
+    const satFat = Number(qaSatFat.value) || 0;
 
     btnSaveQuickAdd.disabled = true;
     btnSaveQuickAdd.innerText = "Saving...";
@@ -613,6 +702,15 @@ btnSaveQuickAdd.addEventListener('click', async () => {
         protein: prot,
         carbs: carb,
         fats: fat,
+        sugar: sugar,
+        sodium: sodium,
+        iron: iron,
+        potassium: potassium,
+        fiber: fiber,
+        vitA: vitA,
+        vitC: vitC,
+        calcium: calcium,
+        satFat: satFat,
         timestamp: new Date().toISOString()
     };
 
