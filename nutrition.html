@@ -657,14 +657,43 @@
         <div class="nl-row">
           <div><span class="nl-bold">Total Fat</span> <span id="labelFat">0</span>g</div>
         </div>
+        <div class="nl-row" style="padding-left: 15px;">
+          <div>Saturated Fat <span id="labelSatFat">0</span>g</div>
+        </div>
+        <div class="nl-row">
+          <div><span class="nl-bold">Sodium</span> <span id="labelSodium">0</span>mg</div>
+        </div>
         <div class="nl-row">
           <div><span class="nl-bold">Total Carbohydrate</span> <span id="labelCarb">0</span>g</div>
+        </div>
+        <div class="nl-row" style="padding-left: 15px;">
+          <div>Dietary Fiber <span id="labelFiber">0</span>g</div>
+        </div>
+        <div class="nl-row" style="padding-left: 15px;">
+          <div>Total Sugars <span id="labelSugar">0</span>g</div>
         </div>
         <div class="nl-row thick">
           <div><span class="nl-bold">Protein</span> <span id="labelProtein">0</span>g</div>
         </div>
+        
+        <div class="nl-row">
+          <div>Vitamin A <span id="labelVitA">0</span>mcg</div>
+        </div>
+        <div class="nl-row">
+          <div>Vitamin C <span id="labelVitC">0</span>mg</div>
+        </div>
+        <div class="nl-row">
+          <div>Calcium <span id="labelCalcium">0</span>mg</div>
+        </div>
+        <div class="nl-row">
+          <div>Iron <span id="labelIron">0</span>mg</div>
+        </div>
+        <div class="nl-row">
+          <div>Potassium <span id="labelPotassium">0</span>mg</div>
+        </div>
+        
         <div style="font-size: 0.75rem; color: #555555; padding-top: 5px; font-weight: normal;">
-          * Macros dynamically calculated based on serving multiplier. Base data retrieved via barcode scan.
+          * Macros and micronutrients dynamically calculated based on serving multiplier. Base data retrieved via barcode scan.
         </div>
       </div>
 
@@ -720,6 +749,21 @@
         <div class="form-group">
           <label for="qaFat" class="m-fat">Fats (g)</label>
           <input type="number" id="qaFat" value="0" min="0">
+        </div>
+      </div>
+
+      <div style="margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
+        <div style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem; margin-bottom: 10px;">Micronutrients</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group"><label for="qaSugar">Sugar (g)</label><input type="number" id="qaSugar" value="0" min="0"></div>
+          <div class="form-group"><label for="qaSodium">Sodium (mg)</label><input type="number" id="qaSodium" value="0" min="0"></div>
+          <div class="form-group"><label for="qaIron">Iron (mg)</label><input type="number" id="qaIron" value="0" min="0"></div>
+          <div class="form-group"><label for="qaPotassium">Potassium (mg)</label><input type="number" id="qaPotassium" value="0" min="0"></div>
+          <div class="form-group"><label for="qaFiber">Fiber (g)</label><input type="number" id="qaFiber" value="0" min="0"></div>
+          <div class="form-group"><label for="qaVitA">Vit A (mcg)</label><input type="number" id="qaVitA" value="0" min="0"></div>
+          <div class="form-group"><label for="qaVitC">Vit C (mg)</label><input type="number" id="qaVitC" value="0" min="0"></div>
+          <div class="form-group"><label for="qaCalcium">Calcium (mg)</label><input type="number" id="qaCalcium" value="0" min="0"></div>
+          <div class="form-group settings-grid-full"><label for="qaSatFat">Sat Fat (g)</label><input type="number" id="qaSatFat" value="0" min="0"></div>
         </div>
       </div>
 
