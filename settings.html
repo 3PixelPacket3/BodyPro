@@ -252,6 +252,49 @@
         <button class="btn" id="btnSaveIdentity" style="width: 100%; margin-top: 10px;">Update Identity</button>
       </div>
 
+      <div class="settings-section" style="border-top: 4px solid var(--info, #3b82f6);">
+        <div class="settings-header">
+          <i class="fa-solid fa-pills" style="color: var(--info, #3b82f6);"></i>
+          <h3>Daily Supplements</h3>
+        </div>
+        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px;">Log your active supplement stack to keep track of your performance enhancers and micronutrients.</p>
+        <textarea id="profSupplements" rows="4" style="width: 100%; background: var(--bg-base); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; border-radius: var(--border-radius-sm);" placeholder="e.g. Creatine 5g, Fish Oil 2000mg, Ashwagandha 600mg..."></textarea>
+        <button class="btn" id="btnSaveSupplements" style="width: 100%; margin-top: 10px; background: var(--bg-surface-elevated); border: 1px solid var(--border-color); color: var(--text-main);">Update Stack</button>
+      </div>
+
+      <div class="settings-section" style="border-top: 4px solid var(--danger);">
+        <div class="settings-header">
+          <i class="fa-solid fa-notes-medical text-danger"></i>
+          <h3>Log Health Metrics</h3>
+        </div>
+        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px;">Record your daily body data to populate your analytics charts.</p>
+        
+        <div class="settings-grid">
+          <div class="form-group"><label>Weight (lbs)</label><input type="number" step="0.1" id="logWeight" placeholder="e.g. 185"></div>
+          <div class="form-group"><label>Blood Pressure</label>
+            <div style="display:flex; gap:5px; align-items:center;">
+              <input type="number" id="logSys" placeholder="120" style="width:45%; text-align:center;">
+              <span style="color:var(--text-muted);">/</span>
+              <input type="number" id="logDia" placeholder="80" style="width:45%; text-align:center;">
+            </div>
+          </div>
+          
+          <div class="form-group settings-grid-full" style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
+            <div style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Body Composition (Pinch Test - 3 Site)</div>
+          </div>
+          
+          <div class="form-group"><label id="lblPinch1">Chest (mm)</label><input type="number" id="logPinch1" placeholder="0"></div>
+          <div class="form-group"><label id="lblPinch2">Abdomen (mm)</label><input type="number" id="logPinch2" placeholder="0"></div>
+          <div class="form-group"><label id="lblPinch3">Thigh (mm)</label><input type="number" id="logPinch3" placeholder="0"></div>
+          
+          <div class="form-group settings-grid-full" style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-surface-elevated); padding:10px; border-radius:var(--border-radius-sm);">
+              <span style="font-weight:600; font-size:0.9rem;">Body Fat %:</span>
+              <input type="number" step="0.1" id="logBodyFat" placeholder="--" style="width:80px; text-align:center; font-weight:bold; color:var(--warning); background:transparent; border:1px solid var(--border-color);">
+          </div>
+        </div>
+        <button class="btn" id="btnLogMetrics" style="width: 100%; margin-top: 15px; background: var(--danger); border-color: var(--danger);">Save Today's Metrics</button>
+      </div>
+
       <div class="settings-section" style="border-top: 4px solid var(--warning);">
         <div class="settings-header">
           <i class="fa-solid fa-calculator text-warning"></i>
@@ -326,7 +369,7 @@
         <div class="settings-grid">
           
           <div class="form-group settings-grid-full" style="margin-bottom: 5px;">
-            <div style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Nutritional Targets</div>
+            <div style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Macronutrient Targets</div>
           </div>
           <div class="form-group">
             <label for="goalCals">Calorie Goal (kcal)</label>
@@ -345,32 +388,26 @@
             <input type="number" id="goalFat" placeholder="88">
           </div>
 
+          <div class="form-group settings-grid-full" style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 15px; margin-bottom: 5px;">
+            <div style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Micronutrient Targets (Daily)</div>
+          </div>
+          <div class="form-group"><label for="goalSugar">Sugar (g)</label><input type="number" id="goalSugar" placeholder="50"></div>
+          <div class="form-group"><label for="goalSodium">Sodium (mg)</label><input type="number" id="goalSodium" placeholder="2300"></div>
+          <div class="form-group"><label for="goalIron">Iron (mg)</label><input type="number" id="goalIron" placeholder="18"></div>
+          <div class="form-group"><label for="goalPotassium">Potassium (mg)</label><input type="number" id="goalPotassium" placeholder="4700"></div>
+          <div class="form-group"><label for="goalFiber">Fiber (g)</label><input type="number" id="goalFiber" placeholder="30"></div>
+          <div class="form-group"><label for="goalVitA">Vit A (mcg)</label><input type="number" id="goalVitA" placeholder="900"></div>
+          <div class="form-group"><label for="goalVitC">Vit C (mg)</label><input type="number" id="goalVitC" placeholder="90"></div>
+          <div class="form-group"><label for="goalCalcium">Calcium (mg)</label><input type="number" id="goalCalcium" placeholder="1000"></div>
+          <div class="form-group settings-grid-full"><label for="goalSatFat">Saturated Fat (g)</label><input type="number" id="goalSatFat" placeholder="20"></div>
+
           <div class="form-group settings-grid-full" style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
             <div style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Biometric & Activity Targets</div>
           </div>
 
           <div class="form-group">
-            <label for="goalSleep">Sleep Goal (hrs)</label>
-            <input type="number" step="0.5" id="goalSleep" placeholder="7.5">
-          </div>
-          
-          <div class="form-group">
-            <label for="goalSteps">Step Goal</label>
-            <input type="number" id="goalSteps" placeholder="10000">
-          </div>
-
-          <div class="form-group">
-            <label for="goalFloors">Floor Goal</label>
-            <input type="number" id="goalFloors" placeholder="10">
-          </div>
-
-          <div class="form-group">
             <label for="goalWater">Hydration (fl oz)</label>
             <input type="number" id="goalWater" placeholder="120">
-          </div>
-
-          <div class="form-group settings-grid-full" style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 15px;">
-            <div style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Weekly Training Protocol</div>
           </div>
 
           <div class="form-group">
