@@ -1,5 +1,3 @@
-// recipes.js - BodyPro Culinary Builder & Meal Management
-
 import { auth } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -22,12 +20,34 @@ const recProt = document.getElementById('recProt');
 const recCarb = document.getElementById('recCarb');
 const recFat = document.getElementById('recFat');
 
+// Micros
+const recSugar = document.getElementById('recSugar');
+const recSodium = document.getElementById('recSodium');
+const recIron = document.getElementById('recIron');
+const recPotassium = document.getElementById('recPotassium');
+const recFiber = document.getElementById('recFiber');
+const recVitA = document.getElementById('recVitA');
+const recVitC = document.getElementById('recVitC');
+const recCalcium = document.getElementById('recCalcium');
+const recSatFat = document.getElementById('recSatFat');
+
 // Modals
 const ingName = document.getElementById('ingName');
 const ingCals = document.getElementById('ingCals');
 const ingProt = document.getElementById('ingProt');
 const ingCarb = document.getElementById('ingCarb');
 const ingFat = document.getElementById('ingFat');
+
+const ingSugar = document.getElementById('ingSugar');
+const ingSodium = document.getElementById('ingSodium');
+const ingIron = document.getElementById('ingIron');
+const ingPotassium = document.getElementById('ingPotassium');
+const ingFiber = document.getElementById('ingFiber');
+const ingVitA = document.getElementById('ingVitA');
+const ingVitC = document.getElementById('ingVitC');
+const ingCalcium = document.getElementById('ingCalcium');
+const ingSatFat = document.getElementById('ingSatFat');
+
 const btnAddIngredientToRecipe = document.getElementById('btnAddIngredientToRecipe');
 
 // Vault
@@ -82,6 +102,15 @@ btnExecuteCopy.addEventListener('click', async () => {
             protein: Number(food.protein),
             carbs: Number(food.carbs),
             fats: Number(food.fats),
+            sugar: Number(food.sugar || 0),
+            sodium: Number(food.sodium || 0),
+            iron: Number(food.iron || 0),
+            potassium: Number(food.potassium || 0),
+            fiber: Number(food.fiber || 0),
+            vitA: Number(food.vitA || 0),
+            vitC: Number(food.vitC || 0),
+            calcium: Number(food.calcium || 0),
+            satFat: Number(food.satFat || 0),
             timestamp: new Date().toISOString()
         });
     });
@@ -141,16 +170,39 @@ async function onRecipeScanSuccess(decodedText, decodedResult) {
             const p = data.product;
             const nut = p.nutriments || {};
             
+            // Macros
             const cals = nut['energy-kcal_serving'] || nut['energy-kcal_100g'] || nut['energy-kcal'] || 0;
             const prot = nut['proteins_serving'] || nut['proteins_100g'] || nut['proteins'] || 0;
             const carb = nut['carbohydrates_serving'] || nut['carbohydrates_100g'] || nut['carbohydrates'] || 0;
             const fat = nut['fat_serving'] || nut['fat_100g'] || nut['fat'] || 0;
             
-            ingName.value = p.product_name || "Unknown Product";
+            // Micros
+            const sugar = nut['sugars_serving'] || nut['sugars_100g'] || 0;
+            const fiber = nut['fiber_serving'] || nut['fiber_100g'] || 0;
+            const satFat = nut['saturated-fat_serving'] || nut['saturated-fat_100g'] || 0;
+            const sodium = (nut['sodium_serving'] || nut['sodium_100g'] || 0) * 1000;
+            const iron = (nut['iron_serving'] || nut['iron_100g'] || 0) * 1000;
+            const potassium = (nut['potassium_serving'] || nut['potassium_100g'] || 0) * 1000;
+            const vitC = (nut['vitamin-c_serving'] || nut['vitamin-c_100g'] || 0) * 1000;
+            const calcium = (nut['calcium_serving'] || nut['calcium_100g'] || 0) * 1000;
+            const vitA = (nut['vitamin-a_serving'] || nut['vitamin-a_100g'] || 0) * 1000000;
+            
+            ingName.value = p.product_name || p.generic_name || "Unknown Product";
             ingCals.value = Math.round(cals);
             ingProt.value = Math.round(prot);
             ingCarb.value = Math.round(carb);
             ingFat.value = Math.round(fat);
+            
+            ingSugar.value = Math.round(sugar);
+            ingSodium.value = Math.round(sodium);
+            ingIron.value = Math.round(iron);
+            ingPotassium.value = Math.round(potassium);
+            ingFiber.value = Math.round(fiber);
+            ingVitA.value = Math.round(vitA);
+            ingVitC.value = Math.round(vitC);
+            ingCalcium.value = Math.round(calcium);
+            ingSatFat.value = Math.round(satFat);
+
         } else {
             alert("Telemetry negative. Product not found in OpenFoodFacts database. Manual entry required.");
             ingName.value = "";
@@ -167,6 +219,7 @@ async function onRecipeScanSuccess(decodedText, decodedResult) {
 function updateBatchUI() {
     activeIngredientList.innerHTML = '';
     let totalCals = 0, totalProt = 0, totalCarb = 0, totalFat = 0;
+    let tSugar = 0, tSodium = 0, tIron = 0, tPotassium = 0, tFiber = 0, tVitA = 0, tVitC = 0, tCalcium = 0, tSatFat = 0;
 
     if (currentBatch.length === 0) {
         activeIngredientList.appendChild(emptyIngredientMsg);
@@ -175,10 +228,20 @@ function updateBatchUI() {
         emptyIngredientMsg.style.display = 'none';
         
         currentBatch.forEach((ing, index) => {
-            totalCals += Number(ing.calories);
-            totalProt += Number(ing.protein);
-            totalCarb += Number(ing.carbs);
-            totalFat += Number(ing.fats);
+            totalCals += Number(ing.calories) || 0;
+            totalProt += Number(ing.protein) || 0;
+            totalCarb += Number(ing.carbs) || 0;
+            totalFat += Number(ing.fats) || 0;
+            
+            tSugar += Number(ing.sugar) || 0;
+            tSodium += Number(ing.sodium) || 0;
+            tIron += Number(ing.iron) || 0;
+            tPotassium += Number(ing.potassium) || 0;
+            tFiber += Number(ing.fiber) || 0;
+            tVitA += Number(ing.vitA) || 0;
+            tVitC += Number(ing.vitC) || 0;
+            tCalcium += Number(ing.calcium) || 0;
+            tSatFat += Number(ing.satFat) || 0;
 
             const item = document.createElement('div');
             item.className = 'ingredient-item';
@@ -200,12 +263,23 @@ function updateBatchUI() {
         });
     }
 
-    // Calculate Per-Serving Macros
+    // Calculate Per-Serving Macros & Micros
     const servings = Math.max(Number(recipeServings.value) || 1, 1);
+    
     recCals.innerText = Math.round(totalCals / servings);
     recProt.innerText = `${Math.round(totalProt / servings)}g`;
     recCarb.innerText = `${Math.round(totalCarb / servings)}g`;
     recFat.innerText = `${Math.round(totalFat / servings)}g`;
+    
+    recSugar.innerText = `${Math.round(tSugar / servings)}g`;
+    recSodium.innerText = `${Math.round(tSodium / servings)}mg`;
+    recIron.innerText = `${Math.round(tIron / servings)}mg`;
+    recPotassium.innerText = `${Math.round(tPotassium / servings)}mg`;
+    recFiber.innerText = `${Math.round(tFiber / servings)}g`;
+    recVitA.innerText = `${Math.round(tVitA / servings)}mcg`;
+    recVitC.innerText = `${Math.round(tVitC / servings)}mg`;
+    recCalcium.innerText = `${Math.round(tCalcium / servings)}mg`;
+    recSatFat.innerText = `${Math.round(tSatFat / servings)}g`;
 }
 
 // Attach globally for inline onclick execution
@@ -224,7 +298,16 @@ btnAddIngredientToRecipe.addEventListener('click', () => {
         calories: Number(ingCals.value) || 0,
         protein: Number(ingProt.value) || 0,
         carbs: Number(ingCarb.value) || 0,
-        fats: Number(ingFat.value) || 0
+        fats: Number(ingFat.value) || 0,
+        sugar: Number(ingSugar.value) || 0,
+        sodium: Number(ingSodium.value) || 0,
+        iron: Number(ingIron.value) || 0,
+        potassium: Number(ingPotassium.value) || 0,
+        fiber: Number(ingFiber.value) || 0,
+        vitA: Number(ingVitA.value) || 0,
+        vitC: Number(ingVitC.value) || 0,
+        calcium: Number(ingCalcium.value) || 0,
+        satFat: Number(ingSatFat.value) || 0
     });
 
     updateBatchUI();
@@ -236,6 +319,15 @@ btnAddIngredientToRecipe.addEventListener('click', () => {
     ingProt.value = 0;
     ingCarb.value = 0;
     ingFat.value = 0;
+    ingSugar.value = 0;
+    ingSodium.value = 0;
+    ingIron.value = 0;
+    ingPotassium.value = 0;
+    ingFiber.value = 0;
+    ingVitA.value = 0;
+    ingVitC.value = 0;
+    ingCalcium.value = 0;
+    ingSatFat.value = 0;
 });
 
 btnClearRecipe.addEventListener('click', () => {
@@ -256,11 +348,22 @@ btnSaveRecipe.addEventListener('click', async () => {
     btnSaveRecipe.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
 
     let totalCals = 0, totalProt = 0, totalCarb = 0, totalFat = 0;
+    let tSugar = 0, tSodium = 0, tIron = 0, tPotassium = 0, tFiber = 0, tVitA = 0, tVitC = 0, tCalcium = 0, tSatFat = 0;
+
     currentBatch.forEach(ing => {
-        totalCals += Number(ing.calories);
-        totalProt += Number(ing.protein);
-        totalCarb += Number(ing.carbs);
-        totalFat += Number(ing.fats);
+        totalCals += Number(ing.calories) || 0;
+        totalProt += Number(ing.protein) || 0;
+        totalCarb += Number(ing.carbs) || 0;
+        totalFat += Number(ing.fats) || 0;
+        tSugar += Number(ing.sugar) || 0;
+        tSodium += Number(ing.sodium) || 0;
+        tIron += Number(ing.iron) || 0;
+        tPotassium += Number(ing.potassium) || 0;
+        tFiber += Number(ing.fiber) || 0;
+        tVitA += Number(ing.vitA) || 0;
+        tVitC += Number(ing.vitC) || 0;
+        tCalcium += Number(ing.calcium) || 0;
+        tSatFat += Number(ing.satFat) || 0;
     });
 
     const newRecipe = {
@@ -271,7 +374,16 @@ btnSaveRecipe.addEventListener('click', async () => {
             calories: Math.round(totalCals / servings),
             protein: Math.round(totalProt / servings),
             carbs: Math.round(totalCarb / servings),
-            fats: Math.round(totalFat / servings)
+            fats: Math.round(totalFat / servings),
+            sugar: Math.round(tSugar / servings),
+            sodium: Math.round(tSodium / servings),
+            iron: Math.round(tIron / servings),
+            potassium: Math.round(tPotassium / servings),
+            fiber: Math.round(tFiber / servings),
+            vitA: Math.round(tVitA / servings),
+            vitC: Math.round(tVitC / servings),
+            calcium: Math.round(tCalcium / servings),
+            satFat: Math.round(tSatFat / servings)
         },
         ingredients: currentBatch,
         authorId: auth.currentUser.uid,
