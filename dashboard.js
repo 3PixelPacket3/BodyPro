@@ -1,5 +1,3 @@
-// dashboard.js - BodyPro Command Center Logic
-
 import { auth } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -25,39 +23,21 @@ const fatVal = document.getElementById('fatVal');
 const fatTarget = document.getElementById('fatTarget');
 const calorieRing = document.getElementById('calorieRing');
 
-// Sleep Elements
-const sleepDuration = document.getElementById('sleepDuration');
-const sleepTarget = document.getElementById('sleepTarget');
-const sleepDeep = document.getElementById('sleepDeep');
-const sleepRem = document.getElementById('sleepRem');
-const sleepRestfulness = document.getElementById('sleepRestfulness');
-const sleepLatency = document.getElementById('sleepLatency');
+// Micro Grid Elements
+const sugarVal = document.getElementById('sugarVal');
+const sodiumVal = document.getElementById('sodiumVal');
+const ironVal = document.getElementById('ironVal');
+const potassiumVal = document.getElementById('potassiumVal');
+const fiberVal = document.getElementById('fiberVal');
+const vitAVal = document.getElementById('vitAVal');
+const vitCVal = document.getElementById('vitCVal');
+const calciumVal = document.getElementById('calciumVal');
+const satFatVal = document.getElementById('satFatVal');
 
-// Sleep Modal Inputs
-const inputBedTime = document.getElementById('inputBedTime');
-const inputWakeTime = document.getElementById('inputWakeTime');
-const inputDeepSleep = document.getElementById('inputDeepSleep');
-const inputRemSleep = document.getElementById('inputRemSleep');
-const inputRestfulness = document.getElementById('inputRestfulness');
-const inputLatency = document.getElementById('inputLatency');
-const btnSaveSleep = document.getElementById('btnSaveSleep');
-const uploadSleepScreenshot = document.getElementById('uploadSleepScreenshot');
-
-// Vitals & Activity Elements
-const stepCount = document.getElementById('stepCount');
-const stepTarget = document.getElementById('stepTarget');
-const floorCount = document.getElementById('floorCount');
-const floorTarget = document.getElementById('floorTarget');
-const restingHR = document.getElementById('restingHR');
-const activeCals = document.getElementById('activeCals');
-
-// Vitals Modal Inputs
-const inputSteps = document.getElementById('inputSteps');
-const inputFloors = document.getElementById('inputFloors');
-const inputRestingHR = document.getElementById('inputRestingHR');
-const inputActiveCals = document.getElementById('inputActiveCals');
-const btnSaveVitals = document.getElementById('btnSaveVitals');
-const uploadVitalsScreenshot = document.getElementById('uploadVitalsScreenshot');
+// Body Metrics Elements
+const dashWeight = document.getElementById('dashWeight');
+const dashBodyFat = document.getElementById('dashBodyFat');
+const dashLBM = document.getElementById('dashLBM');
 
 // Hydration Elements
 const waterCount = document.getElementById('waterCount');
@@ -121,120 +101,133 @@ function renderDashboard() {
     let timeGreeting = "Good Evening";
     if (hour < 12) timeGreeting = "Good Morning";
     else if (hour < 17) timeGreeting = "Good Afternoon";
-    userGreeting.innerText = `${timeGreeting}, ${name}.`;
+    if (userGreeting) userGreeting.innerText = `${timeGreeting}, ${name}.`;
 
-    protocolSelect.innerHTML = '<option value="">-- Select Protocol --</option>';
-    if (userData.workout_templates && userData.workout_templates.length > 0) {
-        protocolSelect.style.display = 'block';
-        userData.workout_templates.forEach(workout => {
-            const opt = document.createElement('option');
-            opt.value = workout.id;
-            opt.textContent = workout.title; 
-            protocolSelect.appendChild(opt);
-        });
-        todayProtocolContainer.innerHTML = ''; 
-    } else {
-        protocolSelect.style.display = 'none';
-        todayProtocolContainer.innerHTML = '<p class="text-muted" style="font-size: 0.85rem; text-align: center; padding: 10px;">No custom protocols found. Create one in the Fitness tab.</p>';
+    if (protocolSelect && todayProtocolContainer) {
+        protocolSelect.innerHTML = '<option value="">-- Select Protocol --</option>';
+        if (userData.workout_templates && userData.workout_templates.length > 0) {
+            protocolSelect.style.display = 'block';
+            userData.workout_templates.forEach(workout => {
+                const opt = document.createElement('option');
+                opt.value = workout.id;
+                opt.textContent = workout.title; 
+                protocolSelect.appendChild(opt);
+            });
+            todayProtocolContainer.innerHTML = ''; 
+        } else {
+            protocolSelect.style.display = 'none';
+            todayProtocolContainer.innerHTML = '<p class="text-muted" style="font-size: 0.85rem; text-align: center; padding: 10px;">No custom protocols found. Create one in the Fitness tab.</p>';
+        }
     }
 
-    const todayWater = userData.biometrics.find(b => b.date === todayStr);
-    const currentWater = todayWater?.waterOz || 0;
-    const waterGoal = userData.settings.goals?.waterOz || 120;
-    waterCount.innerHTML = `${currentWater} <span style="font-size: 0.9rem; color: var(--text-muted);">fl oz</span>`;
-    waterTargetLabel.innerText = `Goal: ${waterGoal} fl oz`;
+    if (waterCount && waterTargetLabel) {
+        const todayWater = userData.biometrics.find(b => b.date === todayStr);
+        const currentWater = todayWater?.waterOz || todayWater?.water || 0;
+        const waterGoal = userData.settings.goals?.waterOz || 120;
+        waterCount.innerHTML = `${currentWater} <span style="font-size: 0.9rem; color: var(--text-muted);">fl oz</span>`;
+        waterTargetLabel.innerText = `Goal: ${waterGoal} fl oz`;
+    }
 
     const targets = userData.settings.macroTargets || { calories: 2200, protein: 200, carbs: 150, fats: 88 };
     
-    protTarget.innerText = `/ ${targets.protein}g`;
-    carbTarget.innerText = `/ ${targets.carbs}g`;
-    fatTarget.innerText = `/ ${targets.fats}g`;
+    if (protTarget) protTarget.innerText = `/ ${targets.protein}g`;
+    if (carbTarget) carbTarget.innerText = `/ ${targets.carbs}g`;
+    if (fatTarget) fatTarget.innerText = `/ ${targets.fats}g`;
 
     const todaysFood = userData.food_diary.filter(f => f.date === todayStr);
     let eatenCals = 0, eatenProt = 0, eatenCarb = 0, eatenFat = 0;
+    let eatenSugar = 0, eatenSodium = 0, eatenIron = 0, eatenPotassium = 0;
+    let eatenFiber = 0, eatenVitA = 0, eatenVitC = 0, eatenCalcium = 0, eatenSatFat = 0;
     
     todaysFood.forEach(item => {
-        eatenCals += (item.calories || 0);
-        eatenProt += (item.protein || 0);
-        eatenCarb += (item.carbs || 0);
-        eatenFat += (item.fats || 0);
+        eatenCals += (Number(item.calories) || 0);
+        eatenProt += (Number(item.protein) || 0);
+        eatenCarb += (Number(item.carbs) || 0);
+        eatenFat += (Number(item.fats) || 0);
+        eatenSugar += (Number(item.sugar) || 0);
+        eatenSodium += (Number(item.sodium) || 0);
+        eatenIron += (Number(item.iron) || 0);
+        eatenPotassium += (Number(item.potassium) || 0);
+        eatenFiber += (Number(item.fiber) || 0);
+        eatenVitA += (Number(item.vitA) || 0);
+        eatenVitC += (Number(item.vitC) || 0);
+        eatenCalcium += (Number(item.calcium) || 0);
+        eatenSatFat += (Number(item.satFat) || 0);
     });
 
-    calsEaten.innerText = Math.round(eatenCals);
-    protVal.innerText = `${Math.round(eatenProt)}g`;
-    carbVal.innerText = `${Math.round(eatenCarb)}g`;
-    fatVal.innerText = `${Math.round(eatenFat)}g`;
+    if (calsEaten) calsEaten.innerText = Math.round(eatenCals);
+    if (protVal) protVal.innerText = `${Math.round(eatenProt)}g`;
+    if (carbVal) carbVal.innerText = `${Math.round(eatenCarb)}g`;
+    if (fatVal) fatVal.innerText = `${Math.round(eatenFat)}g`;
+    
+    if (sugarVal) sugarVal.innerText = `${Math.round(eatenSugar)}g`;
+    if (sodiumVal) sodiumVal.innerText = `${Math.round(eatenSodium)}mg`;
+    if (ironVal) ironVal.innerText = `${Math.round(eatenIron)}mg`;
+    if (potassiumVal) potassiumVal.innerText = `${Math.round(eatenPotassium)}mg`;
+    if (fiberVal) fiberVal.innerText = `${Math.round(eatenFiber)}g`;
+    if (vitAVal) vitAVal.innerText = `${Math.round(eatenVitA)}mcg`;
+    if (vitCVal) vitCVal.innerText = `${Math.round(eatenVitC)}mg`;
+    if (calciumVal) calciumVal.innerText = `${Math.round(eatenCalcium)}mg`;
+    if (satFatVal) satFatVal.innerText = `${Math.round(eatenSatFat)}g`;
 
-    const calsLeft = Math.max(0, targets.calories - eatenCals);
-    calsRemaining.innerText = Math.round(calsLeft);
-
-    const progressPerc = Math.min(100, (eatenCals / targets.calories) * 100);
-    let ringColor = 'var(--accent)';
-    if (eatenCals > targets.calories) ringColor = 'var(--danger)'; 
-    calorieRing.style.background = `conic-gradient(${ringColor} ${progressPerc}%, var(--bg-surface-elevated) 0)`;
-
-    const sleepGoal = userData.settings.goals?.sleepHrs || 7.5;
-    sleepTarget.innerText = `/ ${sleepGoal}h`;
-
-    const todaysSleep = userData.sleep_data.find(s => s.date === todayStr);
-    if (todaysSleep) {
-        sleepDuration.innerText = todaysSleep.durationHrs ? `${todaysSleep.durationHrs}h` : '--';
-        sleepDeep.innerText = todaysSleep.deepHrs ? `${todaysSleep.deepHrs}h` : '--';
-        sleepRem.innerText = todaysSleep.remHrs ? `${todaysSleep.remHrs}h` : '--';
-        sleepRestfulness.innerText = todaysSleep.score || '--';
-        sleepLatency.innerText = todaysSleep.latencyMins ? `${todaysSleep.latencyMins}m` : '--';
-    } else {
-        sleepDuration.innerText = '--';
-        sleepDeep.innerText = '--';
-        sleepRem.innerText = '--';
-        sleepRestfulness.innerText = '--';
-        sleepLatency.innerText = '--';
+    if (calsRemaining) {
+        const calsLeft = Math.max(0, targets.calories - eatenCals);
+        calsRemaining.innerText = Math.round(calsLeft);
     }
 
-    const goals = userData.settings.goals || {};
-    stepTarget.innerText = `/ ${goals.steps?.toLocaleString() || '10,000'}`;
-    floorTarget.innerText = `/ ${goals.floors || 10}`;
+    if (calorieRing) {
+        const progressPerc = Math.min(100, (eatenCals / targets.calories) * 100);
+        let ringColor = 'var(--accent)';
+        if (eatenCals > targets.calories) ringColor = 'var(--danger)'; 
+        calorieRing.style.background = `conic-gradient(${ringColor} ${progressPerc}%, var(--bg-surface-elevated) 0)`;
+    }
 
-    const todaysVitals = userData.biometrics.find(b => b.date === todayStr);
-    if (todaysVitals) {
-        stepCount.innerText = todaysVitals.steps?.toLocaleString() || '0';
-        floorCount.innerText = todaysVitals.floors || '0';
-        restingHR.innerText = todaysVitals.restingHR || '--';
-        activeCals.innerText = todaysVitals.activeCals || '0';
-    } else {
-        stepCount.innerText = '0';
-        floorCount.innerText = '0';
-        restingHR.innerText = '--';
-        activeCals.innerText = '0';
+    // Body Metrics Snapshot Update
+    if (dashWeight && dashBodyFat && dashLBM) {
+        const sortedBio = [...(userData.biometrics || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const latestWeightEntry = sortedBio.find(b => b.weight);
+        const latestCompEntry = sortedBio.find(b => b.bodyFat);
+
+        let weight = latestWeightEntry ? parseFloat(latestWeightEntry.weight) : null;
+        let bf = latestCompEntry ? parseFloat(latestCompEntry.bodyFat) : null;
+
+        dashWeight.innerText = weight ? weight.toFixed(1) : '--';
+        dashBodyFat.innerText = bf ? bf.toFixed(1) : '--';
+        
+        if (weight && bf) {
+            const fatMass = weight * (bf / 100);
+            const lbm = weight - fatMass;
+            dashLBM.innerText = lbm.toFixed(1);
+        } else {
+            dashLBM.innerText = '--';
+        }
+    }
+
+    // Weekly Consistency Streak Update
+    const dayCircles = document.querySelectorAll('.day-circle');
+    if (dayCircles.length === 7) {
+        const today = new Date();
+        const dayMap = [6, 0, 1, 2, 3, 4, 5]; // Sunday=0 maps to index 6, Monday=1 maps to index 0.
+        
+        dayCircles.forEach(c => c.classList.remove('active'));
+        
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(today);
+            d.setDate(d.getDate() - i);
+            const offset = d.getTimezoneOffset() * 60000;
+            const dateStr = (new Date(d - offset)).toISOString().split('T')[0];
+            
+            const hasWorkout = (userData.workouts || []).some(w => w.date === dateStr || (w.timestamp && w.timestamp.startsWith(dateStr)));
+            
+            if (hasWorkout) {
+                const dayIndex = dayMap[d.getDay()];
+                if (dayCircles[dayIndex]) {
+                    dayCircles[dayIndex].classList.add('active');
+                }
+            }
+        }
     }
 }
-
-// --- MODAL AUTO-FILL CONTROLLERS ---
-window.openSleepModal = function() {
-    const todayStr = getLocalISODate();
-    const sleep = userData.sleep_data.find(s => s.date === todayStr) || {};
-    
-    inputBedTime.value = sleep.bedTime || '';
-    inputWakeTime.value = sleep.wakeTime || '';
-    inputDeepSleep.value = sleep.deepHrs || '';
-    inputRemSleep.value = sleep.remHrs || '';
-    inputRestfulness.value = sleep.score || '';
-    inputLatency.value = sleep.latencyMins || '';
-    
-    document.getElementById('sleepModal').classList.add('active');
-};
-
-window.openVitalsModal = function() {
-    const todayStr = getLocalISODate();
-    const bio = userData.biometrics.find(b => b.date === todayStr) || {};
-    
-    inputSteps.value = bio.steps || '';
-    inputFloors.value = bio.floors || '';
-    inputRestingHR.value = bio.restingHR || '';
-    inputActiveCals.value = bio.activeCals || '';
-    
-    document.getElementById('vitalsModal').classList.add('active');
-};
 
 // --- PROTOCOL RENDERING & TIME-CRUNCH ENGINE ---
 function renderSelectedProtocol(workoutId, isTimeCrunch = false) {
@@ -294,13 +287,16 @@ function renderSelectedProtocol(workoutId, isTimeCrunch = false) {
     }
 }
 
-protocolSelect.addEventListener('change', (e) => {
-    renderSelectedProtocol(e.target.value, false);
-});
+if (protocolSelect) {
+    protocolSelect.addEventListener('change', (e) => {
+        renderSelectedProtocol(e.target.value, false);
+    });
+}
 
 if (btnTimeCrunch) {
     btnTimeCrunch.addEventListener('click', (e) => {
         e.preventDefault();
+        if (!protocolSelect) return;
         const currentWorkoutId = protocolSelect.value;
         if (!currentWorkoutId) {
             alert("Please select a protocol from the dropdown first to enable Time-Crunch mode.");
@@ -321,7 +317,9 @@ async function updateWater(amount) {
         userData.biometrics.push(todayBio);
     }
     
-    todayBio.waterOz = Math.max(0, (todayBio.waterOz || 0) + amount);
+    const currentWater = todayBio.waterOz || todayBio.water || 0;
+    todayBio.waterOz = Math.max(0, currentWater + amount);
+    todayBio.water = todayBio.waterOz; // Backwards compatibility 
     
     renderDashboard();
     await window.BodyProDataStore.saveData(userData);
@@ -340,157 +338,16 @@ async function handleWaterTap(isAdd, e) {
 
     if (document.activeElement) document.activeElement.blur();
 
-    let val = parseInt(customWaterInput.value);
-    if (isNaN(val)) val = 8;
+    let val = 8;
+    if (customWaterInput) {
+        val = parseInt(customWaterInput.value);
+        if (isNaN(val)) val = 8;
+    }
     
     await updateWater(isAdd ? val : -val);
     
     setTimeout(() => { isWaterProcessing = false; }, 300);
 }
 
-btnAddWater.addEventListener('pointerdown', (e) => handleWaterTap(true, e));
-btnSubWater.addEventListener('pointerdown', (e) => handleWaterTap(false, e));
-
-// --- SLEEP TELEMETRY MODULE ---
-// Re-engineered to pure mathematical calculation to circumvent Javascript Date/Timezone offset bugs.
-function calculateDuration(start, end) {
-    if (!start || !end) return null;
-    
-    const [h1, m1] = start.split(':').map(Number);
-    const [h2, m2] = end.split(':').map(Number);
-    
-    let startMins = (h1 * 60) + m1;
-    let endMins = (h2 * 60) + m2;
-    
-    // If end time is mathematically smaller than start time, it means they crossed midnight into the next day.
-    if (endMins < startMins) {
-        endMins += (24 * 60); 
-    }
-    
-    return parseFloat(((endMins - startMins) / 60).toFixed(1));
-}
-
-btnSaveSleep.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const todayStr = getLocalISODate(); 
-    const duration = calculateDuration(inputBedTime.value, inputWakeTime.value);
-    
-    const sleepEntry = {
-        id: `slp_${Date.now()}`,
-        date: todayStr,
-        bedTime: inputBedTime.value,
-        wakeTime: inputWakeTime.value,
-        durationHrs: duration,
-        deepHrs: parseFloat(inputDeepSleep.value) || null,
-        remHrs: parseFloat(inputRemSleep.value) || null,
-        score: parseInt(inputRestfulness.value) || null,
-        latencyMins: parseInt(inputLatency.value) || null
-    };
-
-    userData.sleep_data = userData.sleep_data.filter(s => s.date !== todayStr);
-    userData.sleep_data.push(sleepEntry);
-
-    btnSaveSleep.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
-    await window.BodyProDataStore.saveData(userData);
-    
-    btnSaveSleep.innerText = 'Save Sleep Log';
-    document.getElementById('sleepModal').classList.remove('active');
-    renderDashboard();
-    return false;
-});
-
-// --- VITALS TELEMETRY MODULE ---
-btnSaveVitals.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const todayStr = getLocalISODate(); 
-    let todayBio = userData.biometrics.find(b => b.date === todayStr);
-    if (!todayBio) {
-        todayBio = { id: `bio_${Date.now()}`, date: todayStr, waterOz: 0 };
-        userData.biometrics.push(todayBio);
-    }
-
-    if (inputSteps.value) todayBio.steps = parseInt(inputSteps.value);
-    if (inputFloors.value) todayBio.floors = parseInt(inputFloors.value);
-    if (inputRestingHR.value) todayBio.restingHR = parseInt(inputRestingHR.value);
-    if (inputActiveCals.value) todayBio.activeCals = parseInt(inputActiveCals.value);
-
-    btnSaveVitals.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
-    await window.BodyProDataStore.saveData(userData);
-    
-    btnSaveVitals.innerText = 'Save Vitals';
-    document.getElementById('vitalsModal').classList.remove('active');
-    renderDashboard();
-    return false;
-});
-
-// --- OPTICAL CHARACTER RECOGNITION (OCR) MODULE ---
-
-uploadSleepScreenshot.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const textSpan = document.getElementById('sleepOcrText');
-    const originalText = textSpan.innerHTML;
-    textSpan.innerHTML = '<i class="fa-solid fa-cog fa-spin"></i> Scanning Telemetry...';
-
-    try {
-        const textData = await window.BodyProOCR.scanImage(file);
-        console.log("Extracted Sleep OCR Data:", textData);
-
-        const scoreMatch = textData.match(/(?:score|restfulness)[\s:]*(\d{1,3})/i);
-        const deepMatch = textData.match(/(?:deep|deep sleep)[\s\n]*(\d+)h\s*(\d+)m/i);
-        const remMatch = textData.match(/(?:rem)[\s\n]*(\d+)h\s*(\d+)m/i);
-
-        if (scoreMatch) inputRestfulness.value = scoreMatch[1];
-        if (deepMatch) {
-            const hrs = parseInt(deepMatch[1]) + (parseInt(deepMatch[2]) / 60);
-            inputDeepSleep.value = hrs.toFixed(1);
-        }
-        if (remMatch) {
-            const hrs = parseInt(remMatch[1]) + (parseInt(remMatch[2]) / 60);
-            inputRemSleep.value = hrs.toFixed(1);
-        }
-        
-        alert("OCR Scan Complete. Please verify auto-filled metrics.");
-    } catch (err) {
-        console.error("OCR Engine Failure:", err);
-        alert("Failed to analyze image. Please enter metrics manually.");
-    } finally {
-        textSpan.innerHTML = originalText;
-        e.target.value = ''; 
-    }
-});
-
-uploadVitalsScreenshot.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const textSpan = document.getElementById('vitalsOcrText');
-    const originalText = textSpan.innerHTML;
-    textSpan.innerHTML = '<i class="fa-solid fa-cog fa-spin"></i> Scanning Telemetry...';
-
-    try {
-        const textData = await window.BodyProOCR.scanImage(file);
-        console.log("Extracted Vitals OCR Data:", textData);
-
-        const stepsMatch = textData.match(/([\d,]+)\s*(?:steps)/i);
-        const hrMatch = textData.match(/(?:resting\s*hr|resting\s*heart\s*rate)[\s:]*(\d{2,3})/i);
-        const calMatch = textData.match(/([\d,]+)\s*(?:kcal|active)/i);
-
-        if (stepsMatch) inputSteps.value = parseInt(stepsMatch[1].replace(/,/g, ''));
-        if (hrMatch) inputRestingHR.value = hrMatch[1];
-        if (calMatch) inputActiveCals.value = parseInt(calMatch[1].replace(/,/g, ''));
-
-        alert("OCR Scan Complete. Please verify auto-filled metrics.");
-    } catch (err) {
-        console.error("OCR Engine Failure:", err);
-        alert("Failed to analyze image. Please enter metrics manually.");
-    } finally {
-        textSpan.innerHTML = originalText;
-        e.target.value = ''; 
-    }
-});
+if (btnAddWater) btnAddWater.addEventListener('pointerdown', (e) => handleWaterTap(true, e));
+if (btnSubWater) btnSubWater.addEventListener('pointerdown', (e) => handleWaterTap(false, e));
