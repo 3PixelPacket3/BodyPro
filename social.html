@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>BodyPro | Social Network</title>
+  <title>BodyPro | The Wire</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
@@ -56,19 +56,29 @@
       font-size: 1.2rem;
       letter-spacing: 2px;
       text-transform: uppercase;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: var(--border-radius-sm);
     }
 
-    .friend-card, .feed-card {
+    .add-friend-section input:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+
+    .friend-card {
       background: var(--bg-surface);
       border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-sm);
+      border-radius: var(--border-radius-md);
       padding: 15px;
       margin-bottom: 15px;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, transform 0.2s;
     }
 
     .friend-card:hover {
       border-color: var(--primary);
+      transform: translateY(-2px);
     }
 
     .friend-info {
@@ -81,13 +91,14 @@
       width: 45px;
       height: 45px;
       border-radius: 50%;
-      background: var(--primary);
+      background: linear-gradient(135deg, var(--primary), var(--accent));
       color: white;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
       font-size: 1.2rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
     .friend-details h4 {
@@ -110,7 +121,7 @@
 
     .friend-actions button {
       flex: 1;
-      padding: 8px;
+      padding: 10px;
       border-radius: var(--border-radius-sm);
       font-weight: 600;
       cursor: pointer;
@@ -121,86 +132,204 @@
     }
 
     .friend-actions button:hover {
+      background: var(--bg-surface-elevated);
+      border-color: var(--text-main);
+    }
+
+    .friend-actions button.btn-danger:hover {
       background: var(--danger);
       border-color: var(--danger);
       color: white;
     }
 
+    /* Social Tabs Styling */
     .social-tabs {
       display: flex;
       border-bottom: 1px solid var(--border-color);
       margin-bottom: 20px;
+      background: var(--bg-surface);
+      border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+      overflow: hidden;
     }
 
     .social-tab {
       flex: 1;
       text-align: center;
-      padding: 12px;
+      padding: 15px 10px;
       background: none;
       border: none;
       color: var(--text-muted);
       font-weight: bold;
       cursor: pointer;
-      border-bottom: 2px solid transparent;
+      border-bottom: 3px solid transparent;
       transition: all 0.2s;
+      font-size: 0.9rem;
     }
 
     .social-tab.active {
       color: var(--accent);
       border-bottom-color: var(--accent);
+      background: var(--bg-surface-elevated);
     }
 
     .tab-pane { display: none; }
-    .tab-pane.active { display: block; }
+    .tab-pane.active { display: block; animation: fadeIn 0.3s ease; }
 
-    .feed-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 15px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--border-color);
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    .feed-section-title {
-      font-size: 0.8rem;
+    /* Modern Feed Styles */
+    .feed-event {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-md);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .feed-event-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 15px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-surface-elevated);
+    }
+
+    .feed-event-header .time-ago {
+      margin-left: auto;
+      font-size: 0.75rem;
       color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .feed-event-body {
+      padding: 20px 15px;
+    }
+
+    .feed-event-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin: 0 0 10px 0;
+      color: var(--text-main);
+    }
+
+    .feed-event-metrics {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .metric-pill {
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .feed-event-details {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      background: var(--bg-base);
+      padding: 10px;
+      border-radius: var(--border-radius-sm);
+      border-left: 3px solid var(--primary);
+    }
+
+    .feed-action-bar {
+      display: flex;
+      padding: 10px 15px;
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-surface-elevated);
+    }
+
+    .feed-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: color 0.2s, transform 0.2s;
+    }
+
+    .feed-btn:hover {
+      color: var(--accent);
+    }
+    
+    .feed-btn.active {
+      color: var(--accent);
+      animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    /* Head to Head Card styling */
+    .h2h-card {
+      background: linear-gradient(145deg, var(--bg-surface), var(--bg-base));
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-md);
+      padding: 20px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+
+    .h2h-header {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1.1rem;
+      font-weight: 800;
       text-transform: uppercase;
-      font-weight: bold;
-      margin-bottom: 10px;
-      margin-top: 15px;
+      letter-spacing: 1px;
+      color: var(--text-main);
     }
 
     .compare-row {
       display: grid;
       grid-template-columns: 1fr 2fr 1fr;
-      gap: 10px;
+      gap: 15px;
       align-items: center;
-      margin-bottom: 10px;
-      font-size: 0.9rem;
+      margin-bottom: 15px;
+      font-size: 0.95rem;
     }
 
     .compare-bar-container {
       width: 100%;
-      height: 8px;
+      height: 10px;
       background: var(--bg-base);
-      border-radius: 4px;
+      border-radius: 5px;
       display: flex;
       overflow: hidden;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
     }
 
-    .compare-bar-self { background: var(--accent); height: 100%; transition: width 0.5s; }
-    .compare-bar-friend { background: var(--primary); height: 100%; transition: width 0.5s; }
+    .compare-bar-self { background: var(--accent); height: 100%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+    .compare-bar-friend { background: var(--primary); height: 100%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
 
     .badge {
       background: var(--danger);
       color: white;
       font-size: 0.7rem;
-      padding: 2px 6px;
-      border-radius: 10px;
+      padding: 2px 8px;
+      border-radius: 12px;
       margin-left: 5px;
       vertical-align: middle;
       display: none;
+      font-weight: 800;
     }
 
     /* Modal for Friend's Vault */
@@ -279,58 +408,60 @@
       
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <div>
-          <h2 style="margin-bottom: 5px;">Social Network</h2>
-          <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Cross-User Telemetry Sync</p>
+          <h2 style="margin-bottom: 5px;">The Wire</h2>
+          <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Global Telemetry Sync</p>
         </div>
         <button class="btn btn-ghost" id="btnRefreshSocial" style="padding: 8px 15px; font-size: 0.85rem;">
           <i class="fa-solid fa-rotate-right"></i> Refresh
         </button>
       </div>
 
-      <div class="social-header">
-        <h3 style="margin-top: 0;">Your Connection ID</h3>
-        <p class="text-muted" style="font-size: 0.85rem;">Share this secure 6-character code to link telemetry feeds with other athletes.</p>
-        
-        <div class="my-id-box" id="myShortId">------</div>
-        
-        <button class="btn btn-ghost" id="btnCopyId" style="width: 100%;">
-          <i class="fa-regular fa-copy"></i> Copy ID
-        </button>
-
-        <div style="border-top: 1px dashed var(--border-color); margin-top: 20px; padding-top: 20px;">
-          <h4 style="margin: 0 0 10px 0; text-align: left;">Add Connection</h4>
-          <div class="add-friend-section">
-            <input type="text" id="inputFriendId" placeholder="ENTER ID" maxlength="6">
-            <button class="btn" id="btnAddFriend" style="width: auto; padding: 0 20px;"><i class="fa-solid fa-paper-plane"></i></button>
-          </div>
-          <div id="addFriendMsg" style="font-size: 0.8rem; margin-top: 8px; display: none; text-align: left;"></div>
-        </div>
-      </div>
-
       <div class="social-tabs">
-        <button class="social-tab active" data-tab="pane-network">My Network <span class="badge" id="friendCountBadge" style="display:inline-block; background:var(--bg-surface-elevated); color:var(--text-muted);">0</span></button>
-        <button class="social-tab" data-tab="pane-feed">Telemetry Feed</button>
-        <button class="social-tab" data-tab="pane-requests">Requests <span class="badge" id="requestBadge"></span></button>
+        <button class="social-tab active" data-tab="pane-feed"><i class="fa-solid fa-bolt"></i> Stream</button>
+        <button class="social-tab" data-tab="pane-network"><i class="fa-solid fa-user-group"></i> Squad <span class="badge" id="friendCountBadge" style="display:inline-block; background:var(--bg-surface-elevated); color:var(--text-muted);">0</span></button>
+        <button class="social-tab" data-tab="pane-requests"><i class="fa-solid fa-user-plus"></i> Pending <span class="badge" id="requestBadge"></span></button>
       </div>
 
-      <div id="pane-network" class="tab-pane active">
-        <div id="friendListContainer"></div>
-      </div>
-
-      <div id="pane-feed" class="tab-pane">
+      <div id="pane-feed" class="tab-pane active">
         <div id="analyticsFeedContainer">
           <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
             <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 15px;"></i><br>
-            Synchronizing Cross-User Data...
+            Decrypting Cross-User Telemetry...
           </div>
         </div>
       </div>
 
+      <div id="pane-network" class="tab-pane">
+        
+        <div class="social-header">
+          <h3 style="margin-top: 0; font-size: 1.1rem;"><i class="fa-solid fa-link text-primary"></i> Your Link ID</h3>
+          <p class="text-muted" style="font-size: 0.85rem;">Share this secure 6-character code to link telemetry feeds with other athletes.</p>
+          
+          <div class="my-id-box" id="myShortId">------</div>
+          
+          <button class="btn btn-ghost" id="btnCopyId" style="width: 100%;">
+            <i class="fa-regular fa-copy"></i> Copy Link ID
+          </button>
+
+          <div style="border-top: 1px dashed var(--border-color); margin-top: 20px; padding-top: 20px;">
+            <h4 style="margin: 0 0 10px 0; text-align: left; font-size: 0.95rem;">Add Connection</h4>
+            <div class="add-friend-section">
+              <input type="text" id="inputFriendId" placeholder="ENTER ID" maxlength="6">
+              <button class="btn" id="btnAddFriend" style="width: auto; padding: 0 20px;"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+            <div id="addFriendMsg" style="font-size: 0.8rem; margin-top: 8px; display: none; text-align: left;"></div>
+          </div>
+        </div>
+
+        <h4 style="margin-bottom: 15px; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Active Roster</h4>
+        <div id="friendListContainer"></div>
+      </div>
+
       <div id="pane-requests" class="tab-pane">
-        <h4 style="margin-bottom: 10px; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Inbound Requests</h4>
+        <h4 style="margin-bottom: 10px; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Inbound Clearances</h4>
         <div id="requestsListContainer" style="margin-bottom: 20px;"></div>
         
-        <h4 style="margin-bottom: 10px; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Outbound Pending</h4>
+        <h4 style="margin-bottom: 10px; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Outbound Pings</h4>
         <div id="sentRequestsContainer"></div>
       </div>
 
