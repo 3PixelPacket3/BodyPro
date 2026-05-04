@@ -164,7 +164,7 @@ window.startRestTimer = function(seconds) {
             
             if ("Notification" in window && Notification.permission === "granted") {
                 new Notification("Rest Interval Complete", {
-                    body: "Time to get back to the bar. Prepare for your next set.",
+                    body: "Time to get back to the activity. Prepare for your next set.",
                     icon: "icon-192.png"
                 });
             }
@@ -183,6 +183,47 @@ window.stopRestTimer = function() {
     clearInterval(restTimer);
     displayRest.innerText = "00:00";
     displayRest.style.color = 'var(--warning)';
+};
+
+// --- DYNAMIC INPUT MODE CONTROLLER ---
+window.updateGroupMode = function(uid) {
+    const group = document.getElementById(uid);
+    if(!group) return;
+    const nameInput = group.querySelector('.ex-name');
+    if(!nameInput) return;
+    
+    const val = nameInput.value || '';
+    const isCardio = val.includes('[Cardio]');
+    const isFlex = val.includes('[Yoga]') || val.includes('[Stretching]');
+    
+    const header = group.querySelector('.set-grid-header');
+    if(isCardio) {
+        header.innerHTML = '<div>Set</div><div>Mins</div><div>Dist/Cal</div><div>Lvl</div><div></div>';
+    } else if(isFlex) {
+        header.innerHTML = '<div>Set</div><div>Mins</div><div>Hold(s)</div><div>Lvl</div><div></div>';
+    } else {
+        header.innerHTML = '<div>Set</div><div>Lbs</div><div>Reps</div><div>RPE</div><div></div>';
+    }
+    
+    group.querySelectorAll('.set-row').forEach(row => {
+        const wInp = row.querySelector('.ex-weight');
+        const rInp = row.querySelector('.ex-reps');
+        const rpeInp = row.querySelector('.ex-rpe');
+        
+        if(isCardio) {
+            if (wInp.placeholder === "Lbs" || wInp.placeholder.includes('Last:')) wInp.placeholder = "Mins";
+            if (rInp.placeholder === "Reps" || rInp.placeholder.includes('Last:')) rInp.placeholder = "Dist/Cals";
+            rpeInp.placeholder = "Lvl";
+        } else if(isFlex) {
+            if (wInp.placeholder === "Lbs" || wInp.placeholder.includes('Last:')) wInp.placeholder = "Mins";
+            if (rInp.placeholder === "Reps" || rInp.placeholder.includes('Last:')) rInp.placeholder = "Secs";
+            rpeInp.placeholder = "Lvl";
+        } else {
+            if (wInp.placeholder === "Mins") wInp.placeholder = "Lbs";
+            if (rInp.placeholder === "Dist/Cals" || rInp.placeholder === "Secs") rInp.placeholder = "Reps";
+            rpeInp.placeholder = "7";
+        }
+    });
 };
 
 // --- CUSTOM AUTOCOMPLETE LOGIC (Expanded for new categories) ---
@@ -223,13 +264,14 @@ const PRESET_EXERCISES = [
     "Mobility Routine [Stretching]", "Hamstring Stretch [Stretching]", "Shoulder Dislocates [Stretching]", "Cat-Cow [Stretching]"
 ].sort();
 
-window.attachAutocomplete = function(inputEl, listEl) {
+window.attachAutocomplete = function(inputEl, listEl, uid) {
     inputEl.addEventListener('input', function() {
         const val = this.value.toLowerCase();
         listEl.innerHTML = '';
         if (!val) {
             listEl.style.display = 'none';
-            window.updateHeatmap(); // update on empty
+            window.updateHeatmap(); 
+            window.updateGroupMode(uid);
             return;
         }
         
@@ -243,7 +285,8 @@ window.attachAutocomplete = function(inputEl, listEl) {
                     e.preventDefault(); 
                     inputEl.value = match;
                     listEl.style.display = 'none';
-                    window.updateHeatmap(); // trigger map update on selection
+                    window.updateHeatmap(); 
+                    window.updateGroupMode(uid);
                 };
                 listEl.appendChild(div);
             });
@@ -251,7 +294,8 @@ window.attachAutocomplete = function(inputEl, listEl) {
         } else {
             listEl.style.display = 'none';
         }
-        window.updateHeatmap(); // Update map continuously on typing
+        window.updateHeatmap(); 
+        window.updateGroupMode(uid);
     });
 
     inputEl.addEventListener('focus', function() {
@@ -266,6 +310,7 @@ window.attachAutocomplete = function(inputEl, listEl) {
                     inputEl.value = match;
                     listEl.style.display = 'none';
                     window.updateHeatmap();
+                    window.updateGroupMode(uid);
                 };
                 listEl.appendChild(div);
             });
@@ -276,13 +321,14 @@ window.attachAutocomplete = function(inputEl, listEl) {
     inputEl.addEventListener('blur', function() {
         setTimeout(() => listEl.style.display = 'none', 150);
         window.updateHeatmap();
+        window.updateGroupMode(uid);
     });
 };
 
-// --- MUSCLE ACTIVATION HEATMAP LOGIC ---
+// --- MUSCLE ACTIVATION HEATMAP LOGIC (SVG UPGRADE) ---
 window.updateHeatmap = function() {
     // Reset all map regions
-    document.querySelectorAll('.muscle-block, .ancillary-tag').forEach(el => el.dataset.level = 0);
+    document.querySelectorAll('.muscle-path, .ancillary-tag').forEach(el => el.dataset.level = 0);
     
     let heatMapCount = {};
 
@@ -305,15 +351,22 @@ window.updateHeatmap = function() {
 
     // Apply colors based on volume thresholds
     for(const [muscle, sets] of Object.entries(heatMapCount)) {
-        const el = document.getElementById('mg-' + muscle);
-        if(el) {
+        // Apply to SVG paths
+        document.querySelectorAll(`.muscle-path[data-muscle="${muscle}"]`).forEach(el => {
             if(sets >= 6) el.dataset.level = 3;       // Red
             else if(sets >= 3) el.dataset.level = 2;  // Orange
             else if(sets >= 1) el.dataset.level = 1;  // Yellow
+        });
+        
+        // Apply to ancillary tags (Cardio/Yoga/Stretch)
+        const tag = document.getElementById('mg-' + muscle);
+        if(tag) {
+            if(sets >= 6) tag.dataset.level = 3;       
+            else if(sets >= 3) tag.dataset.level = 2;  
+            else if(sets >= 1) tag.dataset.level = 1; 
         }
     }
 };
-
 
 // --- HISTORICAL PERFORMANCE LOOKUP ---
 function getLastPerformance(exName) {
@@ -323,7 +376,7 @@ function getLastPerformance(exName) {
     const workouts = [...userData.workouts].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
     for(let w of workouts) {
         const exSets = (w.sets || []).filter(s => s.exercise === exName);
-        if(exSets.length > 0) return exSets; // Return the array of sets for the last time this was done
+        if(exSets.length > 0) return exSets; 
     }
     return null;
 }
@@ -359,7 +412,7 @@ window.handleAddMovement = function() {
     
     const inputEl = div.querySelector('.ex-name');
     const listEl = div.querySelector('.autocomplete-list');
-    window.attachAutocomplete(inputEl, listEl);
+    window.attachAutocomplete(inputEl, listEl, uid);
 
     window.addSetToMovement(uid); 
     window.updateHeatmap();
@@ -373,8 +426,8 @@ window.addSetToMovement = function(uid, weight='', reps='', rpe='', prevWeight='
     const setUid = 'set_' + Date.now() + Math.random().toString(36).substr(2, 5);
     
     // Set dynamic placeholders to guide progression based on last session
-    const weightPlaceholder = prevWeight ? `Last: ${prevWeight}` : `0`;
-    const repsPlaceholder = prevReps ? `Last: ${prevReps}` : `0`;
+    const weightPlaceholder = prevWeight ? `Last: ${prevWeight}` : `Lbs`;
+    const repsPlaceholder = prevReps ? `Last: ${prevReps}` : `Reps`;
     
     const row = document.createElement('div');
     row.className = 'set-row';
@@ -392,6 +445,7 @@ window.addSetToMovement = function(uid, weight='', reps='', rpe='', prevWeight='
     
     setsContainer.appendChild(row);
     updateSetNumbers(uid);
+    window.updateGroupMode(uid); 
     window.updateHeatmap();
 };
 
@@ -506,7 +560,7 @@ btnLoadTemplate.addEventListener('click', () => {
 
         const inputEl = div.querySelector('.ex-name');
         const listEl = div.querySelector('.autocomplete-list');
-        window.attachAutocomplete(inputEl, listEl);
+        window.attachAutocomplete(inputEl, listEl, uid);
         
         // Grab Historical Data to populate placeholders
         const prevData = getLastPerformance(exNameFull);
@@ -613,11 +667,19 @@ window.viewSession = function(id) {
 
     if (wk.sets && wk.sets.length > 0) {
         wk.sets.forEach((s, idx) => {
+            
+            // Re-format historical data if it was cardio so it displays cleanly in history view
+            let setFormatHtml = `<div class="text-muted">${s.weight} lbs</div><div class="text-muted">${s.reps} reps</div>`;
+            if(s.exercise.includes('[Cardio]')) {
+                setFormatHtml = `<div class="text-muted">${s.weight} Mins</div><div class="text-muted">${s.reps} Dist/Cal</div>`;
+            } else if(s.exercise.includes('[Yoga]') || s.exercise.includes('[Stretching]')) {
+                setFormatHtml = `<div class="text-muted">${s.weight} Mins</div><div class="text-muted">${s.reps} Secs</div>`;
+            }
+            
             setsContainer.innerHTML += `
                 <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; ${idx === wk.sets.length - 1 ? 'border:none;' : ''}">
                     <div style="font-weight: 600;">${s.exercise}</div>
-                    <div class="text-muted">${s.weight} lbs</div>
-                    <div class="text-muted">${s.reps} reps</div>
+                    ${setFormatHtml}
                     <div class="text-muted">1RM: ${s.est1RM || 0}</div>
                 </div>
             `;
@@ -693,7 +755,7 @@ document.getElementById('btnEditSession').addEventListener('click', () => {
         
         const inputEl = div.querySelector('.ex-name');
         const listEl = div.querySelector('.autocomplete-list');
-        window.attachAutocomplete(inputEl, listEl);
+        window.attachAutocomplete(inputEl, listEl, uid);
 
         exSets.forEach(s => window.addSetToMovement(uid, s.weight, s.reps, s.rpe));
     }
@@ -730,20 +792,28 @@ btnFinishWorkout.addEventListener('click', async () => {
         const name = group.querySelector('.ex-name').value.trim();
         if (name) {
             group.querySelectorAll('.set-row').forEach(row => {
-                const weight = parseFloat(row.querySelector('.ex-weight').value) || 0;
-                const reps = parseInt(row.querySelector('.ex-reps').value) || 0;
-                const rpe = parseInt(row.querySelector('.ex-rpe').value) || 0;
+                const weight = parseFloat(row.querySelector('.ex-weight').value) || 0; // Or Mins
+                const reps = parseInt(row.querySelector('.ex-reps').value) || 0; // Or Distance
+                const rpe = parseInt(row.querySelector('.ex-rpe').value) || 0; // Or Lvl
                 
                 if (weight > 0 || reps > 0) { 
                     let est1RM = weight;
-                    if (reps > 1) est1RM = weight * (1 + (reps / 30));
+                    let volume = weight * reps;
+                    
+                    // Do not compute 1RM/Volume for Cardio/Flexibility
+                    if(name.includes('[Cardio]') || name.includes('[Yoga]') || name.includes('[Stretching]')) {
+                        est1RM = 0;
+                        volume = 0;
+                    } else if (reps > 1) {
+                        est1RM = weight * (1 + (reps / 30));
+                    }
                     
                     sets.push({ 
                         exercise: name, 
                         weight: weight, 
                         reps: reps, 
                         rpe: rpe,
-                        volume: weight * reps,
+                        volume: volume,
                         est1RM: Math.round(est1RM)
                     });
                 }
