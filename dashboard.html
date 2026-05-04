@@ -1,3 +1,5 @@
+/* 3pixelpacket3/bodypro/BodyPro-5c522d388574529d7d2fae0412c663b5c7d8f782/dashboard.html */
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -102,36 +104,6 @@
   .progress-content span { display: block; font-size: 1.6rem; font-weight: 800; color: var(--text-main); }
   .progress-content small { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; }
 
-  /* Telemetry Grid */
-  .telemetry-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: 12px;
-    margin-top: 15px;
-  }
-
-  .telemetry-item {
-    background: var(--bg-base);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
-    padding: 15px 12px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    transition: border-color 0.2s, transform 0.2s;
-  }
-
-  .telemetry-item:hover {
-    border-color: var(--primary);
-    transform: translateY(-2px);
-  }
-
-  .telemetry-item i { font-size: 1.6rem; margin-bottom: 10px; }
-  .telemetry-item .val { font-size: 1.2rem; font-weight: 800; font-family: monospace; }
-  .telemetry-item .lbl { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-top: 4px; }
-
   /* Water Tracker */
   .water-tracker { display: flex; align-items: center; justify-content: space-between; background: var(--bg-base); padding: 15px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); flex-wrap: wrap; gap: 15px;}
   .water-controls { display: flex; gap: 10px; align-items: center; }
@@ -139,60 +111,30 @@
   .water-btn:hover { background: var(--primary); border-color: var(--primary); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
   .water-btn:active { transform: scale(0.9); }
 
-  /* Modals for Manual Telemetry */
-  .modal-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(8px);
-    z-index: 9999;
+  /* Micro Grid styling */
+  .micro-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 8px;
+    margin-top: 15px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 15px;
+  }
+  .micro-item {
+    background: var(--bg-base);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: 8px 4px;
+    text-align: center;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s;
   }
-
-  .modal-overlay.active {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .modal-content {
-    background: var(--bg-surface);
-    width: 90%;
-    max-width: 500px;
-    border-radius: var(--border-radius-md);
-    border: 1px solid var(--border-color);
-    padding: 25px;
-    transform: translateY(20px);
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-  }
-
-  .modal-overlay.active .modal-content {
-    transform: translateY(0);
-  }
-
-  /* File Input Styling for OCR */
-  input[type="file"] {
-    display: none;
-  }
-
-  .custom-file-upload {
-    display: inline-block;
-    padding: 12px;
-    cursor: pointer;
-    text-align: center;
-    border-radius: var(--border-radius-sm);
-    font-weight: 600;
-    transition: background 0.2s;
-  }
+  .micro-item .lbl { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+  .micro-item .val { font-size: 0.9rem; font-weight: 800; font-family: monospace; }
     
-</style>
+  </style>
 </head>
 <body>
 
@@ -274,6 +216,18 @@
             <div class="macro-target">kcal</div>
           </div>
         </div>
+
+        <div class="micro-grid">
+          <div class="micro-item"><div class="lbl">Sugar</div><div class="val" id="sugarVal">0g</div></div>
+          <div class="micro-item"><div class="lbl">Sodium</div><div class="val" id="sodiumVal">0mg</div></div>
+          <div class="micro-item"><div class="lbl">Iron</div><div class="val" id="ironVal">0mg</div></div>
+          <div class="micro-item"><div class="lbl">Potassium</div><div class="val" id="potassiumVal">0mg</div></div>
+          <div class="micro-item"><div class="lbl">Fiber</div><div class="val" id="fiberVal">0g</div></div>
+          <div class="micro-item"><div class="lbl">Vit A</div><div class="val" id="vitAVal">0mcg</div></div>
+          <div class="micro-item"><div class="lbl">Vit C</div><div class="val" id="vitCVal">0mg</div></div>
+          <div class="micro-item"><div class="lbl">Calcium</div><div class="val" id="calciumVal">0mg</div></div>
+          <div class="micro-item"><div class="lbl">Sat Fat</div><div class="val" id="satFatVal">0g</div></div>
+        </div>
       </div>
 
       <div class="card" style="border-top: 4px solid var(--text-main);">
@@ -286,80 +240,6 @@
         </select>
         <div id="todayProtocolContainer">
           </div>
-      </div>
-
-      <div class="card" style="border-top: 4px solid var(--warning);">
-        <div class="card-header">
-          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-bed text-warning"></i> Sleep Telemetry</h3>
-          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openSleepModal()"><i class="fa-solid fa-pen"></i> Log Data</button>
-        </div>
-        
-        <div class="telemetry-grid">
-          <div class="telemetry-item">
-            <i class="fa-regular fa-clock text-warning"></i>
-            <div class="val" id="sleepDuration">--</div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;" id="sleepTarget">/ 7.5h</div>
-            <div class="lbl">Duration</div>
-          </div>
-          <div class="telemetry-item">
-            <i class="fa-solid fa-moon text-primary"></i>
-            <div class="val" id="sleepDeep">--</div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">&nbsp;</div>
-            <div class="lbl">Deep</div>
-          </div>
-          <div class="telemetry-item">
-            <i class="fa-solid fa-eye text-accent"></i>
-            <div class="val" id="sleepRem">--</div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">&nbsp;</div>
-            <div class="lbl">REM</div>
-          </div>
-          <div class="telemetry-item">
-            <i class="fa-solid fa-bed-pulse text-main"></i>
-            <div class="val" id="sleepRestfulness">--</div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">/ 100</div>
-            <div class="lbl">Restfulness</div>
-          </div>
-          <div class="telemetry-item">
-            <i class="fa-solid fa-stopwatch text-muted"></i>
-            <div class="val" id="sleepLatency">--</div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">&nbsp;</div>
-            <div class="lbl">Latency</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card" style="border-top: 4px solid var(--primary);">
-        <div class="card-header">
-          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-heart-pulse text-primary"></i> Daily Vitals & Activity</h3>
-          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openVitalsModal()"><i class="fa-solid fa-pen"></i> Update</button>
-        </div>
-        
-        <div class="telemetry-grid">
-          <div class="telemetry-item">
-            <i class="fa-solid fa-shoe-prints text-accent"></i>
-            <div class="val" id="stepCount">0</div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;" id="stepTarget">/ 10,000</div>
-            <div class="lbl">Steps</div>
-          </div>
-          <div class="telemetry-item">
-            <i class="fa-solid fa-stairs text-primary"></i>
-            <div class="val" id="floorCount">0</div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;" id="floorTarget">/ 10</div>
-            <div class="lbl">Floors</div>
-          </div>
-          <div class="telemetry-item">
-            <i class="fa-solid fa-heart-crack text-danger"></i>
-            <div class="val" id="restingHR">--</div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">&nbsp;</div>
-            <div class="lbl">Resting HR</div>
-          </div>
-          <div class="telemetry-item">
-            <i class="fa-solid fa-bolt text-warning"></i>
-            <div class="val" id="activeCals">0</div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">/ 600</div>
-            <div class="lbl">Active Cals</div>
-          </div>
-        </div>
       </div>
 
       <div class="card">
@@ -381,142 +261,20 @@
       </div>
 
     </main>
-
-    <div class="fab-container" id="fabContainer">
-      <div class="fab-menu">
-        <div class="fab-item">
-          <span class="fab-label">Log Weight / Biometrics</span>
-          <button class="fab-mini" onclick="window.location.href='settings.html'"><i class="fa-solid fa-scale-unbalanced"></i></button>
-        </div>
-        <div class="fab-item">
-          <span class="fab-label">Start Workout</span>
-          <button class="fab-mini" onclick="window.location.href='fitness.html'"><i class="fa-solid fa-dumbbell"></i></button>
-        </div>
-        <div class="fab-item">
-          <span class="fab-label">Quick Add Food</span>
-          <button class="fab-mini" onclick="window.location.href='nutrition.html'"><i class="fa-solid fa-utensils"></i></button>
-        </div>
-      </div>
-      <button class="fab" id="mainFab">
-        <i class="fa-solid fa-plus"></i>
-      </button>
-    </div>
-
-  </div>
-
-  <div class="modal-overlay" id="sleepModal">
-    <div class="modal-content">
-      <h3 style="margin-top: 0;"><i class="fa-solid fa-bed text-warning"></i> Log Sleep Data</h3>
-      
-      <label class="custom-file-upload" style="width: 100%; margin-bottom: 15px; background: rgba(245, 158, 11, 0.1); border: 1px dashed var(--warning); color: var(--warning);">
-        <input type="file" id="uploadSleepScreenshot" accept="image/*">
-        <span id="sleepOcrText"><i class="fa-solid fa-camera"></i> Auto-Fill from Screenshot</span>
-      </label>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="form-group">
-          <label for="inputBedTime">Bed Time</label>
-          <input type="time" id="inputBedTime">
-        </div>
-        <div class="form-group">
-          <label for="inputWakeTime">Wake Time</label>
-          <input type="time" id="inputWakeTime">
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="form-group">
-          <label for="inputDeepSleep" class="text-primary">Deep Sleep (hrs)</label>
-          <input type="number" id="inputDeepSleep" step="0.1" placeholder="e.g. 1.5">
-        </div>
-        <div class="form-group">
-          <label for="inputRemSleep" class="text-accent">REM Sleep (hrs)</label>
-          <input type="number" id="inputRemSleep" step="0.1" placeholder="e.g. 2.0">
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="form-group">
-          <label for="inputRestfulness">Restfulness Score (0-100)</label>
-          <input type="number" id="inputRestfulness" min="0" max="100" placeholder="e.g. 85">
-        </div>
-        <div class="form-group">
-          <label for="inputLatency">Latency (Mins to fall asleep)</label>
-          <input type="number" id="inputLatency" placeholder="e.g. 15">
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 10px; margin-top: 20px;">
-        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
-        <button class="btn" id="btnSaveSleep">Save Sleep Log</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="vitalsModal">
-    <div class="modal-content">
-      <h3 style="margin-top: 0;"><i class="fa-solid fa-heart-pulse text-primary"></i> Log Daily Vitals</h3>
-      
-      <label class="custom-file-upload" style="width: 100%; margin-bottom: 15px; background: rgba(59, 130, 246, 0.1); border: 1px dashed var(--primary); color: var(--primary);">
-        <input type="file" id="uploadVitalsScreenshot" accept="image/*">
-        <span id="vitalsOcrText"><i class="fa-solid fa-camera"></i> Auto-Fill from Screenshot</span>
-      </label>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="form-group">
-          <label for="inputSteps" class="text-accent">Steps</label>
-          <input type="number" id="inputSteps" placeholder="e.g. 10000">
-        </div>
-        <div class="form-group">
-          <label for="inputFloors" class="text-primary">Floors Climbed</label>
-          <input type="number" id="inputFloors" placeholder="e.g. 12">
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="form-group">
-          <label for="inputRestingHR" class="text-danger">Resting HR (BPM)</label>
-          <input type="number" id="inputRestingHR" placeholder="e.g. 58">
-        </div>
-        <div class="form-group">
-          <label for="inputActiveCals" class="text-warning">Active Calories</label>
-          <input type="number" id="inputActiveCals" placeholder="e.g. 450">
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 10px; margin-top: 20px;">
-        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
-        <button class="btn" id="btnSaveVitals">Save Vitals</button>
-      </div>
-    </div>
   </div>
 
   <script>
-    // Handle Date Display
-    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', dateOptions);
-
-    const fabContainer = document.getElementById('fabContainer');
-    const mainFab = document.getElementById('mainFab');
-
-    mainFab.addEventListener('click', () => {
-      fabContainer.classList.toggle('active');
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!fabContainer.contains(e.target) && fabContainer.classList.contains('active')) {
-        fabContainer.classList.remove('active');
-      }
-    });
-
-    function closeModals() {
-      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    try {
+      const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', dateOptions);
+    } catch (error) {
+      console.error("Error setting date display:", error);
     }
   </script>
 
   <script type="module" src="data-store.js"></script>
   <script type="module" src="dashboard.js"></script>
-  </body>
+</body>
   
 <footer style="text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: 20px;">
   &copy; 2026 Joshua Michael Smolak. All Rights Reserved. <br>
