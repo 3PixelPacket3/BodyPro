@@ -169,22 +169,25 @@ function renderSupplements() {
     let dayBio = (userData.biometrics || []).find(b => b.date === viewDateStr);
     let completedSupps = dayBio && dayBio.supplements ? dayBio.supplements : [];
 
-    const suppTemplate = userData.settings.dailySupplements || [];
+    // Parse the comma or newline separated string saved from the Profile page
+    const rawSupps = userData.profile?.supplements || '';
+    const suppTemplate = rawSupps.split(/,|\n/).map(s => s.trim()).filter(s => s);
+
     supplementContainer.innerHTML = '';
 
     if (suppTemplate.length === 0) {
-        supplementContainer.innerHTML = '<p class="text-muted" style="text-align:center; font-size:0.9rem;">No daily supplements configured in System Calibration.</p>';
+        supplementContainer.innerHTML = '<p class="text-muted" style="text-align:center; font-size:0.9rem;">No daily supplements configured in Profile Configuration.</p>';
         return;
     }
 
-    suppTemplate.forEach((supp, index) => {
-        const isChecked = completedSupps.includes(supp.name);
+    suppTemplate.forEach((suppName, index) => {
+        const isChecked = completedSupps.includes(suppName);
         
         const item = document.createElement('div');
         item.className = `supp-item ${isChecked ? 'completed' : ''}`;
         item.innerHTML = `
             <input type="checkbox" id="supp_${index}" ${isChecked ? 'checked' : ''}>
-            <label for="supp_${index}">${supp.name}</label>
+            <label for="supp_${index}">${suppName}</label>
         `;
 
         const checkbox = item.querySelector('input');
@@ -192,7 +195,7 @@ function renderSupplements() {
             const checked = e.target.checked;
             if (checked) item.classList.add('completed');
             else item.classList.remove('completed');
-            await toggleSupplement(supp.name, checked);
+            await toggleSupplement(suppName, checked);
         });
 
         supplementContainer.appendChild(item);
