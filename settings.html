@@ -270,8 +270,8 @@
         <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px;">Record your daily body data to populate your analytics charts.</p>
         
         <div class="settings-grid">
-          <div class="form-group"><label>Weight (lbs)</label><input type="number" step="0.1" id="logWeight" placeholder="e.g. 185"></div>
-          <div class="form-group"><label>Blood Pressure</label>
+          <div class="form-group"><label for="logWeight">Weight (lbs)</label><input type="number" step="0.1" id="logWeight" placeholder="e.g. 185"></div>
+          <div class="form-group"><label for="logSys">Blood Pressure</label>
             <div style="display:flex; gap:5px; align-items:center;">
               <input type="number" id="logSys" placeholder="120" style="width:45%; text-align:center;">
               <span style="color:var(--text-muted);">/</span>
@@ -283,9 +283,9 @@
             <div style="color: var(--text-muted); font-weight: 600; font-size: 0.85rem;">Body Composition (Pinch Test - 3 Site)</div>
           </div>
           
-          <div class="form-group"><label id="lblPinch1">Chest (mm)</label><input type="number" id="logPinch1" placeholder="0"></div>
-          <div class="form-group"><label id="lblPinch2">Abdomen (mm)</label><input type="number" id="logPinch2" placeholder="0"></div>
-          <div class="form-group"><label id="lblPinch3">Thigh (mm)</label><input type="number" id="logPinch3" placeholder="0"></div>
+          <div class="form-group"><label id="lblPinch1" for="logPinch1">Chest (mm)</label><input type="number" id="logPinch1" placeholder="0"></div>
+          <div class="form-group"><label id="lblPinch2" for="logPinch2">Abdomen (mm)</label><input type="number" id="logPinch2" placeholder="0"></div>
+          <div class="form-group"><label id="lblPinch3" for="logPinch3">Thigh (mm)</label><input type="number" id="logPinch3" placeholder="0"></div>
           
           <div class="form-group settings-grid-full" style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-surface-elevated); padding:10px; border-radius:var(--border-radius-sm);">
               <span style="font-weight:600; font-size:0.9rem;">Body Fat %:</span>
