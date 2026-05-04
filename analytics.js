@@ -1,5 +1,3 @@
-// analytics.js - BodyPro Analytics & Visualization Logic
-
 import { auth } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -15,15 +13,21 @@ if ('serviceWorker' in navigator) {
 // --- DOM Elements ---
 // Selectors
 const weightRangeSelect = document.getElementById('weightRangeSelect');
-const macroRangeSelect = document.getElementById('macroRangeSelect');
-const sleepRangeSelect = document.getElementById('sleepRangeSelect');
+const compRangeSelect = document.getElementById('compRangeSelect');
+const bpRangeSelect = document.getElementById('bpRangeSelect');
 const liftSelect = document.getElementById('liftSelect');
 const volumeRangeSelect = document.getElementById('volumeRangeSelect');
+const macroRangeSelect = document.getElementById('macroRangeSelect');
 
 // Weight Stats
 const valCurrentWeight = document.getElementById('valCurrentWeight');
 const valAvgWeight = document.getElementById('valAvgWeight');
 const valNetWeight = document.getElementById('valNetWeight');
+
+// Body Comp Stats
+const valBodyFat = document.getElementById('valBodyFat');
+const valLeanMass = document.getElementById('valLeanMass');
+const valFatMass = document.getElementById('valFatMass');
 
 // History & Modals
 const activityHistoryList = document.getElementById('activityHistoryList');
@@ -44,28 +48,26 @@ const calendarMonthLabel = document.getElementById('calendarMonthLabel');
 const btnPrevMonth = document.getElementById('btnPrevMonth');
 const btnNextMonth = document.getElementById('btnNextMonth');
 
-// Edit Sub-Modals
-const btnSaveEditSleep = document.getElementById('btnSaveEditSleep');
-const btnSaveEditVitals = document.getElementById('btnSaveEditVitals');
-
 // Chart Contexts
 const ctxWeight = document.getElementById('weightChart').getContext('2d');
+const ctxBodyComp = document.getElementById('bodyCompChart').getContext('2d');
+const ctxBP = document.getElementById('bpChart').getContext('2d');
 const ctx1RM = document.getElementById('oneRMChart').getContext('2d');
 const ctxVolume = document.getElementById('volumeChart').getContext('2d');
 const ctxMacro = document.getElementById('macroChart').getContext('2d');
 const ctxMacroDist = document.getElementById('macroDistChart').getContext('2d');
-const ctxSleep = document.getElementById('sleepChart').getContext('2d');
-const ctxHydration = document.getElementById('hydrationChart').getContext('2d');
+const ctxMicro = document.getElementById('microRadarChart').getContext('2d');
 
 // --- STATE MANAGEMENT ---
 let userData = null;
 let chartWeightInstance = null;
+let chartBodyCompInstance = null;
+let chartBPInstance = null;
 let chart1RMInstance = null;
 let chartVolumeInstance = null;
 let chartMacroInstance = null;
 let chartMacroDistInstance = null;
-let chartSleepInstance = null;
-let chartHydrationInstance = null;
+let chartMicroInstance = null;
 
 let currentViewActivityId = null;
 
@@ -123,11 +125,12 @@ function calculateMovingAverage(data, windowSize) {
 
 function renderAnalytics() {
     updateWeightChart();
+    updateBodyCompChart();
+    updateBPChart();
     update1RMChart();
     updateVolumeChart();
     updateMacroCharts();
-    updateSleepChart();
-    updateHydrationChart();
+    updateMicroChart();
     renderActivityHistory();
     renderCalendar();
 }
@@ -189,8 +192,7 @@ function renderCalendar() {
         
         const hasWorkout = (userData.workouts || []).some(w => w.date === dateStr || (w.timestamp && w.timestamp.startsWith(dateStr)));
         const hasFood = (userData.food_diary || []).some(f => f.date === dateStr);
-        const hasSleep = (userData.sleep_data || []).some(s => s.date === dateStr);
-        const hasVitals = (userData.biometrics || []).some(b => b.date === dateStr && (b.steps > 0 || (b.waterOz || b.water) > 0 || b.restingHR > 0));
+        const hasComp = (userData.biometrics || []).some(b => b.date === dateStr && (b.weight > 0 || b.bodyFat > 0 || b.systolic > 0));
         
         const el = document.createElement('div');
         el.className = 'cal-day';
@@ -199,8 +201,7 @@ function renderCalendar() {
         let html = `<div>${d}</div><div class="cal-indicators">`;
         if (hasWorkout) html += `<div class="cal-dot dot-workout"></div>`;
         if (hasFood) html += `<div class="cal-dot dot-food"></div>`;
-        if (hasSleep) html += `<div class="cal-dot dot-sleep"></div>`;
-        if (hasVitals) html += `<div class="cal-dot dot-vitals"></div>`;
+        if (hasComp) html += `<div class="cal-dot dot-comp"></div>`;
         html += `</div>`;
         
         el.innerHTML = html;
@@ -208,7 +209,7 @@ function renderCalendar() {
     }
 }
 
-// Master Record Compiler (Now with CRUD injection)
+// Master Record Compiler 
 window.viewDaySummary = function(dateStr) {
     const dsDateLabel = document.getElementById('dsDateLabel');
     const dsContent = document.getElementById('dsContent');
@@ -277,48 +278,25 @@ window.viewDaySummary = function(dateStr) {
         dsContent.innerHTML += nHtml;
     }
 
-    // 3. Sleep Telemetry
-    const sleepData = (userData.sleep_data || []).find(s => s.date === dateStr);
-    if (sleepData) {
+    // 3. Body Metrics & Vitals
+    const biometrics = (userData.biometrics || []).find(b => b.date === dateStr);
+    if (biometrics && (biometrics.weight || biometrics.bodyFat || biometrics.systolic || biometrics.diastolic)) {
         hasAnyData = true;
-        dsContent.innerHTML += `
-            <div class="summary-card">
-                <div class="summary-card-header">
-                    <h4 class="text-warning"><i class="fa-solid fa-bed"></i> Sleep</h4>
-                    <div>
-                        <button class="btn btn-ghost" style="padding:2px 8px; font-size:0.75rem;" onclick="openEditSleep('${dateStr}')"><i class="fa-solid fa-pen"></i></button>
-                        <button class="btn btn-ghost" style="padding:2px 8px; font-size:0.75rem; color:var(--danger); border-color:var(--danger);" onclick="deleteSleep('${dateStr}')"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.85rem;">
-                    <div>Duration: <strong>${sleepData.durationHrs || 0}h</strong></div>
-                    <div>Score: <strong>${sleepData.score || '--'} / 100</strong></div>
-                    <div>Deep: <strong>${sleepData.deepHrs || '--'}h</strong></div>
-                    <div>REM: <strong>${sleepData.remHrs || '--'}h</strong></div>
-                </div>
-            </div>
-        `;
-    }
+        
+        let weightData = biometrics.weight ? `${biometrics.weight} lbs` : '--';
+        let bfData = biometrics.bodyFat ? `${biometrics.bodyFat} %` : '--';
+        let bpData = (biometrics.systolic && biometrics.diastolic) ? `${biometrics.systolic} / ${biometrics.diastolic}` : '--';
 
-    // 4. Daily Vitals
-    const vitals = (userData.biometrics || []).find(b => b.date === dateStr);
-    if (vitals && (vitals.steps || vitals.restingHR || vitals.water || vitals.waterOz || vitals.floors)) {
-        hasAnyData = true;
-        const water = vitals.waterOz || vitals.water || 0;
         dsContent.innerHTML += `
             <div class="summary-card">
                 <div class="summary-card-header">
-                    <h4 class="text-danger"><i class="fa-solid fa-heart-pulse"></i> Vitals</h4>
-                    <div>
-                        <button class="btn btn-ghost" style="padding:2px 8px; font-size:0.75rem;" onclick="openEditVitals('${dateStr}')"><i class="fa-solid fa-pen"></i></button>
-                        <button class="btn btn-ghost" style="padding:2px 8px; font-size:0.75rem; color:var(--danger); border-color:var(--danger);" onclick="deleteVitals('${dateStr}')"><i class="fa-solid fa-trash"></i></button>
-                    </div>
+                    <h4 class="text-warning"><i class="fa-solid fa-child-reaching"></i> Body Data</h4>
+                    <button class="btn btn-ghost" style="padding:2px 8px; font-size:0.75rem; color:var(--danger); border-color:var(--danger);" onclick="deleteBiometrics('${dateStr}')"><i class="fa-solid fa-trash"></i></button>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.85rem;">
-                    <div>Steps: <strong>${(vitals.steps || 0).toLocaleString()}</strong></div>
-                    <div>Water: <strong>${water} fl oz</strong></div>
-                    <div>Resting HR: <strong>${vitals.restingHR || '--'} bpm</strong></div>
-                    <div>Floors: <strong>${vitals.floors || 0}</strong></div>
+                    <div>Weight: <strong>${weightData}</strong></div>
+                    <div>Body Fat: <strong>${bfData}</strong></div>
+                    <div>Blood Pressure: <strong>${bpData}</strong></div>
                 </div>
             </div>
         `;
@@ -349,95 +327,13 @@ window.deleteFood = async function(id, dateStr) {
     window.viewDaySummary(dateStr);
 };
 
-window.deleteSleep = async function(dateStr) {
-    if(!confirm("Delete sleep data for this date?")) return;
-    userData.sleep_data = userData.sleep_data.filter(s => s.date !== dateStr);
+window.deleteBiometrics = async function(dateStr) {
+    if(!confirm("Remove recorded body metrics for this date?")) return;
+    userData.biometrics = userData.biometrics.filter(b => b.date !== dateStr);
     await window.BodyProDataStore.saveData(userData);
     renderAnalytics();
     window.viewDaySummary(dateStr);
 };
-
-window.deleteVitals = async function(dateStr) {
-    if(!confirm("Delete vitals for this date? (Weight records remain)")) return;
-    // We filter out daily vitals but preserve weight if present. 
-    const idx = userData.biometrics.findIndex(b => b.date === dateStr);
-    if(idx !== -1) {
-        if(userData.biometrics[idx].weight) {
-            // Scrub daily data, keep weight
-            userData.biometrics[idx].steps = null;
-            userData.biometrics[idx].water = null;
-            userData.biometrics[idx].waterOz = null;
-            userData.biometrics[idx].restingHR = null;
-            userData.biometrics[idx].floors = null;
-        } else {
-            userData.biometrics.splice(idx, 1);
-        }
-        await window.BodyProDataStore.saveData(userData);
-        renderAnalytics();
-        window.viewDaySummary(dateStr);
-    }
-};
-
-window.openEditSleep = function(dateStr) {
-    const sleep = userData.sleep_data.find(s => s.date === dateStr) || {};
-    document.getElementById('esDate').value = dateStr;
-    document.getElementById('esDuration').value = sleep.durationHrs || '';
-    document.getElementById('esScore').value = sleep.score || '';
-    document.getElementById('esDeep').value = sleep.deepHrs || '';
-    document.getElementById('esRem').value = sleep.remHrs || '';
-    document.getElementById('editSleepModal').classList.add('active');
-};
-
-btnSaveEditSleep.addEventListener('click', async () => {
-    const dateStr = document.getElementById('esDate').value;
-    let sleep = userData.sleep_data.find(s => s.date === dateStr);
-    
-    if(!sleep) {
-        sleep = { id: `slp_${Date.now()}`, date: dateStr };
-        userData.sleep_data.push(sleep);
-    }
-    
-    sleep.durationHrs = parseFloat(document.getElementById('esDuration').value) || null;
-    sleep.score = parseInt(document.getElementById('esScore').value) || null;
-    sleep.deepHrs = parseFloat(document.getElementById('esDeep').value) || null;
-    sleep.remHrs = parseFloat(document.getElementById('esRem').value) || null;
-    
-    await window.BodyProDataStore.saveData(userData);
-    document.getElementById('editSleepModal').classList.remove('active');
-    renderAnalytics();
-    window.viewDaySummary(dateStr);
-});
-
-window.openEditVitals = function(dateStr) {
-    const bio = userData.biometrics.find(b => b.date === dateStr) || {};
-    document.getElementById('evDate').value = dateStr;
-    document.getElementById('evSteps').value = bio.steps || '';
-    document.getElementById('evWater').value = bio.waterOz || bio.water || '';
-    document.getElementById('evHR').value = bio.restingHR || '';
-    document.getElementById('evFloors').value = bio.floors || '';
-    document.getElementById('editVitalsModal').classList.add('active');
-};
-
-btnSaveEditVitals.addEventListener('click', async () => {
-    const dateStr = document.getElementById('evDate').value;
-    let bio = userData.biometrics.find(b => b.date === dateStr);
-    
-    if(!bio) {
-        bio = { id: `bio_${Date.now()}`, date: dateStr };
-        userData.biometrics.push(bio);
-    }
-    
-    bio.steps = parseInt(document.getElementById('evSteps').value) || null;
-    bio.waterOz = parseInt(document.getElementById('evWater').value) || null;
-    bio.water = bio.waterOz; // Backwards compatibility 
-    bio.restingHR = parseInt(document.getElementById('evHR').value) || null;
-    bio.floors = parseInt(document.getElementById('evFloors').value) || null;
-    
-    await window.BodyProDataStore.saveData(userData);
-    document.getElementById('editVitalsModal').classList.remove('active');
-    renderAnalytics();
-    window.viewDaySummary(dateStr);
-});
 
 
 // 1. Body Mass Tracking
@@ -516,7 +412,110 @@ function updateWeightChart() {
     });
 }
 
-// 2. 1RM Projection Chart (Epley Formula Data)
+// 2. Body Composition Chart
+function updateBodyCompChart() {
+    const days = parseInt(compRangeSelect.value) || 90;
+    const dateLabels = getPastDates(days);
+    
+    const bfData = [];
+    let latestWeight = 0;
+    let latestBF = 0;
+
+    dateLabels.forEach(date => {
+        const entry = (userData.biometrics || []).find(b => b.date === date && b.bodyFat);
+        const bf = entry ? parseFloat(entry.bodyFat) : null;
+        bfData.push(bf);
+        
+        if (entry && entry.weight && entry.bodyFat) {
+            latestWeight = parseFloat(entry.weight);
+            latestBF = parseFloat(entry.bodyFat);
+        }
+    });
+
+    if (latestWeight > 0 && latestBF > 0) {
+        const fatMass = latestWeight * (latestBF / 100);
+        const leanMass = latestWeight - fatMass;
+        valBodyFat.innerText = `${latestBF.toFixed(1)} %`;
+        valFatMass.innerText = `${fatMass.toFixed(1)} lbs`;
+        valLeanMass.innerText = `${leanMass.toFixed(1)} lbs`;
+    }
+
+    if (chartBodyCompInstance) chartBodyCompInstance.destroy();
+
+    chartBodyCompInstance = new Chart(ctxBodyComp, {
+        type: 'line',
+        data: {
+            labels: dateLabels.map(d => d.substring(5)),
+            datasets: [{
+                label: 'Body Fat %',
+                data: bfData,
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                borderWidth: 3,
+                pointRadius: 4,
+                spanGaps: true,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top' } }
+        }
+    });
+}
+
+// 3. Blood Pressure Chart
+function updateBPChart() {
+    const days = parseInt(bpRangeSelect.value) || 30;
+    const dateLabels = getPastDates(days);
+    
+    const systolicData = [];
+    const diastolicData = [];
+
+    dateLabels.forEach(date => {
+        const entry = (userData.biometrics || []).find(b => b.date === date && b.systolic && b.diastolic);
+        systolicData.push(entry ? parseFloat(entry.systolic) : null);
+        diastolicData.push(entry ? parseFloat(entry.diastolic) : null);
+    });
+
+    if (chartBPInstance) chartBPInstance.destroy();
+
+    chartBPInstance = new Chart(ctxBP, {
+        type: 'line',
+        data: {
+            labels: dateLabels.map(d => d.substring(5)),
+            datasets: [
+                {
+                    label: 'Systolic',
+                    data: systolicData,
+                    borderColor: '#ef4444',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    spanGaps: true,
+                    tension: 0.2
+                },
+                {
+                    label: 'Diastolic',
+                    data: diastolicData,
+                    borderColor: '#3b82f6',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    spanGaps: true,
+                    tension: 0.2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top' } }
+        }
+    });
+}
+
+// 4. 1RM Projection Chart
 function update1RMChart() {
     const selectedLift = liftSelect.value;
     const days = 30; // Hardcode to 30 days for trending
@@ -524,7 +523,6 @@ function update1RMChart() {
     const ormData = [];
 
     dateLabels.forEach(date => {
-        // Find workouts on this local date
         const dayWorkouts = (userData.workouts || []).filter(w => {
             const localD = new Date(w.timestamp);
             const offset = localD.getTimezoneOffset() * 60000;
@@ -572,7 +570,7 @@ function update1RMChart() {
     });
 }
 
-// 3. Volume Load (Tonnage)
+// 5. Volume Load (Tonnage)
 function updateVolumeChart() {
     const days = parseInt(volumeRangeSelect.value) || 14;
     const dateLabels = getPastDates(days);
@@ -615,7 +613,7 @@ function updateVolumeChart() {
     });
 }
 
-// 4. Macro Adherence & Distribution
+// 6. Macro Adherence & Distribution
 function updateMacroCharts() {
     const days = parseInt(macroRangeSelect.value) || 7;
     const dateLabels = getPastDates(days);
@@ -682,77 +680,82 @@ function updateMacroCharts() {
     });
 }
 
-// 5. Sleep Statistics
-function updateSleepChart() {
-    const days = parseInt(sleepRangeSelect.value) || 7;
+// 7. Micronutrient Radar
+function updateMicroChart() {
+    const days = 7;
     const dateLabels = getPastDates(days);
-    const sleepScores = [];
+    
+    // Default FDA/Standard Goals
+    const targets = {
+        sugar: 50, sodium: 2300, iron: 18, potassium: 4700, 
+        fiber: 30, vitA: 900, vitC: 90, calcium: 1000, satFat: 20
+    };
+    
+    const sums = { sugar: 0, sodium: 0, iron: 0, potassium: 0, fiber: 0, vitA: 0, vitC: 0, calcium: 0, satFat: 0 };
 
     dateLabels.forEach(date => {
-        const sleepData = (userData.sleep_data || []).find(s => s.date === date);
-        sleepScores.push(sleepData && sleepData.score ? sleepData.score : null);
+        const daysFoods = (userData.food_diary || []).filter(f => f.date === date);
+        daysFoods.forEach(food => {
+            sums.sugar += (Number(food.sugar) || 0);
+            sums.sodium += (Number(food.sodium) || 0);
+            sums.iron += (Number(food.iron) || 0);
+            sums.potassium += (Number(food.potassium) || 0);
+            sums.fiber += (Number(food.fiber) || 0);
+            sums.vitA += (Number(food.vitA) || 0);
+            sums.vitC += (Number(food.vitC) || 0);
+            sums.calcium += (Number(food.calcium) || 0);
+            sums.satFat += (Number(food.satFat) || 0);
+        });
     });
 
-    if (chartSleepInstance) chartSleepInstance.destroy();
+    const dataPercents = [
+        Math.min((sums.sugar / days / targets.sugar) * 100, 150), // Cap at 150% for visualization
+        Math.min((sums.sodium / days / targets.sodium) * 100, 150),
+        Math.min((sums.iron / days / targets.iron) * 100, 150),
+        Math.min((sums.potassium / days / targets.potassium) * 100, 150),
+        Math.min((sums.fiber / days / targets.fiber) * 100, 150),
+        Math.min((sums.vitA / days / targets.vitA) * 100, 150),
+        Math.min((sums.vitC / days / targets.vitC) * 100, 150),
+        Math.min((sums.calcium / days / targets.calcium) * 100, 150),
+        Math.min((sums.satFat / days / targets.satFat) * 100, 150)
+    ];
 
-    chartSleepInstance = new Chart(ctxSleep, {
-        type: 'line',
+    if (chartMicroInstance) chartMicroInstance.destroy();
+
+    chartMicroInstance = new Chart(ctxMicro, {
+        type: 'radar',
         data: {
-            labels: dateLabels.map(d => d.substring(5)),
+            labels: ['Sugar', 'Sodium', 'Iron', 'Potassium', 'Fiber', 'Vit A', 'Vit C', 'Calcium', 'Sat Fat'],
             datasets: [{
-                label: 'Restfulness Score',
-                data: sleepScores,
-                borderColor: '#f59e0b',
-                backgroundColor: 'rgba(245, 158, 11, 0.2)',
-                borderWidth: 3,
-                pointRadius: 4,
-                spanGaps: true,
-                fill: true,
-                tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { y: { min: 0, max: 100 } }
-        }
-    });
-}
-
-// 6. Hydration Consistency
-function updateHydrationChart() {
-    const dateLabels = getPastDates(7);
-    const hydrationData = [];
-
-    dateLabels.forEach(date => {
-        const bio = (userData.biometrics || []).find(b => b.date === date);
-        hydrationData.push(bio && (bio.waterOz || bio.water) ? (bio.waterOz || bio.water) : 0);
-    });
-
-    if (chartHydrationInstance) chartHydrationInstance.destroy();
-
-    chartHydrationInstance = new Chart(ctxHydration, {
-        type: 'bar',
-        data: {
-            labels: dateLabels.map(d => d.substring(5)),
-            datasets: [{
-                label: 'Water (fl oz)',
-                data: hydrationData,
-                backgroundColor: '#3b82f6',
-                borderRadius: 4
+                label: '% of Daily Target',
+                data: dataPercents,
+                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                borderColor: '#3b82f6',
+                pointBackgroundColor: '#3b82f6',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: '#3b82f6'
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: { beginAtZero: true }
+                r: {
+                    angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    pointLabels: { color: '#a1a1aa', font: { size: 10 } },
+                    ticks: { display: false, max: 100, min: 0, stepSize: 25 }
+                }
+            },
+            plugins: {
+                legend: { display: false }
             }
         }
     });
 }
 
-// 7. Activity History List
+// 8. Activity History List
 function renderActivityHistory() {
     activityHistoryList.innerHTML = '';
     const workouts = [...(userData.workouts || [])].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 15);
@@ -835,7 +838,8 @@ btnDeleteActivity.addEventListener('click', async () => {
 
 // --- EVENT LISTENERS ---
 weightRangeSelect.addEventListener('change', updateWeightChart);
+compRangeSelect.addEventListener('change', updateBodyCompChart);
+bpRangeSelect.addEventListener('change', updateBPChart);
 macroRangeSelect.addEventListener('change', updateMacroCharts);
-if(sleepRangeSelect) sleepRangeSelect.addEventListener('change', updateSleepChart);
 liftSelect.addEventListener('change', update1RMChart);
 volumeRangeSelect.addEventListener('change', updateVolumeChart);
