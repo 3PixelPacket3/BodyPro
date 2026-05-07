@@ -24,6 +24,17 @@ const sumCarbEl = document.getElementById('sumCarb');
 const sumFatEl = document.getElementById('sumFat');
 const calProgressBar = document.getElementById('calProgressBar');
 
+// Micro Summary Elements
+const nSugarVal = document.getElementById('nSugarVal');
+const nSodiumVal = document.getElementById('nSodiumVal');
+const nIronVal = document.getElementById('nIronVal');
+const nPotassiumVal = document.getElementById('nPotassiumVal');
+const nFiberVal = document.getElementById('nFiberVal');
+const nVitAVal = document.getElementById('nVitAVal');
+const nVitCVal = document.getElementById('nVitCVal');
+const nCalciumVal = document.getElementById('nCalciumVal');
+const nSatFatVal = document.getElementById('nSatFatVal');
+
 // Quick Add Elements
 const btnSaveQuickAdd = document.getElementById('btnSaveQuickAdd');
 const qaRecipeSelect = document.getElementById('qaRecipeSelect');
@@ -37,6 +48,7 @@ const qaVitA = document.getElementById('qaVitA');
 const qaVitC = document.getElementById('qaVitC');
 const qaCalcium = document.getElementById('qaCalcium');
 const qaSatFat = document.getElementById('qaSatFat');
+const qaBarcode = document.getElementById('qaBarcode');
 
 // Macro Calc Elements
 const btnRunMacroCalc = document.getElementById('btnRunMacroCalc');
@@ -230,6 +242,8 @@ function renderDiary() {
     
     const meals = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
     let dailyCals = 0, dailyProt = 0, dailyCarb = 0, dailyFat = 0;
+    let dailySugar = 0, dailySodium = 0, dailyIron = 0, dailyPotassium = 0;
+    let dailyFiber = 0, dailyVitA = 0, dailyVitC = 0, dailyCalcium = 0, dailySatFat = 0;
 
     meals.forEach(meal => {
         const mealContainer = document.getElementById(`list-${meal}`);
@@ -250,6 +264,16 @@ function renderDiary() {
                 dailyProt += Number(food.protein || 0);
                 dailyCarb += Number(food.carbs || 0);
                 dailyFat += Number(food.fats || 0);
+                
+                dailySugar += Number(food.sugar || 0);
+                dailySodium += Number(food.sodium || 0);
+                dailyIron += Number(food.iron || 0);
+                dailyPotassium += Number(food.potassium || 0);
+                dailyFiber += Number(food.fiber || 0);
+                dailyVitA += Number(food.vitA || 0);
+                dailyVitC += Number(food.vitC || 0);
+                dailyCalcium += Number(food.calcium || 0);
+                dailySatFat += Number(food.satFat || 0);
 
                 const item = document.createElement('div');
                 item.className = 'food-item';
@@ -274,12 +298,22 @@ function renderDiary() {
         mealCalsEl.innerText = `${Math.round(mealCals)} kcal`;
     });
 
-    const targetCals = userData.settings.macroTargets.calories;
+    const targetCals = userData.settings.macroTargets.calories || 2200;
     sumCalsEl.innerText = Math.round(dailyCals);
     tarCalsEl.innerText = targetCals;
     sumProtEl.innerText = Math.round(dailyProt);
     sumCarbEl.innerText = Math.round(dailyCarb);
     sumFatEl.innerText = Math.round(dailyFat);
+    
+    if (nSugarVal) nSugarVal.innerText = `${Math.round(dailySugar)}g`;
+    if (nSodiumVal) nSodiumVal.innerText = `${Math.round(dailySodium)}mg`;
+    if (nIronVal) nIronVal.innerText = `${Math.round(dailyIron)}mg`;
+    if (nPotassiumVal) nPotassiumVal.innerText = `${Math.round(dailyPotassium)}mg`;
+    if (nFiberVal) nFiberVal.innerText = `${Math.round(dailyFiber)}g`;
+    if (nVitAVal) nVitAVal.innerText = `${Math.round(dailyVitA)}mcg`;
+    if (nVitCVal) nVitCVal.innerText = `${Math.round(dailyVitC)}mg`;
+    if (nCalciumVal) nCalciumVal.innerText = `${Math.round(dailyCalcium)}mg`;
+    if (nSatFatVal) nSatFatVal.innerText = `${Math.round(dailySatFat)}g`;
 
     const pct = Math.min((dailyCals / targetCals) * 100, 100);
     calProgressBar.style.width = `${pct}%`;
@@ -325,7 +359,6 @@ async function onScanSuccess(decodedText, decodedResult) {
     
     labelProductName.innerText = "Querying Database...";
     labelServingMultiplier.value = 1; 
-    nutritionLabelModal.classList.add('active');
     
     const defaultMeal = userData?.settings?.preferences?.defaultMeal || 'Snacks';
     labelMealSelect.value = defaultMeal;
@@ -333,6 +366,7 @@ async function onScanSuccess(decodedText, decodedResult) {
     const cachedProduct = await FoodCache.get(decodedText);
     
     if (cachedProduct) {
+        nutritionLabelModal.classList.add('active');
         currentScannedFood = cachedProduct;
         updateNutritionLabelDisplay();
         checkIfFavorite(currentScannedFood.name, nlFavoriteBtn);
@@ -340,7 +374,7 @@ async function onScanSuccess(decodedText, decodedResult) {
     }
 
     try {
-        // Implemented aggressive retry logic (3 attempts, 1s delay)
+        nutritionLabelModal.classList.add('active');
         const data = await fetchWithRetry(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`, 3, 1000);
         
         if (data && data.status === 1 && data.product) {
@@ -349,18 +383,33 @@ async function onScanSuccess(decodedText, decodedResult) {
             checkIfFavorite(currentScannedFood.name, nlFavoriteBtn);
             await FoodCache.set(decodedText, currentScannedFood);
         } else {
-            alert("Telemetry negative. Product not found in OpenFoodFacts database.");
+            alert("Product not found in global registry. Please map this item manually; the barcode will be linked upon saving.");
             document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
-            window.openQuickAddModal('Snacks');
+            qaBarcode.value = decodedText; // Stash barcode for custom caching
+            window.openQuickAddModal(defaultMeal);
         }
     } catch (err) {
-        alert("Network failure. Unable to retrieve nutritional telemetry after multiple attempts.");
+        alert("Network failure. Opening manual entry pipeline.");
         document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
-        window.openQuickAddModal('Snacks');
+        qaBarcode.value = decodedText;
+        window.openQuickAddModal(defaultMeal);
     }
 }
 
 // --- OPENFOODFACTS TEXT API SEARCH ---
+let searchDebounceTimer;
+
+apiSearchInput.addEventListener('input', () => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+        if(apiSearchInput.value.trim().length >= 3) {
+            btnApiSearch.click();
+        } else if (apiSearchInput.value.trim().length === 0) {
+             apiSearchResults.innerHTML = '<p class="text-muted" style="text-align:center; font-size:0.9rem; padding: 20px;">Enter a food name to search the global registry. Auto-search enabled.</p>';
+        }
+    }, 800);
+});
+
 btnApiSearch.addEventListener('click', async () => {
     const query = apiSearchInput.value.trim();
     if (!query) return;
@@ -368,7 +417,6 @@ btnApiSearch.addEventListener('click', async () => {
     apiSearchResults.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Querying global registry...</div>';
     
     try {
-        // Implemented aggressive retry logic (3 attempts, 1s delay)
         const data = await fetchWithRetry(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=15`, 3, 1000);
 
         apiSearchResults.innerHTML = '';
@@ -670,6 +718,13 @@ window.openQuickAddModal = function(meal = 'Snacks') {
     qaCalcium.value = 0;
     qaSatFat.value = 0;
     
+    // Check if we came from a failed barcode scan, if not, clear the hidden value
+    if (qaBarcode.value && document.getElementById('scannerModal').classList.contains('active') === false) {
+        // Keep it if it was populated directly prior to opening
+    } else {
+        qaBarcode.value = '';
+    }
+    
     qaFavoriteBtn.classList.remove('active');
     qaFavoriteBtn.innerHTML = '<i class="fa-regular fa-heart"></i>';
     
@@ -696,15 +751,12 @@ btnSaveQuickAdd.addEventListener('click', async () => {
     btnSaveQuickAdd.disabled = true;
     btnSaveQuickAdd.innerText = "Saving...";
 
-    const newEntry = {
-        id: 'food_' + Date.now(),
-        date: getLocalISODate(currentViewDate),
-        meal: meal,
+    const customFoodPayload = {
         name: name,
-        calories: cals,
-        protein: prot,
-        carbs: carb,
-        fats: fat,
+        cals: cals,
+        prot: prot,
+        carb: carb,
+        fat: fat,
         sugar: sugar,
         sodium: sodium,
         iron: iron,
@@ -713,9 +765,27 @@ btnSaveQuickAdd.addEventListener('click', async () => {
         vitA: vitA,
         vitC: vitC,
         calcium: calcium,
-        satFat: satFat,
+        satFat: satFat
+    };
+
+    const newEntry = {
+        id: 'food_' + Date.now(),
+        date: getLocalISODate(currentViewDate),
+        meal: meal,
+        ...customFoodPayload, // spread properties to log exactly what they entered
+        calories: cals,
+        protein: prot,
+        carbs: carb,
+        fats: fat,
         timestamp: new Date().toISOString()
     };
+    
+    // Check if we have a pending unmapped barcode to save to local cache
+    const pendingBarcode = qaBarcode.value;
+    if (pendingBarcode) {
+        await FoodCache.set(pendingBarcode, customFoodPayload);
+        qaBarcode.value = ''; // wipe it after mapping
+    }
 
     userData.food_diary.push(newEntry);
     await window.BodyProDataStore.saveData(userData);
