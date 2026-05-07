@@ -103,6 +103,30 @@
       border-radius: 8px;
     }
 
+    /* Micro Grid styling */
+    .micro-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+      gap: 6px;
+      margin-top: 15px;
+      border-top: 1px dashed var(--border-color);
+      padding-top: 15px;
+    }
+    .micro-item {
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      padding: 6px 4px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .micro-item .lbl { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px; }
+    .micro-item .val { font-size: 0.85rem; font-weight: 800; font-family: monospace; }
+
+
     .meal-section {
       margin-bottom: 20px;
       background: var(--bg-surface);
@@ -505,6 +529,18 @@
             </div>
           </div>
         </div>
+
+        <div class="micro-grid">
+          <div class="micro-item"><div class="lbl">Sugar</div><div class="val" id="nSugarVal">0g</div></div>
+          <div class="micro-item"><div class="lbl">Sodium</div><div class="val" id="nSodiumVal">0mg</div></div>
+          <div class="micro-item"><div class="lbl">Iron</div><div class="val" id="nIronVal">0mg</div></div>
+          <div class="micro-item"><div class="lbl">Potassium</div><div class="val" id="nPotassiumVal">0mg</div></div>
+          <div class="micro-item"><div class="lbl">Fiber</div><div class="val" id="nFiberVal">0g</div></div>
+          <div class="micro-item"><div class="lbl">Vit A</div><div class="val" id="nVitAVal">0mcg</div></div>
+          <div class="micro-item"><div class="lbl">Vit C</div><div class="val" id="nVitCVal">0mg</div></div>
+          <div class="micro-item"><div class="lbl">Calcium</div><div class="val" id="nCalciumVal">0mg</div></div>
+          <div class="micro-item"><div class="lbl">Sat Fat</div><div class="val" id="nSatFatVal">0g</div></div>
+        </div>
       </div>
 
       <div class="card">
@@ -574,7 +610,7 @@
           <button class="btn btn-primary" id="btnApiSearch" style="width: auto;"><i class="fa-solid fa-magnifying-glass"></i></button>
         </div>
         <div id="apiSearchResults" style="min-height: 200px;">
-          <p class="text-muted" style="text-align:center; font-size:0.9rem; padding: 20px;">Enter a food name to search the global registry.</p>
+          <p class="text-muted" style="text-align:center; font-size:0.9rem; padding: 20px;">Enter a food name to search the global registry. Auto-search enabled.</p>
         </div>
       </div>
 
@@ -710,6 +746,8 @@
         <h3 style="margin-top: 0;"><i class="fa-solid fa-bolt text-warning"></i> Add to Diary</h3>
         <button id="qaFavoriteBtn" class="heart-btn" title="Toggle Favorite"><i class="fa-regular fa-heart"></i></button>
       </div>
+      
+      <input type="hidden" id="qaBarcode" value="">
       
       <div class="form-group">
         <label for="qaMeal">Meal</label>
