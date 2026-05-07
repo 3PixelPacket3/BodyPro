@@ -127,6 +127,7 @@ function renderAnalytics() {
     updateWeightChart();
     updateBodyCompChart();
     updateBPChart();
+    populateLiftSelect();
     update1RMChart();
     updateVolumeChart();
     updateMacroCharts();
@@ -286,6 +287,7 @@ window.viewDaySummary = function(dateStr) {
         let weightData = biometrics.weight ? `${biometrics.weight} lbs` : '--';
         let bfData = biometrics.bodyFat ? `${biometrics.bodyFat} %` : '--';
         let bpData = (biometrics.systolic && biometrics.diastolic) ? `${biometrics.systolic} / ${biometrics.diastolic}` : '--';
+        if (biometrics.hr) bpData += ` (${biometrics.hr} BPM)`;
 
         dsContent.innerHTML += `
             <div class="summary-card">
@@ -296,7 +298,7 @@ window.viewDaySummary = function(dateStr) {
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.85rem;">
                     <div>Weight: <strong>${weightData}</strong></div>
                     <div>Body Fat: <strong>${bfData}</strong></div>
-                    <div>Blood Pressure: <strong>${bpData}</strong></div>
+                    <div style="grid-column: span 2;">Blood Pressure & HR: <strong>${bpData}</strong></div>
                 </div>
             </div>
         `;
@@ -516,8 +518,40 @@ function updateBPChart() {
 }
 
 // 4. 1RM Projection Chart
+function populateLiftSelect() {
+    const uniqueLifts = new Set();
+    (userData.workouts || []).forEach(wk => {
+        (wk.sets || []).forEach(set => {
+            if (set.exercise && set.est1RM) {
+                uniqueLifts.add(set.exercise);
+            }
+        });
+    });
+
+    const currentVal = liftSelect.value;
+    liftSelect.innerHTML = '';
+    
+    if (uniqueLifts.size === 0) {
+        liftSelect.innerHTML = '<option value="">No strength data yet</option>';
+        return;
+    }
+
+    Array.from(uniqueLifts).sort().forEach(lift => {
+        const opt = document.createElement('option');
+        opt.value = lift;
+        opt.innerText = lift;
+        liftSelect.appendChild(opt);
+    });
+
+    if (currentVal && uniqueLifts.has(currentVal)) {
+        liftSelect.value = currentVal;
+    }
+}
+
 function update1RMChart() {
     const selectedLift = liftSelect.value;
+    if (!selectedLift) return;
+    
     const days = 30; // Hardcode to 30 days for trending
     const dateLabels = getPastDates(days);
     const ormData = [];
