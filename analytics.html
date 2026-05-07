@@ -3,227 +3,114 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>BodyPro | Analytics</title>
+  <title>BodyPro | Telemetry</title>
   
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#09090b">
   <link rel="apple-touch-icon" href="icon-192.png">
-
+  
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
-    /* Analytics Specific Styles */
+    /* Global Mobile Scroll Fixes */
+    html, body {
+      overflow-x: hidden;
+      width: 100%;
+      position: relative;
+    }
+
+    .main-content {
+      padding-bottom: 100px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 250px;
+      width: 100%;
+      margin-top: 15px;
+    }
+
     .chart-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
 
-    .chart-header h3 {
-      margin: 0;
-      font-size: 1.1rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .chart-filters {
-      display: flex;
-      gap: 10px;
-    }
-
-    .chart-filters select {
+    .chart-header select {
       padding: 5px 10px;
       font-size: 0.8rem;
       border-radius: var(--border-radius-sm);
-      background: var(--bg-surface-elevated);
       border: 1px solid var(--border-color);
+      background: var(--bg-surface-elevated);
       color: var(--text-main);
-      cursor: pointer;
     }
 
-    .stat-summary-grid {
+    .stat-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
-      margin-top: 15px;
-      border-top: 1px solid var(--border-color);
-      padding-top: 15px;
+      margin-bottom: 15px;
+      text-align: center;
     }
 
     .stat-box {
-      text-align: center;
       background: var(--bg-base);
       padding: 10px;
       border-radius: var(--border-radius-sm);
       border: 1px solid var(--border-color);
     }
 
-    .stat-box .lbl {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      font-weight: 700;
-      margin-bottom: 5px;
-    }
-
     .stat-box .val {
       font-size: 1.1rem;
       font-weight: 800;
+      color: var(--text-main);
+      font-family: monospace;
     }
 
-    /* Calendar Grid & Banner */
-    .calendar-banner-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-      padding: 5px 0;
-      user-select: none;
-    }
-    
-    .calendar-banner-header h3 { margin: 0; font-size: 1.1rem; }
-    
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 5px;
-    }
-    .cal-header {
-      text-align: center;
-      font-size: 0.7rem;
-      font-weight: 700;
+    .stat-box .lbl {
+      font-size: 0.65rem;
       color: var(--text-muted);
-      padding-bottom: 5px;
       text-transform: uppercase;
-    }
-    .cal-day {
-      background: var(--bg-base);
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-sm);
-      min-height: 55px;
-      padding: 5px;
-      text-align: right;
-      font-size: 0.8rem;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      transition: border-color 0.2s, background-color 0.2s;
-    }
-    .cal-day:hover {
-      border-color: var(--primary);
-      background: var(--bg-surface-elevated);
-    }
-    .cal-day.empty {
-      background: transparent;
-      border: none;
-      cursor: default;
-    }
-    .cal-day.empty:hover {
-      background: transparent;
-    }
-    .cal-indicators {
-      display: flex;
-      gap: 3px;
-      flex-wrap: wrap;
-      justify-content: flex-start;
+      font-weight: 700;
       margin-top: 4px;
     }
-    .cal-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
-    .dot-workout { background: var(--primary); }
-    .dot-food { background: var(--accent); }
-    .dot-comp { background: var(--warning); }
-    
-    .summary-card {
-      background: var(--bg-base);
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-sm);
-      padding: 12px;
-    }
-    .summary-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px dashed var(--border-color);
-      padding-bottom: 5px;
-      margin-bottom: 10px;
-    }
-    .summary-card-header h4 {
-      margin: 0;
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
 
-    /* History Log List */
-    .history-list {
-      max-height: 400px;
-      overflow-y: auto;
-      margin-top: 15px;
-    }
-
+    /* History Styles */
     .history-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 15px;
-      border-bottom: 1px solid var(--border-color);
-      background: var(--bg-base);
+      padding: 15px;
+      background: var(--bg-surface-elevated);
+      border-radius: var(--border-radius-sm);
+      margin-bottom: 10px;
+      border: 1px solid var(--border-color);
       cursor: pointer;
-      transition: background-color 0.2s, border-color 0.2s;
-    }
-
-    .history-item:last-child {
-      border-bottom: none;
+      transition: all 0.2s;
     }
 
     .history-item:hover {
-      background: var(--bg-surface-elevated);
       border-color: var(--primary);
     }
 
     .history-icon {
-      width: 40px;
-      height: 40px;
+      width: 40px; height: 40px;
+      background: var(--bg-base);
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       font-size: 1.2rem;
-      background: var(--bg-surface-elevated);
     }
 
-    .history-details h4 {
-      margin: 0 0 4px 0;
-      font-size: 0.95rem;
-    }
-
-    .history-details p {
-      margin: 0;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .history-meta {
-      text-align: right;
-      font-size: 0.85rem;
-      font-weight: 600;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-    }
+    .history-details h4 { margin: 0 0 5px 0; font-size: 1rem; }
+    .history-details p { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
+    .history-meta { text-align: right; font-size: 0.85rem; font-weight: 600; }
 
     /* Modals */
     .modal-overlay {
@@ -244,10 +131,6 @@
       opacity: 1;
       pointer-events: auto;
     }
-    
-    .modal-overlay.sub-modal {
-      z-index: 2050;
-    }
 
     .modal-content {
       background: var(--bg-surface);
@@ -265,6 +148,43 @@
     .modal-overlay.active .modal-content {
       transform: translateY(0);
     }
+
+    /* Calendar Grid */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      text-align: center;
+    }
+    .cal-header { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; padding: 5px 0; }
+    .cal-day {
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 10px 0;
+      font-size: 0.9rem;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .cal-day:hover { border-color: var(--primary); }
+    .cal-day.empty { background: transparent; border: none; cursor: default; }
+    
+    .cal-indicators {
+      display: flex;
+      justify-content: center;
+      gap: 3px;
+      margin-top: 5px;
+      height: 6px;
+    }
+    .cal-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .dot-workout { background: var(--primary); }
+    .dot-food { background: var(--accent); }
+    .dot-comp { background: var(--warning); }
+
+    .summary-card { background: var(--bg-surface-elevated); padding: 15px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); margin-bottom: 15px; }
+    .summary-card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px; }
+    .summary-card-header h4 { margin: 0; font-size: 1rem; }
   </style>
 </head>
 <body>
@@ -304,253 +224,223 @@
 
     <main class="main-content">
       
-      <div style="margin-bottom: 20px;">
-        <h2 style="margin-bottom: 5px;">Data & Analytics</h2>
-        <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Trend Identification & Reports</p>
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
+        <div>
+          <h2 style="margin-bottom: 5px;">Telemetry</h2>
+          <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Data & Analytics Center</p>
+        </div>
       </div>
 
-      <div class="card" style="border-top: 4px solid var(--text-main); padding-bottom: 10px;">
-        <div class="calendar-banner-header" id="calendarToggleBtn">
-          <h3><i class="fa-regular fa-calendar text-main"></i> Telemetry Calendar</h3>
-          <i class="fa-solid fa-chevron-down" id="calendarChevron" style="color: var(--text-muted); transition: transform 0.3s;"></i>
+      <div class="card" style="border-top: 4px solid var(--text-main); padding: 0; overflow: hidden; margin-bottom: 25px;">
+        <div id="calendarToggleBtn" style="padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: var(--bg-surface-elevated);">
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-regular fa-calendar-days text-main"></i> Daily Data Hub</h3>
+          <i class="fa-solid fa-chevron-down" id="calendarChevron" style="transition: transform 0.3s;"></i>
         </div>
         
-        <div id="calendarCollapseBody" style="display: none; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
-          <div class="chart-header" style="justify-content: center; margin-bottom: 15px;">
-            <div style="display: flex; gap: 10px; align-items: center;">
-              <button class="btn btn-ghost" id="btnPrevMonth" style="padding: 2px 10px;"><i class="fa-solid fa-chevron-left"></i></button>
-              <span id="calendarMonthLabel" style="font-weight: 800; font-size: 0.95rem; min-width: 120px; text-align: center;">Month Year</span>
-              <button class="btn btn-ghost" id="btnNextMonth" style="padding: 2px 10px;"><i class="fa-solid fa-chevron-right"></i></button>
-            </div>
+        <div id="calendarCollapseBody" style="display: none; padding: 20px; border-top: 1px solid var(--border-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <button class="btn btn-ghost" id="btnPrevMonth" style="padding: 5px 15px;"><i class="fa-solid fa-chevron-left"></i></button>
+            <h4 id="calendarMonthLabel" style="margin: 0; font-size: 1.1rem;">--</h4>
+            <button class="btn btn-ghost" id="btnNextMonth" style="padding: 5px 15px;"><i class="fa-solid fa-chevron-right"></i></button>
           </div>
           
-          <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; font-size: 0.7rem; color: var(--text-muted); flex-wrap: wrap;">
-              <div><span class="cal-dot dot-workout" style="display:inline-block; margin-right:4px;"></span>Workout</div>
-              <div><span class="cal-dot dot-food" style="display:inline-block; margin-right:4px;"></span>Nutrition</div>
-              <div><span class="cal-dot dot-comp" style="display:inline-block; margin-right:4px;"></span>Body Data</div>
+          <div class="cal-grid" id="calendarGrid"></div>
+          
+          <div style="display: flex; justify-content: center; gap: 15px; margin-top: 15px; font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">
+            <div style="display: flex; align-items: center; gap: 5px;"><div class="cal-dot dot-workout"></div> Workout</div>
+            <div style="display: flex; align-items: center; gap: 5px;"><div class="cal-dot dot-food"></div> Nutrition</div>
+            <div style="display: flex; align-items: center; gap: 5px;"><div class="cal-dot dot-comp"></div> Metrics</div>
           </div>
-
-          <div id="calendarGrid" class="calendar-grid"></div>
         </div>
       </div>
 
-      <div class="card" style="border-top: 4px solid var(--primary);">
+      <div class="card" style="border-top: 4px solid var(--info, #3b82f6);">
         <div class="chart-header">
-          <h3><i class="fa-solid fa-weight-scale text-primary"></i> Body Mass Tracking</h3>
-          <div class="chart-filters">
-            <select id="weightRangeSelect">
-              <option value="30">30 Days</option>
-              <option value="90">90 Days</option>
-              <option value="180">6 Months</option>
-            </select>
-          </div>
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-weight-scale" style="color: var(--info, #3b82f6);"></i> Body Mass</h3>
+          <select id="weightRangeSelect">
+            <option value="7">7 Days</option>
+            <option value="30" selected>30 Days</option>
+            <option value="90">90 Days</option>
+            <option value="180">6 Months</option>
+          </select>
         </div>
         
-        <div class="chart-container">
-          <canvas id="weightChart"></canvas>
+        <div class="stat-grid">
+          <div class="stat-box">
+            <div class="val" id="valCurrentWeight">--</div>
+            <div class="lbl">Current</div>
+          </div>
+          <div class="stat-box">
+            <div class="val" id="valAvgWeight">--</div>
+            <div class="lbl">7-Day Avg</div>
+          </div>
+          <div class="stat-box">
+            <div class="val" id="valNetWeight">--</div>
+            <div class="lbl">Net Change</div>
+          </div>
         </div>
 
-        <div class="stat-summary-grid">
-          <div class="stat-box">
-            <div class="lbl">Current</div>
-            <div class="val" id="valCurrentWeight">-- lbs</div>
-          </div>
-          <div class="stat-box">
-            <div class="lbl">7-Day Avg</div>
-            <div class="val text-primary" id="valAvgWeight">-- lbs</div>
-          </div>
-          <div class="stat-box">
-            <div class="lbl">Net Change</div>
-            <div class="val" id="valNetWeight">-- lbs</div>
-          </div>
+        <div class="chart-container">
+          <canvas id="weightChart"></canvas>
         </div>
       </div>
 
       <div class="card" style="border-top: 4px solid var(--warning);">
         <div class="chart-header">
-          <h3><i class="fa-solid fa-ruler-combined text-warning"></i> Body Composition (Pinch Data)</h3>
-          <div class="chart-filters">
-            <select id="compRangeSelect">
-              <option value="90">90 Days</option>
-              <option value="180">6 Months</option>
-            </select>
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-percent text-warning"></i> Body Composition</h3>
+          <select id="compRangeSelect">
+            <option value="30">30 Days</option>
+            <option value="90" selected>90 Days</option>
+            <option value="180">6 Months</option>
+            <option value="365">1 Year</option>
+          </select>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-box">
+            <div class="val text-warning" id="valBodyFat">--</div>
+            <div class="lbl">Body Fat</div>
+          </div>
+          <div class="stat-box">
+            <div class="val text-primary" id="valLeanMass">--</div>
+            <div class="lbl">Lean Mass</div>
+          </div>
+          <div class="stat-box">
+            <div class="val text-danger" id="valFatMass">--</div>
+            <div class="lbl">Fat Mass</div>
           </div>
         </div>
         
         <div class="chart-container">
           <canvas id="bodyCompChart"></canvas>
         </div>
-
-        <div class="stat-summary-grid">
-          <div class="stat-box">
-            <div class="lbl">Est Body Fat</div>
-            <div class="val text-warning" id="valBodyFat">-- %</div>
-          </div>
-          <div class="stat-box">
-            <div class="lbl">Lean Mass</div>
-            <div class="val" id="valLeanMass">-- lbs</div>
-          </div>
-          <div class="stat-box">
-            <div class="lbl">Fat Mass</div>
-            <div class="val" id="valFatMass">-- lbs</div>
-          </div>
-        </div>
       </div>
 
       <div class="card" style="border-top: 4px solid var(--danger);">
         <div class="chart-header">
-          <h3><i class="fa-solid fa-heart-pulse text-danger"></i> Blood Pressure</h3>
-          <div class="chart-filters">
-            <select id="bpRangeSelect">
-              <option value="30">30 Days</option>
-              <option value="90">90 Days</option>
-            </select>
-          </div>
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-heart-pulse text-danger"></i> Blood Pressure</h3>
+          <select id="bpRangeSelect">
+            <option value="7">7 Days</option>
+            <option value="30" selected>30 Days</option>
+            <option value="90">90 Days</option>
+          </select>
         </div>
-        
         <div class="chart-container">
           <canvas id="bpChart"></canvas>
         </div>
       </div>
 
-      <div class="card" style="border-top: 4px solid var(--info, #3b82f6);">
+      <div class="card" style="border-top: 4px solid var(--primary);">
         <div class="chart-header">
-          <h3><i class="fa-solid fa-arrow-trend-up" style="color: var(--info, #3b82f6);"></i> Strength Projections (1RM)</h3>
-          <div class="chart-filters">
-            <select id="liftSelect">
-              <option value="Bench Press (Barbell) [Chest]">Bench Press</option>
-              <option value="Squat (Barbell) [Quads/Glutes]">Barbell Squat</option>
-              <option value="Deadlift (Barbell) [Back/Legs]">Deadlift</option>
-              <option value="Overhead Press (Barbell) [Shoulders]">OHP</option>
-            </select>
-          </div>
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-arrow-trend-up text-primary"></i> Strength Projection</h3>
+          <select id="liftSelect" style="max-width: 150px;">
+            <option value="">Loading...</option>
+          </select>
         </div>
-        <p class="text-muted" style="font-size: 0.8rem; margin-top: -10px; margin-bottom: 10px;">Calculated via Epley Formula based on session logs.</p>
-        
         <div class="chart-container">
           <canvas id="oneRMChart"></canvas>
         </div>
       </div>
 
-      <div class="card" style="border-top: 4px solid var(--accent);">
+      <div class="card" style="border-top: 4px solid var(--success, #10b981);">
         <div class="chart-header">
-          <h3><i class="fa-solid fa-boxes-stacked text-accent"></i> Volume Load (Tonnage)</h3>
-          <div class="chart-filters">
-            <select id="volumeRangeSelect">
-              <option value="14">14 Days</option>
-              <option value="30">30 Days</option>
-            </select>
-          </div>
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-layer-group" style="color: var(--success, #10b981);"></i> Volume Load</h3>
+          <select id="volumeRangeSelect">
+            <option value="7">7 Days</option>
+            <option value="14" selected>14 Days</option>
+            <option value="30">30 Days</option>
+          </select>
         </div>
-        <p class="text-muted" style="font-size: 0.8rem; margin-top: -10px; margin-bottom: 10px;">Total workload (Sets × Reps × Weight) per session.</p>
-        
         <div class="chart-container">
           <canvas id="volumeChart"></canvas>
         </div>
       </div>
 
-      <div class="card" style="border-top: 4px solid var(--success, #10b981);">
+      <div class="card" style="border-top: 4px solid var(--accent);">
         <div class="chart-header">
-          <h3><i class="fa-solid fa-chart-column" style="color: var(--success, #10b981);"></i> Caloric Adherence</h3>
-          <div class="chart-filters">
-            <select id="macroRangeSelect">
-              <option value="7">7 Days</option>
-              <option value="14">14 Days</option>
-              <option value="30">30 Days</option>
-            </select>
-          </div>
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-fire text-accent"></i> Nutrition Trends</h3>
+          <select id="macroRangeSelect">
+            <option value="7" selected>7 Days</option>
+            <option value="14">14 Days</option>
+            <option value="30">30 Days</option>
+          </select>
         </div>
-        
-        <div class="chart-container">
+        <div class="chart-container" style="height: 200px;">
           <canvas id="macroChart"></canvas>
         </div>
-      </div>
-
-      <div class="card" style="border-top: 4px solid var(--text-main);">
-        <div class="chart-header">
-          <h3><i class="fa-solid fa-chart-pie"></i> Average Macro Split</h3>
-          <p class="text-muted" style="font-size: 0.8rem; margin: 0;">(Last 7 Days)</p>
-        </div>
-        
-        <div class="chart-container" style="height: 200px;">
+        <div class="chart-container" style="height: 200px; border-top: 1px dashed var(--border-color); padding-top: 15px; margin-top: 15px;">
           <canvas id="macroDistChart"></canvas>
         </div>
       </div>
 
-      <div class="card" style="border-top: 4px solid var(--primary);">
+      <div class="card" style="border-top: 4px solid var(--info, #3b82f6);">
         <div class="chart-header">
-          <h3><i class="fa-solid fa-microscope text-primary"></i> Micronutrient Averages</h3>
-          <p class="text-muted" style="font-size: 0.8rem; margin: 0;">(% of Daily Goal - Last 7 Days)</p>
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-microscope" style="color: var(--info, #3b82f6);"></i> Micronutrient Status</h3>
+          <span class="text-muted" style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">Trailing 7 Days</span>
         </div>
-        
-        <div class="chart-container" style="height: 250px;">
+        <div class="chart-container" style="height: 300px;">
           <canvas id="microRadarChart"></canvas>
         </div>
       </div>
 
       <div class="card">
-        <div class="chart-header">
-          <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Activity Log</h3>
-        </div>
-        
-        <div class="history-list" id="activityHistoryList">
-          <p class="text-muted" style="text-align: center; padding: 20px; font-size: 0.9rem;">Initializing secure history...</p>
+        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-clock-rotate-left text-primary"></i> Recent Activity</h3>
+        <div id="activityHistoryList">
+          <p class="text-muted" style="text-align: center; font-size: 0.9rem;">Loading logs...</p>
         </div>
       </div>
 
     </main>
   </div>
 
-  <div class="modal-overlay" id="activityDetailModal">
-    <div class="modal-content">
-      <h3 style="margin-top: 0; margin-bottom: 5px;" id="actDetailTitle">Activity Details</h3>
-      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px;" id="actDetailDate"></p>
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-        <div style="background: var(--bg-base); padding: 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); text-align: center;">
-          <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Duration</div>
-          <div style="font-weight: 800; color: var(--primary);" id="actDetailDuration">--</div>
-        </div>
-        <div style="background: var(--bg-base); padding: 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); text-align: center;">
-          <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: var(--text-muted);">Cals Burned</div>
-          <div style="font-weight: 800; color: var(--accent);" id="actDetailCals">--</div>
-        </div>
-      </div>
-
-      <div style="background: var(--bg-base); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); padding: 10px; max-height: 250px; overflow-y: auto; margin-bottom: 15px;" id="actDetailSets"></div>
-
-      <div style="display: flex; gap: 10px;">
-        <button class="btn btn-ghost" style="flex: 1;" onclick="closeAllModals()">Close</button>
-        <button class="btn btn-ghost" style="color: var(--danger); border-color: var(--danger); flex: 1;" id="btnDeleteActivity">Delete</button>
-      </div>
-    </div>
-  </div>
-
   <div class="modal-overlay" id="daySummaryModal">
     <div class="modal-content">
-      <h3 style="margin-top: 0; margin-bottom: 5px;"><i class="fa-regular fa-calendar-check text-primary"></i> Daily Summary</h3>
-      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px; font-weight:bold;" id="dsDateLabel"></p>
-      
-      <div id="dsContent" style="display: flex; flex-direction: column; gap: 15px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+        <h3 style="margin: 0;"><i class="fa-regular fa-calendar-check text-main"></i> Daily Snapshot</h3>
+        <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="document.getElementById('daySummaryModal').classList.remove('active')"><i class="fa-solid fa-xmark"></i></button>
       </div>
+      
+      <h4 id="dsDateLabel" style="margin: 0 0 15px 0; color: var(--text-muted); text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">--</h4>
+      
+      <div id="dsContent"></div>
 
-      <button class="btn btn-ghost" style="width: 100%; margin-top: 20px;" onclick="closeAllModals()">Close Summary</button>
+      <button class="btn btn-ghost" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('daySummaryModal').classList.remove('active')">Close</button>
     </div>
   </div>
 
-  <script>
-    function closeAllModals() {
-      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
-    }
+  <div class="modal-overlay" id="activityDetailModal">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+        <h3 style="margin: 0;" id="actDetailTitle">Session Title</h3>
+        <span class="text-muted" style="font-size: 0.85rem; font-weight: 600;" id="actDetailDate">--</span>
+      </div>
 
-    function closeSubModal(modalId) {
-      document.getElementById(modalId).classList.remove('active');
-    }
-  </script>
+      <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+        <div style="flex: 1; background: var(--bg-surface-elevated); padding: 10px; border-radius: var(--border-radius-sm); text-align: center; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Duration</div>
+          <div style="font-size: 1.1rem; font-weight: 800; font-family: monospace;" id="actDetailDuration">--</div>
+        </div>
+        <div style="flex: 1; background: var(--bg-surface-elevated); padding: 10px; border-radius: var(--border-radius-sm); text-align: center; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Active Cals</div>
+          <div style="font-size: 1.1rem; font-weight: 800; font-family: monospace; color: var(--accent);" id="actDetailCals">--</div>
+        </div>
+      </div>
+
+      <div style="background: var(--bg-base); padding: 15px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); max-height: 250px; overflow-y: auto;">
+        <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase;">Movement Log</div>
+        <div id="actDetailSets"></div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-ghost" onclick="document.getElementById('activityDetailModal').classList.remove('active')" style="flex: 1;">Close</button>
+        <button class="btn btn-ghost" id="btnDeleteActivity" style="flex: 1; color: var(--danger); border-color: var(--danger);"><i class="fa-solid fa-trash"></i> Delete Log</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="data-store.js"></script>
   <script type="module" src="analytics.js"></script>
-  </body>
+</body>
 
 <footer style="text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: 20px;">
   &copy; 2026 Joshua Michael Smolak. All Rights Reserved. <br>
