@@ -332,6 +332,12 @@
         <h3 style="margin: 0;"><i class="fa-solid fa-plus text-accent"></i> Add Ingredient</h3>
         <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openScannerFromRecipe()"><i class="fa-solid fa-barcode"></i> Scan</button>
       </div>
+
+      <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <input type="text" id="recipeApiSearchInput" placeholder="Search OpenFoodFacts..." style="flex: 1; padding: 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);">
+        <button class="btn btn-primary" id="btnRecipeApiSearch" style="width: auto; padding: 10px 15px;"><i class="fa-solid fa-magnifying-glass"></i></button>
+      </div>
+      <div id="recipeApiSearchResults" style="max-height: 150px; overflow-y: auto; margin-bottom: 15px; border-radius: var(--border-radius-sm);"></div>
       
       <div class="form-group">
         <label for="ingName">Ingredient Name</label>
@@ -420,6 +426,9 @@
       document.getElementById('ingVitC').value = 0;
       document.getElementById('ingCalcium').value = 0;
       document.getElementById('ingSatFat').value = 0;
+      
+      document.getElementById('recipeApiSearchInput').value = '';
+      document.getElementById('recipeApiSearchResults').innerHTML = '';
     }
   </script>
 
