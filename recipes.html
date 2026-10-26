@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BodyPro">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>BodyPro | Culinary Builder</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#09090b">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
@@ -78,7 +85,7 @@
     .macro-grid-small .val {
       font-size: 1.1rem;
       font-weight: 800;
-      font-family: monospace;
+      font-family: var(--font-mono);
     }
 
     .macro-grid-small .lbl {
@@ -88,7 +95,6 @@
       font-weight: 700;
     }
 
-    /* Micro Grid styling aligned with dashboard */
     .micro-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
@@ -109,7 +115,7 @@
       justify-content: center;
     }
     .micro-item .lbl { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px; }
-    .micro-item .val { font-size: 0.85rem; font-weight: 800; font-family: monospace; }
+    .micro-item .val { font-size: 0.85rem; font-weight: 800; font-family: var(--font-mono); }
 
     .saved-recipe-item {
       background: var(--bg-base);
@@ -120,6 +126,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
       transition: border-color 0.2s;
     }
 
@@ -149,7 +157,7 @@
 
     .modal-content {
       background: var(--bg-surface);
-      width: 90%;
+      width: 92%;
       max-width: 500px;
       max-height: 90vh;
       overflow-y: auto;
@@ -171,16 +179,6 @@
       margin-top: 15px;
       border: 2px dashed var(--border-color);
     }
-    #reader button {
-      background: var(--bg-surface-elevated);
-      color: var(--text-main);
-      border: 1px solid var(--border-color);
-      padding: 8px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      margin: 5px;
-    }
-    #reader a { color: var(--primary); }
   </style>
 </head>
 <body>
@@ -223,12 +221,14 @@
       <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
         <div>
           <h2 style="margin-bottom: 5px;">Culinary Builder</h2>
-          <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Recipe & Meal Management</p>
+          <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Recipe &amp; Meal Management</p>
         </div>
-        <button class="btn btn-ghost" style="padding: 8px 15px; font-size: 0.85rem;" onclick="window.location.href='nutrition.html'">
+        <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 8px 15px; font-size: 0.85rem;" onclick="window.location.href='nutrition.html'">
           <i class="fa-solid fa-arrow-left"></i> Back to Diary
         </button>
       </div>
+
+      <input type="file" id="recipeOcrFileInput" accept="image/*" capture="environment" style="display: none;">
 
       <div class="card" style="border-top: 4px solid var(--primary);">
         <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-copy text-primary"></i> Meal Copier</h3>
@@ -253,7 +253,7 @@
       </div>
 
       <div class="card" style="border-top: 4px solid var(--accent);">
-        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-mortar-pestle text-accent"></i> Create New Recipe</h3>
+        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-mortar-pestle text-accent"></i> Create / Edit Recipe</h3>
         
         <div class="recipe-header-inputs">
           <div class="form-group" style="margin: 0;">
@@ -268,7 +268,7 @@
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
           <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Ingredients</div>
-          <button class="btn btn-ghost" style="padding: 5px 10px; font-size: 0.75rem;" onclick="openIngredientModal()"><i class="fa-solid fa-plus"></i> Add Item</button>
+          <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 5px 10px; font-size: 0.75rem;" onclick="openIngredientModal()"><i class="fa-solid fa-plus"></i> Add Item</button>
         </div>
 
         <div class="ingredient-list" id="activeIngredientList">
@@ -310,8 +310,8 @@
         </div>
 
         <div style="margin-top: 20px; display: flex; gap: 10px;">
-          <button class="btn btn-ghost" id="btnClearRecipe" style="flex: 1;">Clear</button>
-          <button class="btn" id="btnSaveRecipe" style="flex: 2;"><i class="fa-solid fa-save"></i> Save Recipe</button>
+          <button class="btn btn-ghost" id="btnClearRecipe" style="flex: 1; min-width: 0;">Clear</button>
+          <button class="btn" id="btnSaveRecipe" style="flex: 2; min-width: 0;"><i class="fa-solid fa-save"></i> Save Recipe</button>
         </div>
       </div>
 
@@ -328,14 +328,17 @@
 
   <div class="modal-overlay" id="ingredientModal">
     <div class="modal-content">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 8px;">
         <h3 style="margin: 0;"><i class="fa-solid fa-plus text-accent"></i> Add Ingredient</h3>
-        <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openScannerFromRecipe()"><i class="fa-solid fa-barcode"></i> Scan</button>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 4px 10px; font-size: 0.75rem; border-color: var(--primary); color: var(--primary);" onclick="triggerRecipeOCR()"><i class="fa-solid fa-camera"></i> OCR</button>
+          <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 4px 10px; font-size: 0.75rem;" onclick="openScannerFromRecipe()"><i class="fa-solid fa-barcode"></i> Scan</button>
+        </div>
       </div>
 
       <div style="display: flex; gap: 10px; margin-bottom: 10px;">
         <input type="text" id="recipeApiSearchInput" placeholder="Search OpenFoodFacts..." style="flex: 1; padding: 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main);">
-        <button class="btn btn-primary" id="btnRecipeApiSearch" style="width: auto; padding: 10px 15px;"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <button class="btn btn-primary" id="btnRecipeApiSearch" style="width: auto; min-width: 0; padding: 10px 15px;"><i class="fa-solid fa-magnifying-glass"></i></button>
       </div>
       <div id="recipeApiSearchResults" style="max-height: 150px; overflow-y: auto; margin-bottom: 15px; border-radius: var(--border-radius-sm);"></div>
       
@@ -379,16 +382,16 @@
       </div>
 
       <div style="display: flex; gap: 10px; margin-top: 20px;">
-        <button class="btn btn-ghost" onclick="closeIngredientModal()">Cancel</button>
-        <button class="btn" id="btnAddIngredientToRecipe">Add to Batch</button>
+        <button class="btn btn-ghost" style="flex: 1; min-width: 0;" onclick="closeIngredientModal()">Cancel</button>
+        <button class="btn" style="flex: 1; min-width: 0;" id="btnAddIngredientToRecipe">Add to Batch</button>
       </div>
     </div>
   </div>
 
   <div class="modal-overlay" id="scannerModal">
     <div class="modal-content">
-      <h3 style="margin-top: 0;"><i class="fa-solid fa-barcode text-primary"></i> Optical Scanner</h3>
-      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 10px;">Center the barcode within the camera feed. OpenFoodFacts telemetry active.</p>
+      <h3 style="margin-top: 0;"><i class="fa-solid fa-barcode text-primary"></i> Optical Ingredient Scanner</h3>
+      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 10px;">Center the barcode within the camera feed.</p>
       
       <div id="reader"></div>
 
@@ -399,7 +402,6 @@
   </div>
 
   <script>
-    // Set default date for copier to yesterday
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     document.getElementById('copySourceDate').value = yesterday.toISOString().split('T')[0];
@@ -410,7 +412,6 @@
 
     function closeIngredientModal() {
       document.getElementById('ingredientModal').classList.remove('active');
-      // Reset fields
       document.getElementById('ingName').value = '';
       document.getElementById('ingCals').value = 0;
       document.getElementById('ingProt').value = 0;
@@ -438,6 +439,6 @@
 
 <footer style="text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: 20px;">
   &copy; 2026 Joshua Michael Smolak. All Rights Reserved. <br>
-  BodyPro System v2.0.0
+  BodyPro System v3.0.0
 </footer>
 </html>

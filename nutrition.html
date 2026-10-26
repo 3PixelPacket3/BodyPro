@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BodyPro">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>BodyPro | Nutrition Diary</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#09090b">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
@@ -12,7 +19,6 @@
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 
   <style>
-    /* Global Mobile Scroll Fixes */
     html, body {
       overflow-x: hidden;
       width: 100%;
@@ -20,7 +26,7 @@
     }
 
     .main-content {
-      padding-bottom: 100px;
+      padding-bottom: 110px;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
@@ -124,8 +130,7 @@
       justify-content: center;
     }
     .micro-item .lbl { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px; }
-    .micro-item .val { font-size: 0.85rem; font-weight: 800; font-family: monospace; }
-
+    .micro-item .val { font-size: 0.85rem; font-weight: 800; font-family: var(--font-mono); }
 
     .meal-section {
       margin-bottom: 20px;
@@ -194,7 +199,7 @@
       background: none;
       border: none;
       color: var(--primary);
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -277,7 +282,7 @@
 
     .modal-content {
       background: var(--bg-surface);
-      width: 90%;
+      width: 92%;
       max-width: 500px;
       max-height: 90vh;
       overflow-y: auto;
@@ -315,7 +320,7 @@
       background-color: #ffffff;
       color: #000000;
       border: 2px solid #000000;
-      padding: 10px;
+      padding: 12px;
       font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       border-radius: 4px;
       margin: 15px 0;
@@ -323,7 +328,7 @@
     
     .nutrition-label h1 {
       margin: 0;
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       font-weight: 900;
       border-bottom: 1px solid #000000;
       padding-bottom: 5px;
@@ -334,20 +339,19 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 8px;
       padding: 8px 0;
       border-bottom: 10px solid #000000;
       font-weight: 900;
-      font-size: 1.1rem;
+      font-size: 1rem;
     }
 
-    .nl-servings-wrapper input {
-      width: 80px;
-      padding: 4px 8px;
-      font-size: 1.1rem;
+    .nl-servings-wrapper input, .nl-servings-wrapper select {
+      padding: 6px 8px;
+      font-size: 1rem;
       font-weight: bold;
       border: 2px solid #000;
       border-radius: 4px;
-      text-align: right;
       color: #000;
       background: #fff;
     }
@@ -387,7 +391,7 @@
       font-weight: 900;
     }
 
-    /* --- NEW STYLES: Tabs, Search, and Favorites --- */
+    /* Tabs, Search, and Favorites */
     .nutrition-tabs {
       display: flex;
       border-bottom: 1px solid var(--border-color);
@@ -499,10 +503,16 @@
         <button id="btnNextDay"><i class="fa-solid fa-chevron-right"></i></button>
       </div>
 
+      <!-- Hidden OCR Camera/File Input -->
+      <input type="file" id="ocrLabelFileInput" accept="image/*" capture="environment" style="display: none;">
+
       <div class="card" style="padding: 15px; border-top: 4px solid var(--accent);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 8px;">
           <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-fire text-accent"></i> Macronutrient Status</h3>
-          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openMacroCalcModal()"><i class="fa-solid fa-calculator"></i> Macro Calc</button>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 4px 10px; font-size: 0.75rem; border-color: var(--primary); color: var(--primary);" onclick="triggerOCRLabelScan()"><i class="fa-solid fa-camera"></i> OCR Label</button>
+            <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 4px 10px; font-size: 0.75rem;" onclick="openMacroCalcModal()"><i class="fa-solid fa-calculator"></i> Macro Calc</button>
+          </div>
         </div>
 
         <div class="macro-bar-container">
@@ -543,8 +553,23 @@
         </div>
       </div>
 
-      <div class="card">
-        <h3 style="font-size: 1.1rem; margin-bottom: 15px;"><i class="fa-solid fa-pills text-primary"></i> Daily Supplements</h3>
+      <!-- Date-Linked Hydration & Supplements -->
+      <div class="card" style="padding: 15px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-glass-water text-primary" style="font-size: 1.4rem;"></i>
+            <div>
+              <div style="font-weight: 800; font-size: 1rem;" id="nutrWaterDisplay">0 fl oz</div>
+              <div class="text-muted" style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700;">Date Hydration</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-ghost" id="btnNutrWaterSub" style="width: auto; min-width: 0; padding: 6px 12px; font-size: 0.8rem;"><i class="fa-solid fa-minus"></i></button>
+            <button class="btn btn-ghost" id="btnNutrWaterAdd" style="width: auto; min-width: 0; padding: 6px 12px; font-size: 0.8rem; border-color: var(--primary); color: var(--primary);"><i class="fa-solid fa-plus"></i> Add Water</button>
+          </div>
+        </div>
+
+        <h3 style="font-size: 1rem; margin-bottom: 12px;"><i class="fa-solid fa-pills text-primary"></i> Daily Supplements</h3>
         <div class="supp-list" id="supplementContainer">
           <p class="text-muted" style="text-align: center; font-size: 0.9rem;">Loading protocols...</p>
         </div>
@@ -607,7 +632,7 @@
       <div id="pane-search" class="tab-pane">
         <div class="search-bar">
           <input type="text" id="apiSearchInput" placeholder="Search OpenFoodFacts API...">
-          <button class="btn btn-primary" id="btnApiSearch" style="width: auto;"><i class="fa-solid fa-magnifying-glass"></i></button>
+          <button class="btn btn-primary" id="btnApiSearch" style="width: auto; min-width: 0;"><i class="fa-solid fa-magnifying-glass"></i></button>
         </div>
         <div id="apiSearchResults" style="min-height: 200px;">
           <p class="text-muted" style="text-align:center; font-size:0.9rem; padding: 20px;">Enter a food name to search the global registry. Auto-search enabled.</p>
@@ -625,6 +650,10 @@
     <div class="fab-container" id="fabContainer">
       <div class="fab-menu">
         <div class="fab-item">
+          <span class="fab-label">Scan Label (OCR)</span>
+          <button class="fab-mini" onclick="triggerOCRLabelScan()"><i class="fa-solid fa-camera"></i></button>
+        </div>
+        <div class="fab-item">
           <span class="fab-label">Create Recipe</span>
           <button class="fab-mini" onclick="window.location.href='recipes.html'"><i class="fa-solid fa-mortar-pestle"></i></button>
         </div>
@@ -640,19 +669,22 @@
 
   </div>
 
+  <!-- Barcode & OCR Scanner Modal -->
   <div class="modal-overlay" id="scannerModal">
     <div class="modal-content">
       <h3 style="margin-top: 0;"><i class="fa-solid fa-barcode text-primary"></i> Optical Scanner</h3>
-      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 10px;">Center the barcode within the camera feed. OpenFoodFacts telemetry active.</p>
+      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 10px;">Center the barcode within the camera feed, or use OCR to read a physical Nutrition Facts panel.</p>
       
       <div id="reader"></div>
 
       <div style="display: flex; gap: 10px; margin-top: 20px;">
-        <button class="btn btn-ghost" onclick="closeScannerModal()" style="width: 100%;">Close Optics</button>
+        <button class="btn btn-ghost" onclick="closeScannerModal()" style="flex: 1; min-width: 0;">Close</button>
+        <button class="btn btn-accent" onclick="closeScannerModal(); triggerOCRLabelScan();" style="flex: 1; min-width: 0;"><i class="fa-solid fa-camera"></i> Scan Label OCR</button>
       </div>
     </div>
   </div>
 
+  <!-- Interactive FDA Nutrition Label Modal (with Serving / Grams / Oz Unit Selector) -->
   <div class="modal-overlay" id="nutritionLabelModal">
     <div class="modal-content" style="padding: 20px;">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
@@ -674,13 +706,20 @@
         <h1 id="labelProductName">Loading...</h1>
         
         <div class="nl-servings-wrapper">
-          <span>Servings:</span>
-          <input type="number" id="labelServingMultiplier" value="1" min="0.1" step="0.1">
+          <span>Amount:</span>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <input type="number" id="labelServingMultiplier" value="1" min="0.1" step="0.1" style="width: 78px; text-align: right;">
+            <select id="labelUnitMode" style="width: 115px;">
+              <option value="serving">Serving (x)</option>
+              <option value="grams">Grams (g)</option>
+              <option value="oz">Ounces (oz)</option>
+            </select>
+          </div>
         </div>
 
         <div class="nl-cals-row">
           <div>
-            <div class="nl-bold" style="font-size: 0.9rem;">Amount per serving</div>
+            <div class="nl-bold" style="font-size: 0.9rem;">Amount per selection</div>
             <div class="cals-title">Calories</div>
           </div>
           <div class="cals-val" id="labelCalories">0</div>
@@ -729,25 +768,30 @@
         </div>
         
         <div style="font-size: 0.75rem; color: #555555; padding-top: 5px; font-weight: normal;">
-          * Macros and micronutrients dynamically calculated based on serving multiplier. Base data retrieved via barcode scan.
+          * Macros and micronutrients dynamically calculated based on serving or weight selection.
         </div>
       </div>
 
       <div style="display: flex; gap: 10px;">
-        <button class="btn btn-ghost" onclick="closeModals()">Discard</button>
-        <button class="btn btn-accent" id="btnLogScannedFood">Save to Diary</button>
+        <button class="btn btn-ghost" style="flex: 1; min-width: 0;" onclick="closeModals()">Discard</button>
+        <button class="btn btn-accent" style="flex: 1; min-width: 0;" id="btnLogScannedFood">Save to Diary</button>
       </div>
     </div>
   </div>
 
+  <!-- Quick Add / Edit Entry Modal -->
   <div class="modal-overlay" id="quickAddModal">
     <div class="modal-content">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-        <h3 style="margin-top: 0;"><i class="fa-solid fa-bolt text-warning"></i> Add to Diary</h3>
-        <button id="qaFavoriteBtn" class="heart-btn" title="Toggle Favorite"><i class="fa-regular fa-heart"></i></button>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+        <h3 style="margin: 0;" id="qaModalTitle"><i class="fa-solid fa-bolt text-warning"></i> Add to Diary</h3>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 4px 10px; font-size: 0.75rem; border-color: var(--primary); color: var(--primary);" onclick="triggerOCRLabelScan()"><i class="fa-solid fa-camera"></i> OCR</button>
+          <button id="qaFavoriteBtn" class="heart-btn" title="Toggle Favorite"><i class="fa-regular fa-heart"></i></button>
+        </div>
       </div>
       
       <input type="hidden" id="qaBarcode" value="">
+      <input type="hidden" id="qaEditId" value="">
       
       <div class="form-group">
         <label for="qaMeal">Meal</label>
@@ -763,12 +807,12 @@
         <label for="qaRecipeSelect" class="text-accent"><i class="fa-solid fa-book-open"></i> Load Custom Recipe</label>
         <select id="qaRecipeSelect">
           <option value="">-- Select from Vault --</option>
-          </select>
+        </select>
       </div>
       
       <div class="form-group">
-        <label for="qaName">Description (Optional)</label>
-        <input type="text" id="qaName" placeholder="e.g., Office Bagel">
+        <label for="qaName">Description</label>
+        <input type="text" id="qaName" placeholder="e.g., Grilled Chicken Breast 6oz">
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -801,21 +845,22 @@
           <div class="form-group"><label for="qaVitA">Vit A (mcg)</label><input type="number" id="qaVitA" value="0" min="0"></div>
           <div class="form-group"><label for="qaVitC">Vit C (mg)</label><input type="number" id="qaVitC" value="0" min="0"></div>
           <div class="form-group"><label for="qaCalcium">Calcium (mg)</label><input type="number" id="qaCalcium" value="0" min="0"></div>
-          <div class="form-group settings-grid-full"><label for="qaSatFat">Sat Fat (g)</label><input type="number" id="qaSatFat" value="0" min="0"></div>
+          <div class="form-group" style="grid-column: span 2;"><label for="qaSatFat">Sat Fat (g)</label><input type="number" id="qaSatFat" value="0" min="0"></div>
         </div>
       </div>
 
       <div style="display: flex; gap: 10px; margin-top: 20px;">
-        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
-        <button class="btn" id="btnSaveQuickAdd">Save Entry</button>
+        <button class="btn btn-ghost" style="flex: 1; min-width: 0;" onclick="closeModals()">Cancel</button>
+        <button class="btn" style="flex: 1; min-width: 0;" id="btnSaveQuickAdd">Save Entry</button>
       </div>
     </div>
   </div>
 
+  <!-- Macro Calculator Modal -->
   <div class="modal-overlay" id="macroCalcModal">
     <div class="modal-content">
       <h3 style="margin-top: 0;"><i class="fa-solid fa-calculator text-primary"></i> Macro Calculator</h3>
-      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px;">Based on the Mifflin-St Jeor equation for accurate basal metabolic rate (BMR) and Total Daily Energy Expenditure (TDEE).</p>
+      <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 15px;">Based on the Mifflin-St Jeor equation for accurate BMR and TDEE.</p>
       
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         <div class="form-group">
@@ -875,31 +920,16 @@
       </div>
 
       <div style="display: flex; gap: 10px;">
-        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
-        <button class="btn" id="btnRunMacroCalc">Calculate</button>
+        <button class="btn btn-ghost" style="flex: 1; min-width: 0;" onclick="closeModals()">Close</button>
+        <button class="btn" style="flex: 1; min-width: 0;" id="btnRunMacroCalc">Calculate</button>
+        <button class="btn btn-accent" style="flex: 1; min-width: 0; display: none;" id="btnApplyMacroCalcNutr">Apply</button>
       </div>
     </div>
   </div>
 
   <script>
-    const fabContainer = document.getElementById('fabContainer');
-    const mainFab = document.getElementById('mainFab');
-
-    function openQuickAddModal(meal = 'Snacks') {
-      document.getElementById('qaMeal').value = meal;
-      
-      // Reset heart button state for new entry
-      const heartBtn = document.getElementById('qaFavoriteBtn');
-      if(heartBtn) {
-          heartBtn.classList.remove('active');
-          heartBtn.innerHTML = '<i class="fa-regular fa-heart"></i>';
-      }
-      
-      document.getElementById('quickAddModal').classList.add('active');
-    }
-
     function openAddFoodModal(meal) {
-      openQuickAddModal(meal);
+      if (window.openQuickAddModal) window.openQuickAddModal(meal);
     }
 
     function openMacroCalcModal() {
@@ -910,14 +940,11 @@
       document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
     }
 
-    // Tab Switching Logic
     document.querySelectorAll('.nutrition-tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            // Remove active class from all tabs and panes
             document.querySelectorAll('.nutrition-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
             
-            // Add active class to clicked tab and corresponding pane
             tab.classList.add('active');
             const targetPane = document.getElementById(tab.dataset.tab);
             if(targetPane) targetPane.classList.add('active');
@@ -932,6 +959,6 @@
 
 <footer style="text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: 20px;">
   &copy; 2026 Joshua Michael Smolak. All Rights Reserved. <br>
-  BodyPro System v2.0.0
+  BodyPro System v3.0.0
 </footer>
 </html>

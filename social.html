@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>BodyPro | The Wire</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#09090b">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
@@ -16,7 +22,7 @@
     }
 
     .main-content {
-      padding-bottom: 100px;
+      padding-bottom: 110px;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
@@ -478,9 +484,14 @@
           
           <div class="my-id-box" id="myShortId">------</div>
           
-          <button class="btn btn-ghost" id="btnCopyId" style="width: 100%;">
-            <i class="fa-regular fa-copy"></i> Copy Link ID
-          </button>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-ghost" id="btnCopyId" style="flex: 1;">
+              <i class="fa-regular fa-copy"></i> Copy Link ID
+            </button>
+            <button class="btn btn-ghost" id="btnShareInvite" style="flex: 1; border-color: var(--primary); color: var(--primary);">
+              <i class="fa-solid fa-share-nodes"></i> Share Invite
+            </button>
+          </div>
 
           <div style="border-top: 1px dashed var(--border-color); margin-top: 20px; padding-top: 20px;">
             <h4 style="margin: 0 0 10px 0; text-align: left; font-size: 0.95rem;">Add Connection</h4>
@@ -536,6 +547,6 @@
 </body>
 <footer style="text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: 20px;">
   &copy; 2026 Joshua Michael Smolak. All Rights Reserved. <br>
-  BodyPro System v2.0.0
+  BodyPro System v3.0.0
 </footer>
 </html>

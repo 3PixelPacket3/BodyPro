@@ -2,19 +2,39 @@ import { auth } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // --- DOM ELEMENTS ---
-
-// Hero & Greeting
 const userGreeting = document.getElementById('userGreeting');
 const heroBanner = document.getElementById('heroBanner');
+const readinessScoreCircle = document.getElementById('readinessScoreCircle');
+const readinessStatusText = document.getElementById('readinessStatusText');
+const readinessAdviceBanner = document.getElementById('readinessAdviceBanner');
+const streakCountBadge = document.getElementById('streakCountBadge');
 
 // Today's Protocol Elements
 const protocolSelect = document.getElementById('protocolSelect');
 const todayProtocolContainer = document.getElementById('todayProtocolContainer');
 const btnTimeCrunch = document.getElementById('btnTimeCrunch');
+const btnLaunchProtocol = document.getElementById('btnLaunchProtocol');
+const scheduledSplitHint = document.getElementById('scheduledSplitHint');
+
+// Recovery & Activity Elements
+const dashSleepHrs = document.getElementById('dashSleepHrs');
+const dashSleepGoalLbl = document.getElementById('dashSleepGoalLbl');
+const dashStepsVal = document.getElementById('dashStepsVal');
+const dashStepsGoalLbl = document.getElementById('dashStepsGoalLbl');
+const dashActiveBurn = document.getElementById('dashActiveBurn');
+const btnToggleQuickRecovery = document.getElementById('btnToggleQuickRecovery');
+const quickRecoveryDrawer = document.getElementById('quickRecoveryDrawer');
+const quickSleepHrs = document.getElementById('quickSleepHrs');
+const quickSleepQuality = document.getElementById('quickSleepQuality');
+const quickStepsInput = document.getElementById('quickStepsInput');
+const btnAdd1kSteps = document.getElementById('btnAdd1kSteps');
+const btnSaveQuickRecovery = document.getElementById('btnSaveQuickRecovery');
 
 // Nutrition Elements
 const calsRemaining = document.getElementById('calsRemaining');
 const calsEaten = document.getElementById('calsEaten');
+const calsTargetSub = document.getElementById('calsTargetSub');
+const netCalorieModeHint = document.getElementById('netCalorieModeHint');
 const protVal = document.getElementById('protVal');
 const protTarget = document.getElementById('protTarget');
 const carbVal = document.getElementById('carbVal');
@@ -36,8 +56,10 @@ const satFatVal = document.getElementById('satFatVal');
 
 // Body Metrics Elements
 const dashWeight = document.getElementById('dashWeight');
+const dashWeightUnitLbl = document.getElementById('dashWeightUnitLbl');
 const dashBodyFat = document.getElementById('dashBodyFat');
 const dashLBM = document.getElementById('dashLBM');
+const dashLBMUnitLbl = document.getElementById('dashLBMUnitLbl');
 
 // Hydration Elements
 const waterCount = document.getElementById('waterCount');
@@ -45,15 +67,15 @@ const waterTargetLabel = document.getElementById('waterTargetLabel');
 const btnAddWater = document.getElementById('btnAddWater');
 const btnSubWater = document.getElementById('btnSubWater');
 const customWaterInput = document.getElementById('customWaterInput');
+const btnQuickWater8 = document.getElementById('btnQuickWater8');
+const btnQuickWater16 = document.getElementById('btnQuickWater16');
 
 // --- STATE MANAGEMENT ---
 let userData = null;
+let isTimeCrunchActive = false;
 
-// Ensure accurate local timing to prevent midnight rollover caching bugs
 function getLocalISODate() {
-    const d = new Date();
-    const offset = d.getTimezoneOffset() * 60000;
-    return (new Date(d - offset)).toISOString().split('T')[0];
+    return window.BodyProTelemetry.getLocalISODate();
 }
 
 // --- INITIALIZATION ---
@@ -65,12 +87,13 @@ onAuthStateChanged(auth, async (user) => {
 
     userData = await window.BodyProDataStore.getData();
     
-    if (!userData.settings) userData.settings = { macroTargets: {}, goals: {} };
+    if (!userData.settings) userData.settings = { macroTargets: {}, goals: {}, preferences: {} };
     if (!userData.food_diary) userData.food_diary = [];
     if (!userData.biometrics) userData.biometrics = [];
     if (!userData.sleep_data) userData.sleep_data = [];
-    if (!userData.workout_templates) userData.workout_templates = []; 
+    if (!userData.workout_templates) userData.workout_templates = [];
 
+    populateProtocolDropdown();
     renderDashboard();
     loadHeroImage();
 });
@@ -93,6 +116,42 @@ function loadHeroImage() {
     heroBanner.style.backgroundImage = `url('${selectedImage}')`;
 }
 
+function populateProtocolDropdown() {
+    if (!protocolSelect || !todayProtocolContainer) return;
+
+    protocolSelect.innerHTML = '<option value="">-- Select Training Protocol --</option>';
+    const templates = userData.workout_templates || [];
+
+    if (templates.length > 0) {
+        protocolSelect.style.display = 'block';
+        templates.forEach(workout => {
+            const opt = document.createElement('option');
+            opt.value = workout.id;
+            opt.textContent = workout.title;
+            protocolSelect.appendChild(opt);
+        });
+
+        // Check if today has a scheduled split template
+        const todayDayIdx = new Date().getDay();
+        const scheduledId = userData.settings?.weeklySplit?.[todayDayIdx];
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        if (scheduledId && templates.some(t => t.id === scheduledId)) {
+            protocolSelect.value = scheduledId;
+            if (scheduledSplitHint) scheduledSplitHint.innerText = `Auto-queued for ${dayNames[todayDayIdx]} Split`;
+            renderSelectedProtocol(scheduledId, isTimeCrunchActive);
+        } else {
+            protocolSelect.value = templates[0].id;
+            if (scheduledSplitHint) scheduledSplitHint.innerText = `${templates.length} saved protocol(s) ready`;
+            renderSelectedProtocol(templates[0].id, isTimeCrunchActive);
+        }
+    } else {
+        protocolSelect.style.display = 'none';
+        if (scheduledSplitHint) scheduledSplitHint.innerText = 'No templates saved yet';
+        todayProtocolContainer.innerHTML = '<p class="text-muted" style="font-size: 0.85rem; text-align: center; padding: 10px;">No custom protocols found. Build or load one in the Fitness tab.</p>';
+    }
+}
+
 // --- CORE RENDER ENGINE ---
 function renderDashboard() {
     const todayStr = getLocalISODate(); 
@@ -103,33 +162,82 @@ function renderDashboard() {
     else if (hour < 17) timeGreeting = "Good Afternoon";
     if (userGreeting) userGreeting.innerText = `${timeGreeting}, ${name}.`;
 
-    if (protocolSelect && todayProtocolContainer) {
-        protocolSelect.innerHTML = '<option value="">-- Select Protocol --</option>';
-        if (userData.workout_templates && userData.workout_templates.length > 0) {
-            protocolSelect.style.display = 'block';
-            userData.workout_templates.forEach(workout => {
-                const opt = document.createElement('option');
-                opt.value = workout.id;
-                opt.textContent = workout.title; 
-                protocolSelect.appendChild(opt);
-            });
-            todayProtocolContainer.innerHTML = ''; 
-        } else {
-            protocolSelect.style.display = 'none';
-            todayProtocolContainer.innerHTML = '<p class="text-muted" style="font-size: 0.85rem; text-align: center; padding: 10px;">No custom protocols found. Create one in the Fitness tab.</p>';
+    const weightUnit = window.BodyProUnits.getWeightUnit(userData);
+    const fluidUnit = window.BodyProUnits.getFluidUnit(userData);
+
+    // 1. Readiness Score & CNS Status
+    const readiness = window.BodyProTelemetry.calculateReadiness(userData);
+    if (readinessScoreCircle) {
+        readinessScoreCircle.innerText = `${readiness.score}%`;
+        readinessScoreCircle.style.borderColor = readiness.color;
+    }
+    if (readinessStatusText) {
+        readinessStatusText.innerText = readiness.status;
+        readinessStatusText.style.color = readiness.color;
+    }
+    if (readinessAdviceBanner) {
+        readinessAdviceBanner.innerHTML = `<i class="fa-solid fa-microchip text-primary"></i> <strong>Telemetry Coach:</strong> ${readiness.advice}`;
+    }
+
+    // 2. Recovery, Sleep, Steps & Active Burn
+    const todayBio = (userData.biometrics || []).find(b => b.date === todayStr) || {};
+    const todaySleepEntry = (userData.sleep_data || []).find(s => s.date === todayStr);
+    const sleepHrs = todaySleepEntry?.hours || todayBio.sleepHrs || null;
+    const sleepGoal = userData.settings?.goals?.sleepHrs || 7.5;
+    const stepsCount = todayBio.steps || 0;
+    const stepsGoal = userData.settings?.goals?.steps || 10000;
+
+    // Sum today's active workout calories
+    const todaysWorkouts = (userData.workouts || []).filter(w => w.date === todayStr || (w.timestamp && w.timestamp.startsWith(todayStr)));
+    let activeBurnCals = 0;
+    todaysWorkouts.forEach(w => {
+        activeBurnCals += (Number(w.telemetry?.activeCals) || 0);
+    });
+
+    if (dashSleepHrs) dashSleepHrs.innerText = sleepHrs ? `${sleepHrs}h` : '--';
+    if (dashSleepGoalLbl) dashSleepGoalLbl.innerText = `Sleep / ${sleepGoal}h`;
+    if (dashStepsVal) dashStepsVal.innerText = stepsCount.toLocaleString();
+    if (dashStepsGoalLbl) dashStepsGoalLbl.innerText = `Steps / ${(stepsGoal/1000).toFixed(0)}k`;
+    if (dashActiveBurn) dashActiveBurn.innerText = activeBurnCals;
+
+    if (quickSleepHrs && !quickSleepHrs.value && sleepHrs) quickSleepHrs.value = sleepHrs;
+    if (quickSleepQuality && !quickSleepQuality.value && (todaySleepEntry?.quality || todayBio.sleepQuality)) {
+        quickSleepQuality.value = todaySleepEntry?.quality || todayBio.sleepQuality;
+    }
+    if (quickStepsInput && !quickStepsInput.value && stepsCount) quickStepsInput.value = stepsCount;
+
+    // 3. Hydration Module (Unit-Aware)
+    if (waterCount && waterTargetLabel) {
+        const currentWaterOz = todayBio.waterOz || todayBio.water || 0;
+        const waterGoalOz = userData.settings.goals?.waterOz || 120;
+        const unitLabel = fluidUnit === 'ml' ? 'mL' : 'fl oz';
+        waterCount.innerHTML = `${window.BodyProUnits.formatFluid(currentWaterOz, userData)} <span style="font-size: 0.9rem; color: var(--text-muted);">${unitLabel}</span>`;
+        waterTargetLabel.innerText = `Goal: ${window.BodyProUnits.formatFluid(waterGoalOz, userData)} ${unitLabel}`;
+
+        if (btnQuickWater8 && btnQuickWater16 && customWaterInput) {
+            if (fluidUnit === 'ml') {
+                btnQuickWater8.innerText = '+250 mL';
+                btnQuickWater16.innerText = '+500 mL';
+                if (customWaterInput.value === '8') customWaterInput.value = '250';
+            } else {
+                btnQuickWater8.innerText = '+8 oz';
+                btnQuickWater16.innerText = '+16 oz';
+                if (customWaterInput.value === '250') customWaterInput.value = '8';
+            }
         }
     }
 
-    if (waterCount && waterTargetLabel) {
-        const todayWater = userData.biometrics.find(b => b.date === todayStr);
-        const currentWater = todayWater?.waterOz || todayWater?.water || 0;
-        const waterGoal = userData.settings.goals?.waterOz || 120;
-        waterCount.innerHTML = `${currentWater} <span style="font-size: 0.9rem; color: var(--text-muted);">fl oz</span>`;
-        waterTargetLabel.innerText = `Goal: ${waterGoal} fl oz`;
-    }
-
+    // 4. Daily Nutrition & Dynamic Net Calorie Budget
     const targets = userData.settings.macroTargets || { calories: 2200, protein: 200, carbs: 150, fats: 88 };
-    
+    const includeBurn = userData.settings?.preferences?.includeActiveBurnInBudget !== false;
+    const effectiveCalorieBudget = targets.calories + (includeBurn ? activeBurnCals : 0);
+
+    if (netCalorieModeHint) {
+        netCalorieModeHint.innerText = includeBurn && activeBurnCals > 0
+            ? `Budget: ${targets.calories} + ${activeBurnCals} Active Burn = ${effectiveCalorieBudget} kcal`
+            : `Base Target: ${targets.calories} kcal`;
+    }
+    if (calsTargetSub) calsTargetSub.innerText = `/ ${effectiveCalorieBudget} kcal`;
     if (protTarget) protTarget.innerText = `/ ${targets.protein}g`;
     if (carbTarget) carbTarget.innerText = `/ ${targets.carbs}g`;
     if (fatTarget) fatTarget.innerText = `/ ${targets.fats}g`;
@@ -171,75 +279,81 @@ function renderDashboard() {
     if (satFatVal) satFatVal.innerText = `${Math.round(eatenSatFat)}g`;
 
     if (calsRemaining) {
-        const calsLeft = Math.max(0, targets.calories - eatenCals);
+        const calsLeft = Math.max(0, effectiveCalorieBudget - eatenCals);
         calsRemaining.innerText = Math.round(calsLeft);
     }
 
     if (calorieRing) {
-        const progressPerc = Math.min(100, (eatenCals / targets.calories) * 100);
+        const progressPerc = Math.min(100, (eatenCals / Math.max(1, effectiveCalorieBudget)) * 100);
         let ringColor = 'var(--accent)';
-        if (eatenCals > targets.calories) ringColor = 'var(--danger)'; 
+        if (eatenCals > effectiveCalorieBudget) ringColor = 'var(--danger)'; 
         calorieRing.style.background = `conic-gradient(${ringColor} ${progressPerc}%, var(--bg-surface-elevated) 0)`;
     }
 
-    // Body Metrics Snapshot Update
+    // 5. Body Metrics Snapshot Update (Unit-Aware)
     if (dashWeight && dashBodyFat && dashLBM) {
         const sortedBio = [...(userData.biometrics || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
         const latestWeightEntry = sortedBio.find(b => b.weight);
         const latestCompEntry = sortedBio.find(b => b.bodyFat);
 
-        let weight = latestWeightEntry ? parseFloat(latestWeightEntry.weight) : null;
+        let weightLbs = latestWeightEntry ? parseFloat(latestWeightEntry.weight) : null;
         let bf = latestCompEntry ? parseFloat(latestCompEntry.bodyFat) : null;
 
-        dashWeight.innerText = weight ? weight.toFixed(1) : '--';
+        dashWeight.innerText = weightLbs ? window.BodyProUnits.formatWeight(weightLbs, userData, 1) : '--';
+        if (dashWeightUnitLbl) dashWeightUnitLbl.innerText = `Current (${weightUnit})`;
         dashBodyFat.innerText = bf ? bf.toFixed(1) : '--';
         
-        if (weight && bf) {
-            const fatMass = weight * (bf / 100);
-            const lbm = weight - fatMass;
-            dashLBM.innerText = lbm.toFixed(1);
+        if (weightLbs && bf) {
+            const fatMass = weightLbs * (bf / 100);
+            const lbm = weightLbs - fatMass;
+            dashLBM.innerText = window.BodyProUnits.formatWeight(lbm, userData, 1);
+            if (dashLBMUnitLbl) dashLBMUnitLbl.innerText = `Lean Mass (${weightUnit})`;
         } else {
             dashLBM.innerText = '--';
         }
     }
 
-    // Weekly Consistency Streak Update
+    // 6. Weekly Consistency Streak Update
     const dayCircles = document.querySelectorAll('.day-circle');
     if (dayCircles.length === 7) {
         const today = new Date();
-        const dayMap = [6, 0, 1, 2, 3, 4, 5]; // Sunday=0 maps to index 6, Monday=1 maps to index 0.
+        const dayMap = [6, 0, 1, 2, 3, 4, 5]; // Sunday=0 maps to index 6, Monday=1 maps to index 0
         
         dayCircles.forEach(c => c.classList.remove('active'));
+        let activeDaysThisWeek = 0;
         
         for (let i = 0; i < 7; i++) {
             const d = new Date(today);
             d.setDate(d.getDate() - i);
-            const offset = d.getTimezoneOffset() * 60000;
-            const dateStr = (new Date(d - offset)).toISOString().split('T')[0];
+            const dateStr = window.BodyProTelemetry.getLocalISODate(d);
             
             const hasWorkout = (userData.workouts || []).some(w => w.date === dateStr || (w.timestamp && w.timestamp.startsWith(dateStr)));
             
             if (hasWorkout) {
                 const dayIndex = dayMap[d.getDay()];
-                if (dayCircles[dayIndex]) {
+                if (dayCircles[dayIndex] && !dayCircles[dayIndex].classList.contains('active')) {
                     dayCircles[dayIndex].classList.add('active');
+                    activeDaysThisWeek++;
                 }
             }
         }
+        const targetDays = userData.settings?.goals?.workoutDaysPerWeek || 6;
+        if (streakCountBadge) streakCountBadge.innerText = `${activeDaysThisWeek} / ${targetDays} Days`;
     }
 }
 
 // --- PROTOCOL RENDERING & TIME-CRUNCH ENGINE ---
 function renderSelectedProtocol(workoutId, isTimeCrunch = false) {
+    if (!todayProtocolContainer) return;
     if (!workoutId) {
         todayProtocolContainer.innerHTML = '';
         return;
     }
 
-    const workout = userData.workout_templates.find(w => w.id === workoutId);
+    const workout = (userData.workout_templates || []).find(w => w.id === workoutId);
     if (workout && workout.exercises) {
         let html = `<ul style="list-style: none; padding: 0; margin: 0;">`;
-        workout.exercises.forEach(ex => {
+        workout.exercises.forEach((ex, idx) => {
             const exName = ex.exercise || ex.name || 'Unknown Movement';
             let setsCount = (ex.sets && Array.isArray(ex.sets)) ? ex.sets.length : 1;
             
@@ -252,62 +366,133 @@ function renderSelectedProtocol(workoutId, isTimeCrunch = false) {
                 repsText = ex.sets[0].reps + " Reps";
             }
 
+            const supersetTag = isTimeCrunch
+                ? `<span style="color:var(--warning); font-size:0.7rem; margin-left: 6px; background: rgba(245,158,11,0.15); padding: 2px 6px; border-radius: 99px; font-weight: 800;"><i class="fa-solid fa-bolt"></i> Superset ${String.fromCharCode(65 + Math.floor(idx / 2))}${(idx % 2) + 1}</span>`
+                : '';
+
             html += `
             <li style="padding: 10px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; transition: opacity 0.2s;">
                 <div>
-                    <div style="font-weight: 600; font-size: 0.95rem;">${exName} ${isTimeCrunch ? '<span style="color:var(--warning); font-size:0.75rem; margin-left: 5px;"><i class="fa-solid fa-bolt"></i></span>' : ''}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">${setsCount} Sets x ${repsText}</div>
+                    <div style="font-weight: 700; font-size: 0.92rem;">${exName} ${supersetTag}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">${setsCount} Working Sets &times; ${repsText}</div>
                 </div>
-                <button class="btn btn-ghost check-btn" style="padding: 5px 10px; font-size: 1rem; color: var(--text-muted);"><i class="fa-regular fa-circle"></i></button>
+                <button class="btn btn-ghost check-btn" style="width: auto; min-width: 0; padding: 5px 10px; font-size: 1rem; color: var(--text-muted); border: none;"><i class="fa-regular fa-circle"></i></button>
             </li>`;
         });
         html += `</ul>`;
         todayProtocolContainer.innerHTML = html;
 
-        setTimeout(() => {
-            todayProtocolContainer.querySelectorAll('.check-btn').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const icon = this.querySelector('i');
-                    if (icon.classList.contains('fa-circle')) {
-                        icon.classList.replace('fa-regular', 'fa-solid');
-                        icon.classList.replace('fa-circle', 'fa-circle-check');
-                        icon.style.color = 'var(--primary)';
-                        this.closest('li').style.opacity = '0.4';
-                    } else {
-                        icon.classList.replace('fa-solid', 'fa-regular');
-                        icon.classList.replace('fa-circle-check', 'fa-circle');
-                        icon.style.color = 'var(--text-muted)';
-                        this.closest('li').style.opacity = '1';
-                    }
-                });
+        todayProtocolContainer.querySelectorAll('.check-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.BodyProHardware.playCheckSound();
+                const icon = this.querySelector('i');
+                if (icon.classList.contains('fa-circle')) {
+                    icon.classList.replace('fa-regular', 'fa-solid');
+                    icon.classList.replace('fa-circle', 'fa-circle-check');
+                    icon.style.color = 'var(--accent)';
+                    this.closest('li').style.opacity = '0.45';
+                } else {
+                    icon.classList.replace('fa-solid', 'fa-regular');
+                    icon.classList.replace('fa-circle-check', 'fa-circle');
+                    icon.style.color = 'var(--text-muted)';
+                    this.closest('li').style.opacity = '1';
+                }
             });
-        }, 50);
+        });
     }
 }
 
 if (protocolSelect) {
     protocolSelect.addEventListener('change', (e) => {
-        renderSelectedProtocol(e.target.value, false);
+        renderSelectedProtocol(e.target.value, isTimeCrunchActive);
     });
 }
 
 if (btnTimeCrunch) {
     btnTimeCrunch.addEventListener('click', (e) => {
         e.preventDefault();
-        if (!protocolSelect) return;
-        const currentWorkoutId = protocolSelect.value;
-        if (!currentWorkoutId) {
-            alert("Please select a protocol from the dropdown first to enable Time-Crunch mode.");
+        if (!protocolSelect || !protocolSelect.value) {
+            alert("Please select a protocol from the dropdown first to toggle Time-Crunch mode.");
             return;
         }
-        renderSelectedProtocol(currentWorkoutId, true);
+        isTimeCrunchActive = !isTimeCrunchActive;
+        btnTimeCrunch.style.background = isTimeCrunchActive ? 'var(--warning)' : 'transparent';
+        btnTimeCrunch.style.color = isTimeCrunchActive ? '#09090b' : 'var(--warning)';
+        window.BodyProHardware.playCheckSound();
+        renderSelectedProtocol(protocolSelect.value, isTimeCrunchActive);
+    });
+}
+
+if (btnLaunchProtocol) {
+    btnLaunchProtocol.addEventListener('click', () => {
+        if (protocolSelect && protocolSelect.value) {
+            sessionStorage.setItem('bodypro_launch_template_id', protocolSelect.value);
+            sessionStorage.setItem('bodypro_launch_time_crunch', isTimeCrunchActive ? '1' : '0');
+        }
+        window.location.href = 'fitness.html';
+    });
+}
+
+// --- RECOVERY & STEPS QUICK LOGGER ---
+if (btnToggleQuickRecovery) {
+    btnToggleQuickRecovery.addEventListener('click', () => {
+        const isHidden = quickRecoveryDrawer.style.display === 'none';
+        quickRecoveryDrawer.style.display = isHidden ? 'block' : 'none';
+    });
+}
+
+async function saveRecoveryTelemetry(addStepsDelta = 0) {
+    if (!userData) return;
+    const todayStr = getLocalISODate();
+    let todayBio = userData.biometrics.find(b => b.date === todayStr);
+    if (!todayBio) {
+        todayBio = { id: `bio_${Date.now()}`, date: todayStr, waterOz: 0 };
+        userData.biometrics.push(todayBio);
+    }
+
+    if (addStepsDelta > 0) {
+        todayBio.steps = (Number(todayBio.steps) || 0) + addStepsDelta;
+        if (quickStepsInput) quickStepsInput.value = todayBio.steps;
+    } else {
+        const sHrs = parseFloat(quickSleepHrs.value);
+        const sQual = parseInt(quickSleepQuality.value);
+        const steps = parseInt(quickStepsInput.value);
+
+        if (!isNaN(steps) && steps >= 0) todayBio.steps = steps;
+        if (!isNaN(sHrs) && sHrs > 0) {
+            todayBio.sleepHrs = sHrs;
+            todayBio.sleepQuality = !isNaN(sQual) ? Math.min(10, Math.max(1, sQual)) : 8;
+
+            let sleepRec = userData.sleep_data.find(s => s.date === todayStr);
+            if (!sleepRec) {
+                sleepRec = { id: `slp_${Date.now()}`, date: todayStr };
+                userData.sleep_data.push(sleepRec);
+            }
+            sleepRec.hours = sHrs;
+            sleepRec.quality = todayBio.sleepQuality;
+        }
+    }
+
+    window.BodyProHardware.playCheckSound();
+    renderDashboard();
+    await window.BodyProDataStore.saveData(userData);
+}
+
+if (btnAdd1kSteps) {
+    btnAdd1kSteps.addEventListener('click', () => saveRecoveryTelemetry(1000));
+}
+
+if (btnSaveQuickRecovery) {
+    btnSaveQuickRecovery.addEventListener('click', async () => {
+        await saveRecoveryTelemetry(0);
+        if (quickRecoveryDrawer) quickRecoveryDrawer.style.display = 'none';
     });
 }
 
 // --- HYDRATION MODULE ---
-async function updateWater(amount) {
+async function updateWaterOz(amountOz) {
     if (!userData) return;
     
     const todayStr = getLocalISODate(); 
@@ -318,9 +503,10 @@ async function updateWater(amount) {
     }
     
     const currentWater = todayBio.waterOz || todayBio.water || 0;
-    todayBio.waterOz = Math.max(0, currentWater + amount);
-    todayBio.water = todayBio.waterOz; // Backwards compatibility 
+    todayBio.waterOz = Math.max(0, +(currentWater + amountOz).toFixed(1));
+    todayBio.water = todayBio.waterOz;
     
+    window.BodyProHardware.playCheckSound();
     renderDashboard();
     await window.BodyProDataStore.saveData(userData);
 }
@@ -338,16 +524,30 @@ async function handleWaterTap(isAdd, e) {
 
     if (document.activeElement) document.activeElement.blur();
 
-    let val = 8;
+    let rawVal = 8;
     if (customWaterInput) {
-        val = parseInt(customWaterInput.value);
-        if (isNaN(val)) val = 8;
+        rawVal = parseFloat(customWaterInput.value);
+        if (isNaN(rawVal)) rawVal = 8;
     }
+    const deltaOz = window.BodyProUnits.toInternalOz(rawVal, userData);
     
-    await updateWater(isAdd ? val : -val);
+    await updateWaterOz(isAdd ? deltaOz : -deltaOz);
     
-    setTimeout(() => { isWaterProcessing = false; }, 300);
+    setTimeout(() => { isWaterProcessing = false; }, 250);
 }
 
 if (btnAddWater) btnAddWater.addEventListener('pointerdown', (e) => handleWaterTap(true, e));
 if (btnSubWater) btnSubWater.addEventListener('pointerdown', (e) => handleWaterTap(false, e));
+
+if (btnQuickWater8) {
+    btnQuickWater8.addEventListener('click', () => {
+        const isMl = window.BodyProUnits.getFluidUnit(userData) === 'ml';
+        updateWaterOz(isMl ? (250 / 29.5735) : 8);
+    });
+}
+if (btnQuickWater16) {
+    btnQuickWater16.addEventListener('click', () => {
+        const isMl = window.BodyProUnits.getFluidUnit(userData) === 'ml';
+        updateWaterOz(isMl ? (500 / 29.5735) : 16);
+    });
+}

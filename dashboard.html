@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BodyPro">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>BodyPro | Command Center</title>
   
   <link rel="manifest" href="manifest.json">
@@ -14,7 +18,6 @@
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   
   <style>
-  /* Global Mobile Scroll Fixes */
   html, body {
     overflow-x: hidden;
     width: 100%;
@@ -22,39 +25,45 @@
   }
 
   .main-content {
-    padding-bottom: 100px;
+    padding-bottom: 110px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Dashboard Specific Styles & UI Polish */
+  /* Dashboard Hero Banner */
   .hero-banner {
     position: relative;
     border-radius: var(--border-radius-md);
-    padding: 35px 25px;
-    margin-bottom: 25px;
+    padding: 32px 24px;
+    margin-bottom: 22px;
     overflow: hidden;
     background-color: var(--bg-surface-elevated);
     background-size: cover;
     background-position: center;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
     transition: background-image 0.5s ease-in-out;
+    border: 1px solid var(--border-highlight);
   }
 
   .hero-overlay {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(135deg, rgba(9, 9, 11, 0.95) 0%, rgba(9, 9, 11, 0.4) 100%);
+    background: linear-gradient(135deg, rgba(9, 9, 11, 0.95) 0%, rgba(9, 9, 11, 0.55) 100%);
     z-index: 1;
   }
 
   .greeting-section {
     position: relative;
     z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 15px;
   }
   
   .greeting-section h2 { 
-    font-size: 2rem; 
+    font-size: 1.9rem; 
     margin-bottom: 5px; 
     text-shadow: 0 2px 10px rgba(0,0,0,0.8);
     color: #ffffff;
@@ -64,16 +73,43 @@
     color: var(--primary); 
     font-weight: 800; 
     text-transform: uppercase; 
-    font-size: 0.85rem; 
+    font-size: 0.8rem; 
     letter-spacing: 2px; 
     text-shadow: 0 1px 5px rgba(0,0,0,0.8);
+  }
+
+  .readiness-pill {
+    background: rgba(15, 23, 42, 0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--border-radius-md);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #fff;
+  }
+
+  .readiness-score-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
   }
 
   /* Progress Rings */
   .progress-circle {
     position: relative;
-    width: 130px;
-    height: 130px;
+    width: 136px;
+    height: 136px;
     border-radius: 50%;
     background: conic-gradient(var(--accent) 75%, var(--bg-surface-elevated) 0);
     display: flex;
@@ -86,8 +122,8 @@
   .progress-circle::after {
     content: "";
     position: absolute;
-    width: 106px;
-    height: 106px;
+    width: 110px;
+    height: 110px;
     border-radius: 50%;
     background-color: var(--bg-surface);
     box-shadow: inset 0 4px 10px rgba(0,0,0,0.3);
@@ -99,14 +135,14 @@
     text-align: center;
   }
   
-  .progress-content span { display: block; font-size: 1.6rem; font-weight: 800; color: var(--text-main); }
-  .progress-content small { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; }
+  .progress-content span { display: block; font-size: 1.55rem; font-weight: 800; color: var(--text-main); font-family: var(--font-mono); }
+  .progress-content small { color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; font-weight: 700; }
 
   /* Water Tracker */
   .water-tracker { display: flex; align-items: center; justify-content: space-between; background: var(--bg-base); padding: 15px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); flex-wrap: wrap; gap: 15px;}
   .water-controls { display: flex; gap: 10px; align-items: center; }
   .water-btn { background: var(--bg-surface-elevated); border: 1px solid var(--border-color); color: var(--text-main); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 1.1rem; }
-  .water-btn:hover { background: var(--primary); border-color: var(--primary); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+  .water-btn:hover { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
   .water-btn:active { transform: scale(0.9); }
 
   /* Micro Grid styling */
@@ -130,9 +166,9 @@
     justify-content: center;
   }
   .micro-item .lbl { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
-  .micro-item .val { font-size: 0.9rem; font-weight: 800; font-family: monospace; }
+  .micro-item .val { font-size: 0.9rem; font-weight: 800; font-family: var(--font-mono); }
 
-  /* Telemetry & Streak Grid Reintroduced for Body Metrics */
+  /* Telemetry & Streak Grid */
   .telemetry-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
@@ -158,24 +194,31 @@
     transform: translateY(-2px);
   }
 
-  .telemetry-item i { font-size: 1.6rem; margin-bottom: 10px; }
-  .telemetry-item .val { font-size: 1.2rem; font-weight: 800; font-family: monospace; }
+  .telemetry-item i { font-size: 1.5rem; margin-bottom: 8px; }
+  .telemetry-item .val { font-size: 1.2rem; font-weight: 800; font-family: var(--font-mono); }
   .telemetry-item .lbl { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-top: 4px; }
 
   .day-circle {
-    width: 35px; height: 35px; border-radius: 50%;
+    width: 36px; height: 36px; border-radius: 50%;
     background: var(--bg-surface-elevated);
     display: flex; align-items: center; justify-content: center;
-    font-weight: bold; color: var(--text-muted); font-size: 0.8rem;
+    font-weight: 800; color: var(--text-muted); font-size: 0.8rem;
     border: 1px solid var(--border-color);
+    transition: all 0.25s;
   }
   .day-circle.active {
     background: var(--primary);
     color: #fff;
     border-color: var(--primary);
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
   }
-    
+
+  .quick-biometric-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
   </style>
 </head>
 <body>
@@ -218,36 +261,122 @@
       <div class="hero-banner" id="heroBanner">
         <div class="hero-overlay"></div>
         <div class="greeting-section">
-          <h2 id="userGreeting">Initializing...</h2>
-          <p id="currentDate">--</p>
+          <div>
+            <h2 id="userGreeting">Initializing...</h2>
+            <p id="currentDate">--</p>
+          </div>
+          <div class="readiness-pill" title="Daily CNS & Biometric Readiness Score">
+            <div class="readiness-score-circle" id="readinessScoreCircle">--</div>
+            <div>
+              <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; font-weight: 700;">Readiness</div>
+              <div style="font-size: 0.9rem; font-weight: 800;" id="readinessStatusText">Calculating...</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="card" style="border-top: 4px solid var(--success, #10b981); margin-bottom: 25px;">
+      <!-- Weekly Consistency Card -->
+      <div class="card" style="border-top: 4px solid var(--success, #10b981); margin-bottom: 22px;">
         <div class="card-header">
           <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-calendar-check" style="color: var(--success, #10b981);"></i> Weekly Consistency</h3>
+          <span id="streakCountBadge" style="font-size: 0.78rem; font-weight: 800; color: var(--accent); background: rgba(16, 185, 129, 0.12); padding: 4px 10px; border-radius: 999px;">0 / 6 Days</span>
         </div>
         <div style="display: flex; justify-content: space-between; margin-top: 15px;">
-          <div class="day-circle active">M</div>
-          <div class="day-circle active">T</div>
+          <div class="day-circle">M</div>
+          <div class="day-circle">T</div>
           <div class="day-circle">W</div>
           <div class="day-circle">T</div>
           <div class="day-circle">F</div>
           <div class="day-circle">S</div>
           <div class="day-circle">S</div>
         </div>
+        <p id="readinessAdviceBanner" class="text-muted" style="font-size: 0.8rem; margin-top: 14px; border-top: 1px dashed var(--border-color); padding-top: 10px;"></p>
       </div>
 
-      <div class="card" style="border-top: 4px solid var(--info, #3b82f6); margin-bottom: 25px;">
+      <!-- Today's Training Protocol & Time-Crunch Engine -->
+      <div class="card" style="border-top: 4px solid var(--primary); margin-bottom: 22px;">
+        <div class="card-header">
+          <div>
+            <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-dumbbell text-primary"></i> Today's Protocol</h3>
+            <small id="scheduledSplitHint" class="text-muted" style="font-size: 0.75rem; font-weight: 600;"></small>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button id="btnTimeCrunch" class="btn btn-ghost" style="width: auto; padding: 6px 12px; font-size: 0.78rem; border-color: var(--warning); color: var(--warning);" title="Condense sets by 50% into high-density supersets">
+              <i class="fa-solid fa-bolt"></i> Time-Crunch
+            </button>
+            <button id="btnLaunchProtocol" class="btn" style="width: auto; padding: 6px 14px; font-size: 0.78rem;">
+              <i class="fa-solid fa-play"></i> Launch
+            </button>
+          </div>
+        </div>
+
+        <select id="protocolSelect" style="margin-bottom: 12px;">
+          <option value="">-- Select Protocol --</option>
+        </select>
+
+        <div id="todayProtocolContainer"></div>
+      </div>
+
+      <!-- Sleep, Steps & Daily Activity Telemetry -->
+      <div class="card" style="border-top: 4px solid var(--purple, #8b5cf6); margin-bottom: 22px;">
+        <div class="card-header">
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-bed-pulse" style="color: var(--purple, #8b5cf6);"></i> Recovery & Activity</h3>
+          <button class="btn btn-ghost" id="btnToggleQuickRecovery" style="width: auto; padding: 4px 12px; font-size: 0.78rem;">
+            <i class="fa-solid fa-plus"></i> Quick Log
+          </button>
+        </div>
+
+        <div class="telemetry-grid">
+          <div class="telemetry-item">
+            <i class="fa-solid fa-moon" style="color: var(--purple, #8b5cf6);"></i>
+            <div class="val" id="dashSleepHrs">--</div>
+            <div class="lbl" id="dashSleepGoalLbl">Sleep (hrs)</div>
+          </div>
+          <div class="telemetry-item">
+            <i class="fa-solid fa-shoe-prints text-accent"></i>
+            <div class="val" id="dashStepsVal">0</div>
+            <div class="lbl" id="dashStepsGoalLbl">Steps</div>
+          </div>
+          <div class="telemetry-item">
+            <i class="fa-solid fa-fire-flame-Simple text-warning fa-fire-flame-curved"></i>
+            <div class="val" id="dashActiveBurn">0</div>
+            <div class="lbl">Active Burn (kcal)</div>
+          </div>
+        </div>
+
+        <div id="quickRecoveryDrawer" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color);">
+          <div class="quick-biometric-bar">
+            <div class="form-group" style="margin: 0;">
+              <label for="quickSleepHrs">Sleep Hours</label>
+              <input type="number" step="0.5" min="0" max="24" id="quickSleepHrs" placeholder="e.g. 7.5">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label for="quickSleepQuality">Sleep Quality (1-10)</label>
+              <input type="number" min="1" max="10" id="quickSleepQuality" placeholder="e.g. 8">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label for="quickStepsInput">Daily Steps</label>
+              <input type="number" step="500" min="0" id="quickStepsInput" placeholder="e.g. 10000">
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 12px;">
+            <button class="btn btn-ghost" id="btnAdd1kSteps" style="flex: 1; padding: 8px; font-size: 0.82rem;"><i class="fa-solid fa-shoe-prints"></i> +1,000 Steps</button>
+            <button class="btn" id="btnSaveQuickRecovery" style="flex: 1; padding: 8px; font-size: 0.82rem;"><i class="fa-solid fa-check"></i> Save Telemetry</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Body Metrics Snapshot -->
+      <div class="card" style="border-top: 4px solid var(--info, #3b82f6); margin-bottom: 22px;">
         <div class="card-header">
           <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-scale-balanced" style="color: var(--info, #3b82f6);"></i> Body Metrics</h3>
-          <a href="analytics.html" style="font-size: 0.85rem; font-weight: 600;">Log <i class="fa-solid fa-arrow-right"></i></a>
+          <a href="settings.html" style="font-size: 0.85rem; font-weight: 700;">Log / Measure <i class="fa-solid fa-arrow-right"></i></a>
         </div>
         <div class="telemetry-grid">
           <div class="telemetry-item">
             <i class="fa-solid fa-weight-scale text-primary"></i>
             <div class="val" id="dashWeight">--</div>
-            <div class="lbl">Current (lbs)</div>
+            <div class="lbl" id="dashWeightUnitLbl">Current (lbs)</div>
           </div>
           <div class="telemetry-item">
             <i class="fa-solid fa-percent text-accent"></i>
@@ -257,15 +386,19 @@
           <div class="telemetry-item">
             <i class="fa-solid fa-child-reaching text-warning"></i>
             <div class="val" id="dashLBM">--</div>
-            <div class="lbl">Lean Mass</div>
+            <div class="lbl" id="dashLBMUnitLbl">Lean Mass</div>
           </div>
         </div>
       </div>
 
+      <!-- Daily Nutrition Card -->
       <div class="card" style="border-top: 4px solid var(--accent);">
         <div class="card-header">
-          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-fire text-accent"></i> Daily Nutrition</h3>
-          <a href="nutrition.html" style="font-size: 0.85rem; font-weight: 600;">Details <i class="fa-solid fa-arrow-right"></i></a>
+          <div>
+            <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-fire text-accent"></i> Daily Nutrition</h3>
+            <small id="netCalorieModeHint" class="text-muted" style="font-size: 0.72rem; font-weight: 600;">Target + Active Burn Enabled</small>
+          </div>
+          <a href="nutrition.html" style="font-size: 0.85rem; font-weight: 700;">Diary & Scan <i class="fa-solid fa-arrow-right"></i></a>
         </div>
         
         <div class="progress-circle" id="calorieRing">
@@ -294,7 +427,7 @@
           <div class="macro-item">
             <div class="macro-label">Eaten</div>
             <div class="macro-value" id="calsEaten">0</div>
-            <div class="macro-target">kcal</div>
+            <div class="macro-target" id="calsTargetSub">kcal</div>
           </div>
         </div>
 
@@ -311,19 +444,26 @@
         </div>
       </div>
 
+      <!-- Hydration Card -->
       <div class="card">
-        <h3 style="margin-bottom: 15px; font-size: 1.1rem;"><i class="fa-solid fa-droplet text-primary"></i> Hydration</h3>
+        <div class="card-header" style="margin-bottom: 12px; border-bottom: none; padding-bottom: 0;">
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-droplet text-primary"></i> Hydration</h3>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-ghost" id="btnQuickWater8" style="width: auto; padding: 4px 10px; font-size: 0.75rem;">+8 oz</button>
+            <button class="btn btn-ghost" id="btnQuickWater16" style="width: auto; padding: 4px 10px; font-size: 0.75rem;">+16 oz</button>
+          </div>
+        </div>
         <div class="water-tracker">
           <div style="display: flex; align-items: center; gap: 15px;">
             <i class="fa-solid fa-glass-water text-primary" style="font-size: 2.2rem;"></i>
             <div>
-              <div style="font-size: 1.8rem; font-weight: 800; font-family: monospace;" id="waterCount">0 <span style="font-size: 0.9rem; color: var(--text-muted);">fl oz</span></div>
+              <div style="font-size: 1.8rem; font-weight: 800; font-family: var(--font-mono);" id="waterCount">0 <span style="font-size: 0.9rem; color: var(--text-muted);">fl oz</span></div>
               <div class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700;" id="waterTargetLabel">Goal: 120 fl oz</div>
             </div>
           </div>
           <div class="water-controls">
             <button class="water-btn" id="btnSubWater"><i class="fa-solid fa-minus"></i></button>
-            <input type="number" id="customWaterInput" value="8" style="width: 70px; padding: 8px; text-align: center; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface-elevated); color: var(--text-main); font-weight: bold; font-family: monospace; font-size: 1.1rem;">
+            <input type="number" id="customWaterInput" value="8" style="width: 72px; padding: 8px; text-align: center; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface-elevated); color: var(--text-main); font-weight: bold; font-family: var(--font-mono); font-size: 1.05rem;">
             <button class="water-btn" id="btnAddWater"><i class="fa-solid fa-plus"></i></button>
           </div>
         </div>
@@ -347,6 +487,6 @@
   
 <footer style="text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: 20px;">
   &copy; 2026 Joshua Michael Smolak. All Rights Reserved. <br>
-  BodyPro System v2.0.0
+  BodyPro System v3.0.0
 </footer>
 </html>

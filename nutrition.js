@@ -1,20 +1,19 @@
 import { auth } from './data-store.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// --- PROGRESSIVE WEB APP REGISTRATION ---
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js')
-            .then(reg => console.log('[BodyPro System] Service Worker Registered', reg))
-            .catch(err => console.error('[BodyPro System] SW Registration Failed', err));
-    });
-}
-
 // --- DOM Elements ---
 const currentLogDateEl = document.getElementById('currentLogDate');
 const btnPrevDay = document.getElementById('btnPrevDay');
 const btnNextDay = document.getElementById('btnNextDay');
 const supplementContainer = document.getElementById('supplementContainer');
+
+// Date Hydration Elements
+const nutrWaterDisplay = document.getElementById('nutrWaterDisplay');
+const btnNutrWaterAdd = document.getElementById('btnNutrWaterAdd');
+const btnNutrWaterSub = document.getElementById('btnNutrWaterSub');
+
+// OCR Input
+const ocrLabelFileInput = document.getElementById('ocrLabelFileInput');
 
 // Macro Summary Elements
 const sumCalsEl = document.getElementById('sumCals');
@@ -35,7 +34,9 @@ const nVitCVal = document.getElementById('nVitCVal');
 const nCalciumVal = document.getElementById('nCalciumVal');
 const nSatFatVal = document.getElementById('nSatFatVal');
 
-// Quick Add Elements
+// Quick Add / Edit Elements
+const qaModalTitle = document.getElementById('qaModalTitle');
+const qaEditId = document.getElementById('qaEditId');
 const btnSaveQuickAdd = document.getElementById('btnSaveQuickAdd');
 const qaRecipeSelect = document.getElementById('qaRecipeSelect');
 const qaFavoriteBtn = document.getElementById('qaFavoriteBtn'); 
@@ -52,11 +53,13 @@ const qaBarcode = document.getElementById('qaBarcode');
 
 // Macro Calc Elements
 const btnRunMacroCalc = document.getElementById('btnRunMacroCalc');
+const btnApplyMacroCalcNutr = document.getElementById('btnApplyMacroCalcNutr');
 
 // Interactive Nutrition Label Elements
 const nutritionLabelModal = document.getElementById('nutritionLabelModal');
 const labelProductName = document.getElementById('labelProductName');
 const labelServingMultiplier = document.getElementById('labelServingMultiplier');
+const labelUnitMode = document.getElementById('labelUnitMode');
 const labelCalories = document.getElementById('labelCalories');
 const labelFat = document.getElementById('labelFat');
 const labelCarb = document.getElementById('labelCarb');
@@ -100,13 +103,9 @@ const FoodCache = {
             };
             request.onsuccess = (e) => {
                 this.db = e.target.result;
-                console.log('[BodyPro Cache] Offline Food Database Initialized');
                 resolve();
             };
-            request.onerror = (e) => {
-                console.error('[BodyPro Cache] Initialization Error', e.target.error);
-                reject(e.target.error);
-            };
+            request.onerror = (e) => reject(e.target.error);
         });
     },
     async get(barcode) {
@@ -131,7 +130,7 @@ const FoodCache = {
     }
 };
 
-// --- THE SECURITY GUARD ---
+// --- INITIALIZATION ---
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
         window.location.replace('login.html');
@@ -143,10 +142,8 @@ onAuthStateChanged(auth, async (user) => {
     renderView();
 });
 
-// --- HELPER: Formatting Dates ---
 function getLocalISODate(dateObj) {
-    const offset = dateObj.getTimezoneOffset() * 60000;
-    return (new Date(dateObj - offset)).toISOString().split('T')[0];
+    return window.BodyProTelemetry.getLocalISODate(dateObj);
 }
 
 function updateDateDisplay() {
@@ -161,18 +158,50 @@ function updateDateDisplay() {
     }
 }
 
-// --- CORE DATA OPERATIONS ---
 async function loadDatabase() {
     userData = await window.BodyProDataStore.getData();
     if (!userData.favorite_foods) userData.favorite_foods = [];
+    if (!userData.biometrics) userData.biometrics = [];
 }
 
 function renderView() {
     updateDateDisplay();
+    renderDateHydration();
     renderSupplements();
     renderDiary();
     renderFavorites();
 }
+
+// --- DATE-AWARE HYDRATION ---
+function renderDateHydration() {
+    if (!nutrWaterDisplay) return;
+    const viewDateStr = getLocalISODate(currentViewDate);
+    const dayBio = (userData.biometrics || []).find(b => b.date === viewDateStr) || {};
+    const waterOz = dayBio.waterOz || dayBio.water || 0;
+    const goalOz = userData.settings?.goals?.waterOz || 120;
+    const unit = window.BodyProUnits.getFluidUnit(userData) === 'ml' ? 'mL' : 'fl oz';
+    nutrWaterDisplay.innerText = `${window.BodyProUnits.formatFluid(waterOz, userData)} / ${window.BodyProUnits.formatFluid(goalOz, userData)} ${unit}`;
+}
+
+async function adjustDateWater(isAdd) {
+    const viewDateStr = getLocalISODate(currentViewDate);
+    let bio = userData.biometrics.find(b => b.date === viewDateStr);
+    if (!bio) {
+        bio = { id: 'bio_' + Date.now(), date: viewDateStr, waterOz: 0, supplements: [] };
+        userData.biometrics.push(bio);
+    }
+    const isMl = window.BodyProUnits.getFluidUnit(userData) === 'ml';
+    const stepOz = isMl ? (250 / 29.5735) : 8;
+    const cur = bio.waterOz || bio.water || 0;
+    bio.waterOz = Math.max(0, +(cur + (isAdd ? stepOz : -stepOz)).toFixed(1));
+    bio.water = bio.waterOz;
+    window.BodyProHardware.playCheckSound();
+    renderDateHydration();
+    await window.BodyProDataStore.saveData(userData);
+}
+
+if (btnNutrWaterAdd) btnNutrWaterAdd.addEventListener('click', () => adjustDateWater(true));
+if (btnNutrWaterSub) btnNutrWaterSub.addEventListener('click', () => adjustDateWater(false));
 
 // --- SUPPLEMENT PROTOCOLS ---
 function renderSupplements() {
@@ -181,7 +210,6 @@ function renderSupplements() {
     let dayBio = (userData.biometrics || []).find(b => b.date === viewDateStr);
     let completedSupps = dayBio && dayBio.supplements ? dayBio.supplements : [];
 
-    // Parse the comma or newline separated string saved from the Profile page
     const rawSupps = userData.profile?.supplements || '';
     const suppTemplate = rawSupps.split(/,|\n/).map(s => s.trim()).filter(s => s);
 
@@ -205,6 +233,7 @@ function renderSupplements() {
         const checkbox = item.querySelector('input');
         checkbox.addEventListener('change', async (e) => {
             const checked = e.target.checked;
+            window.BodyProHardware.playCheckSound();
             if (checked) item.classList.add('completed');
             else item.classList.remove('completed');
             await toggleSupplement(suppName, checked);
@@ -219,7 +248,7 @@ async function toggleSupplement(suppName, isCompleted) {
     let bioIndex = userData.biometrics.findIndex(b => b.date === viewDateStr);
     
     if (bioIndex === -1) {
-        userData.biometrics.push({ id: 'bio_' + Date.now(), date: viewDateStr, water: 0, supplements: [] });
+        userData.biometrics.push({ id: 'bio_' + Date.now(), date: viewDateStr, waterOz: 0, water: 0, supplements: [] });
         bioIndex = userData.biometrics.length - 1;
     }
 
@@ -235,7 +264,7 @@ async function toggleSupplement(suppName, isCompleted) {
     await window.BodyProDataStore.saveData(userData);
 }
 
-// --- DIARY & MACRO RENDERING ---
+// --- DIARY & MACRO RENDERING (WITH EDIT & DELETE) ---
 function renderDiary() {
     const viewDateStr = getLocalISODate(currentViewDate);
     const daysFoods = (userData.food_diary || []).filter(f => f.date === viewDateStr);
@@ -278,7 +307,7 @@ function renderDiary() {
                 const item = document.createElement('div');
                 item.className = 'food-item';
                 item.innerHTML = `
-                    <div class="food-details">
+                    <div class="food-details" style="cursor: pointer; flex: 1;" onclick="editFoodEntry('${food.id}')" title="Tap to edit portion or meal">
                         <h4>${food.name}</h4>
                         <div class="food-macros">
                             <span>${food.calories} kcal</span>
@@ -287,9 +316,14 @@ function renderDiary() {
                             <span class="m-fat">${food.fats}g F</span>
                         </div>
                     </div>
-                    <button class="btn btn-ghost" style="padding: 5px 10px; border-color: transparent; color: var(--danger);" onclick="deleteFoodEntry('${food.id}')">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
+                    <div style="display: flex; gap: 4px;">
+                        <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 5px 10px; border-color: transparent; color: var(--text-muted);" onclick="editFoodEntry('${food.id}')" title="Edit Entry">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 5px 10px; border-color: transparent; color: var(--danger);" onclick="deleteFoodEntry('${food.id}')" title="Delete Entry">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
                 `;
                 mealContainer.appendChild(item);
             });
@@ -321,6 +355,47 @@ function renderDiary() {
     else calProgressBar.classList.remove('overage');
 }
 
+// --- OCR PHYSICAL NUTRITION FACTS SCANNER ---
+window.triggerOCRLabelScan = function() {
+    if (ocrLabelFileInput) ocrLabelFileInput.click();
+};
+
+if (ocrLabelFileInput) {
+    ocrLabelFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const defaultMeal = userData?.settings?.preferences?.defaultMeal || 'Snacks';
+        window.openQuickAddModal(defaultMeal);
+        document.getElementById('qaName').value = "Analyzing Label via Optical OCR...";
+
+        try {
+            const rawText = await window.BodyProOCR.scanImage(file);
+            const parsed = window.BodyProOCR.parseNutritionText(rawText);
+
+            document.getElementById('qaName').value = parsed.name;
+            document.getElementById('qaCals').value = parsed.cals;
+            document.getElementById('qaProt').value = parsed.prot;
+            document.getElementById('qaCarb').value = parsed.carb;
+            document.getElementById('qaFat').value = parsed.fat;
+            qaSatFat.value = parsed.satFat;
+            qaSodium.value = parsed.sodium;
+            qaFiber.value = parsed.fiber;
+            qaSugar.value = parsed.sugar;
+            qaCalcium.value = parsed.calcium;
+            qaIron.value = parsed.iron;
+            qaPotassium.value = parsed.potassium;
+            window.BodyProHardware.playCheckSound();
+        } catch (err) {
+            console.error("OCR Scan Error:", err);
+            document.getElementById('qaName').value = "Manual Label Entry";
+            alert("Could not automatically read label text. Please enter values manually.");
+        } finally {
+            ocrLabelFileInput.value = '';
+        }
+    });
+}
+
 // --- API FETCH ENGINE WITH RETRY LOGIC ---
 async function fetchWithRetry(url, retries = 3, delayMs = 1000) {
     for (let i = 0; i < retries; i++) {
@@ -329,22 +404,25 @@ async function fetchWithRetry(url, retries = 3, delayMs = 1000) {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             return await response.json();
         } catch (err) {
-            console.warn(`[BodyPro Network] API attempt ${i + 1} failed. Re-engaging...`, err);
-            if (i === retries - 1) throw err; // If last attempt, fail out
-            await new Promise(resolve => setTimeout(resolve, delayMs)); // Wait before retry
+            if (i === retries - 1) throw err;
+            await new Promise(resolve => setTimeout(resolve, delayMs));
         }
     }
 }
 
-// --- OPTICAL SCANNER ---
+// --- OPTICAL BARCODE SCANNER ---
 window.openScannerModal = function() {
+    const fabContainer = document.getElementById('fabContainer');
+    if (fabContainer && !fabContainer.classList.contains('active')) {
+        fabContainer.classList.add('active');
+    }
     document.getElementById('scannerModal').classList.add('active');
     if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
     
     const config = { fps: 10, qrbox: { width: 250, height: 200 } };
     html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
     .catch(err => {
-        document.getElementById('reader').innerHTML = '<p style="color:var(--danger); padding:20px; text-align:center;">Optical hardware unavailable. Please verify permissions or utilize manual entry.</p>';
+        document.getElementById('reader').innerHTML = '<p style="color:var(--warning); padding:20px; text-align:center;">Camera stream unavailable or permission denied. Use "Scan Label OCR" below to upload a photo, or use Quick Add.</p>';
     });
 };
 
@@ -353,12 +431,14 @@ window.closeScannerModal = function() {
     if (html5QrCode && html5QrCode.isScanning) html5QrCode.stop().catch(console.error);
 };
 
-async function onScanSuccess(decodedText, decodedResult) {
+async function onScanSuccess(decodedText) {
     if (html5QrCode && html5QrCode.isScanning) await html5QrCode.stop();
     document.getElementById('scannerModal').classList.remove('active');
+    window.BodyProHardware.playCheckSound();
     
     labelProductName.innerText = "Querying Database...";
-    labelServingMultiplier.value = 1; 
+    labelServingMultiplier.value = 1;
+    if (labelUnitMode) labelUnitMode.value = 'serving';
     
     const defaultMeal = userData?.settings?.preferences?.defaultMeal || 'Snacks';
     labelMealSelect.value = defaultMeal;
@@ -383,13 +463,12 @@ async function onScanSuccess(decodedText, decodedResult) {
             checkIfFavorite(currentScannedFood.name, nlFavoriteBtn);
             await FoodCache.set(decodedText, currentScannedFood);
         } else {
-            alert("Product not found in global registry. Please map this item manually; the barcode will be linked upon saving.");
+            alert("Barcode not found in OpenFoodFacts. You can snap a photo of the Nutrition Label with OCR or enter macros manually—this barcode will be cached for future offline scans!");
             document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
-            qaBarcode.value = decodedText; // Stash barcode for custom caching
+            qaBarcode.value = decodedText;
             window.openQuickAddModal(defaultMeal);
         }
     } catch (err) {
-        alert("Network failure. Opening manual entry pipeline.");
         document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
         qaBarcode.value = decodedText;
         window.openQuickAddModal(defaultMeal);
@@ -428,7 +507,7 @@ btnApiSearch.addEventListener('click', async () => {
 
         data.products.forEach(p => {
             const parsed = parseOpenFoodFactsProduct(p);
-            if(parsed.name === "Unknown Product") return; // Skip junk data
+            if(parsed.name === "Unknown Product") return;
             
             const div = document.createElement('div');
             div.className = 'db-item';
@@ -438,13 +517,14 @@ btnApiSearch.addEventListener('click', async () => {
                     <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">${parsed.cals} kcal | ${parsed.prot}P / ${parsed.carb}C / ${parsed.fat}F</p>
                 </div>
                 <div class="db-item-actions">
-                    <button class="btn btn-ghost" style="color: var(--accent); border: 1px solid var(--accent); font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">Log</button>
+                    <button class="btn btn-ghost" style="width: auto; min-width: 0; color: var(--accent); border: 1px solid var(--accent); font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">Log</button>
                 </div>
             `;
             
             div.querySelector('button').addEventListener('click', () => {
                 currentScannedFood = parsed;
                 labelServingMultiplier.value = 1;
+                if (labelUnitMode) labelUnitMode.value = 'serving';
                 updateNutritionLabelDisplay();
                 checkIfFavorite(parsed.name, nlFavoriteBtn);
                 nutritionLabelModal.classList.add('active');
@@ -455,14 +535,16 @@ btnApiSearch.addEventListener('click', async () => {
 
     } catch (err) {
         console.error(err);
-        apiSearchResults.innerHTML = '<p class="text-danger" style="text-align:center; padding: 20px;">Connection failed after multiple attempts. API may be temporarily down.</p>';
+        apiSearchResults.innerHTML = '<p class="text-danger" style="text-align:center; padding: 20px;">Connection failed. Check network or use offline Favorites.</p>';
     }
 });
 
 function parseOpenFoodFactsProduct(p) {
     const nut = p.nutriments || {};
+    const servingGrams = parseFloat(p.serving_quantity) || 100;
     return {
         name: p.product_name || p.generic_name || "Unknown Product",
+        servingGrams: servingGrams,
         cals: Math.round(nut['energy-kcal_serving'] || nut['energy-kcal_100g'] || 0),
         prot: Math.round(nut['proteins_serving'] || nut['proteins_100g'] || 0),
         carb: Math.round(nut['carbohydrates_serving'] || nut['carbohydrates_100g'] || 0),
@@ -475,14 +557,31 @@ function parseOpenFoodFactsProduct(p) {
         potassium: Math.round((nut['potassium_serving'] || nut['potassium_100g'] || 0) * 1000),
         vitC: Math.round((nut['vitamin-c_serving'] || nut['vitamin-c_100g'] || 0) * 1000),
         calcium: Math.round((nut['calcium_serving'] || nut['calcium_100g'] || 0) * 1000),
-        vitA: Math.round((nut['vitamin-a_serving'] || nut['vitamin-a_100g'] || 0) * 1000000)
+        vitA: Math.round((nut['vitamin-a_serving'] || nut['vitamin-a_100g'] || 0) * 1000000),
+        cals100g: Math.round(nut['energy-kcal_100g'] || nut['energy-kcal_serving'] || 0),
+        prot100g: Math.round(nut['proteins_100g'] || nut['proteins_serving'] || 0),
+        carb100g: Math.round(nut['carbohydrates_100g'] || nut['carbohydrates_serving'] || 0),
+        fat100g: Math.round(nut['fat_100g'] || nut['fat_serving'] || 0)
     };
 }
 
-// --- INTERACTIVE NUTRITION LABEL LOGIC ---
+// --- INTERACTIVE NUTRITION LABEL LOGIC (SERVINGS / GRAMS / OUNCES) ---
+function getLabelScaleFactor() {
+    const rawAmount = parseFloat(labelServingMultiplier.value) || 0;
+    const mode = labelUnitMode ? labelUnitMode.value : 'serving';
+    const baseGrams = currentScannedFood?.servingGrams || 100;
+
+    if (mode === 'grams') {
+        return rawAmount / baseGrams;
+    } else if (mode === 'oz') {
+        return (rawAmount * 28.3495) / baseGrams;
+    }
+    return rawAmount;
+}
+
 function updateNutritionLabelDisplay() {
     if (!currentScannedFood) return;
-    const multiplier = parseFloat(labelServingMultiplier.value) || 0;
+    const multiplier = getLabelScaleFactor();
     
     labelProductName.innerText = currentScannedFood.name;
     labelCalories.innerText = Math.round(currentScannedFood.cals * multiplier);
@@ -502,20 +601,31 @@ function updateNutritionLabelDisplay() {
 }
 
 labelServingMultiplier.addEventListener('input', updateNutritionLabelDisplay);
+if (labelUnitMode) {
+    labelUnitMode.addEventListener('change', () => {
+        if (labelUnitMode.value === 'grams') labelServingMultiplier.value = currentScannedFood?.servingGrams || 100;
+        else if (labelUnitMode.value === 'oz') labelServingMultiplier.value = 3.5;
+        else labelServingMultiplier.value = 1;
+        updateNutritionLabelDisplay();
+    });
+}
 
 btnLogScannedFood.addEventListener('click', async () => {
     if (!currentScannedFood) return;
     btnLogScannedFood.disabled = true;
     btnLogScannedFood.innerText = "Saving...";
 
-    const multiplier = parseFloat(labelServingMultiplier.value) || 0;
+    const multiplier = getLabelScaleFactor();
+    const rawAmount = parseFloat(labelServingMultiplier.value) || 1;
+    const mode = labelUnitMode ? labelUnitMode.value : 'serving';
+    const unitSuffix = mode === 'grams' ? `${rawAmount}g` : (mode === 'oz' ? `${rawAmount}oz` : `${rawAmount}x`);
     const meal = labelMealSelect.value;
     
     const newEntry = {
         id: 'food_' + Date.now(),
         date: getLocalISODate(currentViewDate),
         meal: meal,
-        name: `${currentScannedFood.name} (${multiplier}x)`,
+        name: `${currentScannedFood.name} (${unitSuffix})`,
         calories: Math.round(currentScannedFood.cals * multiplier),
         protein: Math.round(currentScannedFood.prot * multiplier),
         carbs: Math.round(currentScannedFood.carb * multiplier),
@@ -543,7 +653,6 @@ btnLogScannedFood.addEventListener('click', async () => {
     btnLogScannedFood.innerText = "Save to Diary";
 });
 
-
 // --- FAVORITES SYSTEM ---
 function checkIfFavorite(foodName, btnElement) {
     const isFav = userData.favorite_foods.some(f => f.name.toLowerCase() === foodName.toLowerCase());
@@ -559,12 +668,10 @@ function checkIfFavorite(foodName, btnElement) {
 async function toggleFavoriteStatus(foodObj, btnElement) {
     const index = userData.favorite_foods.findIndex(f => f.name.toLowerCase() === foodObj.name.toLowerCase());
     if (index > -1) {
-        // Remove
         userData.favorite_foods.splice(index, 1);
         btnElement.classList.remove('active');
         btnElement.innerHTML = '<i class="fa-regular fa-heart"></i>';
     } else {
-        // Add
         userData.favorite_foods.push({
             id: 'fav_' + Date.now(),
             name: foodObj.name,
@@ -589,12 +696,10 @@ async function toggleFavoriteStatus(foodObj, btnElement) {
     await window.BodyProDataStore.saveData(userData);
 }
 
-// Hook up Label Modal Heart
 nlFavoriteBtn.addEventListener('click', () => {
     if (currentScannedFood) toggleFavoriteStatus(currentScannedFood, nlFavoriteBtn);
 });
 
-// Hook up Quick Add Modal Heart
 qaFavoriteBtn.addEventListener('click', () => {
     const name = document.getElementById('qaName').value || "Custom Entry";
     const cals = Number(document.getElementById('qaCals').value) || 0;
@@ -633,21 +738,20 @@ function renderFavorites() {
                 <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">${fav.cals} kcal | ${fav.prot}P / ${fav.carb}C / ${fav.fat}F</p>
             </div>
             <div class="fav-item-actions" style="display: flex; gap: 10px; align-items: center;">
-                <button class="btn btn-ghost" style="color: var(--accent); border: 1px solid var(--accent); font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;" title="Quick Log">Log</button>
+                <button class="btn btn-ghost" style="width: auto; min-width: 0; color: var(--accent); border: 1px solid var(--accent); font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;" title="Quick Log">Log</button>
                 <button title="Remove Favorite" style="color: var(--danger);"><i class="fa-solid fa-trash"></i></button>
             </div>
         `;
         
-        // Log Button
         div.querySelector('.btn-ghost').addEventListener('click', () => {
             currentScannedFood = fav;
             labelServingMultiplier.value = 1;
+            if (labelUnitMode) labelUnitMode.value = 'serving';
             updateNutritionLabelDisplay();
             checkIfFavorite(fav.name, nlFavoriteBtn);
             nutritionLabelModal.classList.add('active');
         });
         
-        // Delete Button
         div.querySelector('.fa-trash').parentElement.addEventListener('click', async () => {
             userData.favorite_foods = userData.favorite_foods.filter(f => f.id !== fav.id);
             renderFavorites();
@@ -696,13 +800,16 @@ function populateRecipeDropdown() {
     });
 }
 
-// --- CRUD OPERATIONS ---
+// --- CRUD OPERATIONS (ADD & EDIT FOOD ENTRY) ---
 window.openQuickAddModal = function(meal = 'Snacks') {
-    const defaultMeal = userData?.settings?.preferences?.defaultMeal || meal;
+    const defaultMeal = meal || userData?.settings?.preferences?.defaultMeal || 'Snacks';
     document.getElementById('qaMeal').value = defaultMeal;
     populateRecipeDropdown();
     
-    // Reset inputs
+    if (qaModalTitle) qaModalTitle.innerHTML = '<i class="fa-solid fa-bolt text-warning"></i> Add to Diary';
+    if (qaEditId) qaEditId.value = '';
+    btnSaveQuickAdd.innerText = "Save Entry";
+
     document.getElementById('qaName').value = '';
     document.getElementById('qaCals').value = 0;
     document.getElementById('qaProt').value = 0;
@@ -718,16 +825,42 @@ window.openQuickAddModal = function(meal = 'Snacks') {
     qaCalcium.value = 0;
     qaSatFat.value = 0;
     
-    // Check if we came from a failed barcode scan, if not, clear the hidden value
-    if (qaBarcode.value && document.getElementById('scannerModal').classList.contains('active') === false) {
-        // Keep it if it was populated directly prior to opening
-    } else {
+    if (!qaBarcode.value || document.getElementById('scannerModal').classList.contains('active')) {
         qaBarcode.value = '';
     }
     
     qaFavoriteBtn.classList.remove('active');
     qaFavoriteBtn.innerHTML = '<i class="fa-regular fa-heart"></i>';
     
+    document.getElementById('quickAddModal').classList.add('active');
+};
+
+window.editFoodEntry = function(id) {
+    const entry = (userData.food_diary || []).find(f => f.id === id);
+    if (!entry) return;
+
+    populateRecipeDropdown();
+    if (qaModalTitle) qaModalTitle.innerHTML = '<i class="fa-solid fa-pen text-primary"></i> Edit Diary Entry';
+    if (qaEditId) qaEditId.value = entry.id;
+    btnSaveQuickAdd.innerText = "Update Entry";
+
+    document.getElementById('qaMeal').value = entry.meal || 'Snacks';
+    document.getElementById('qaName').value = entry.name || '';
+    document.getElementById('qaCals').value = entry.calories || 0;
+    document.getElementById('qaProt').value = entry.protein || 0;
+    document.getElementById('qaCarb').value = entry.carbs || 0;
+    document.getElementById('qaFat').value = entry.fats || 0;
+    qaSugar.value = entry.sugar || 0;
+    qaSodium.value = entry.sodium || 0;
+    qaIron.value = entry.iron || 0;
+    qaPotassium.value = entry.potassium || 0;
+    qaFiber.value = entry.fiber || 0;
+    qaVitA.value = entry.vitA || 0;
+    qaVitC.value = entry.vitC || 0;
+    qaCalcium.value = entry.calcium || 0;
+    qaSatFat.value = entry.satFat || 0;
+
+    checkIfFavorite(entry.name || '', qaFavoriteBtn);
     document.getElementById('quickAddModal').classList.add('active');
 };
 
@@ -752,42 +885,45 @@ btnSaveQuickAdd.addEventListener('click', async () => {
     btnSaveQuickAdd.innerText = "Saving...";
 
     const customFoodPayload = {
-        name: name,
-        cals: cals,
-        prot: prot,
-        carb: carb,
-        fat: fat,
-        sugar: sugar,
-        sodium: sodium,
-        iron: iron,
-        potassium: potassium,
-        fiber: fiber,
-        vitA: vitA,
-        vitC: vitC,
-        calcium: calcium,
-        satFat: satFat
+        name, cals, prot, carb, fat, sugar, sodium, iron, potassium, fiber, vitA, vitC, calcium, satFat
     };
 
-    const newEntry = {
-        id: 'food_' + Date.now(),
-        date: getLocalISODate(currentViewDate),
-        meal: meal,
-        ...customFoodPayload, // spread properties to log exactly what they entered
-        calories: cals,
-        protein: prot,
-        carbs: carb,
-        fats: fat,
-        timestamp: new Date().toISOString()
-    };
+    const existingEditId = qaEditId ? qaEditId.value : '';
+    if (existingEditId) {
+        const idx = userData.food_diary.findIndex(f => f.id === existingEditId);
+        if (idx !== -1) {
+            userData.food_diary[idx] = {
+                ...userData.food_diary[idx],
+                meal,
+                ...customFoodPayload,
+                calories: cals,
+                protein: prot,
+                carbs: carb,
+                fats: fat
+            };
+        }
+        qaEditId.value = '';
+    } else {
+        const newEntry = {
+            id: 'food_' + Date.now(),
+            date: getLocalISODate(currentViewDate),
+            meal: meal,
+            ...customFoodPayload,
+            calories: cals,
+            protein: prot,
+            carbs: carb,
+            fats: fat,
+            timestamp: new Date().toISOString()
+        };
+        userData.food_diary.push(newEntry);
+    }
     
-    // Check if we have a pending unmapped barcode to save to local cache
     const pendingBarcode = qaBarcode.value;
     if (pendingBarcode) {
         await FoodCache.set(pendingBarcode, customFoodPayload);
-        qaBarcode.value = ''; // wipe it after mapping
+        qaBarcode.value = '';
     }
 
-    userData.food_diary.push(newEntry);
     await window.BodyProDataStore.saveData(userData);
     
     document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
@@ -822,7 +958,7 @@ btnRunMacroCalc.addEventListener('click', () => {
     let bmr = sex === 'male' ? (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5 : (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
     
     const tdee = bmr * activity;
-    const targetCals = Math.round(tdee + goal);
+    const targetCals = Math.max(1200, Math.round(tdee + goal));
     
     let targetProt = Math.round(weightLbs);
     let targetFat = Math.round((targetCals * 0.25) / 9);
@@ -836,7 +972,29 @@ btnRunMacroCalc.addEventListener('click', () => {
     document.getElementById('calcResultProt').innerText = targetProt;
     document.getElementById('calcResultCarb').innerText = targetCarb;
     document.getElementById('calcResultFat').innerText = targetFat;
+
+    if (btnApplyMacroCalcNutr) {
+        btnApplyMacroCalcNutr.style.display = 'inline-flex';
+        btnApplyMacroCalcNutr.dataset.cals = targetCals;
+        btnApplyMacroCalcNutr.dataset.prot = targetProt;
+        btnApplyMacroCalcNutr.dataset.carb = targetCarb;
+        btnApplyMacroCalcNutr.dataset.fat = targetFat;
+    }
 });
+
+if (btnApplyMacroCalcNutr) {
+    btnApplyMacroCalcNutr.addEventListener('click', async () => {
+        userData.settings.macroTargets = {
+            calories: parseInt(btnApplyMacroCalcNutr.dataset.cals) || 2200,
+            protein: parseInt(btnApplyMacroCalcNutr.dataset.prot) || 200,
+            carbs: parseInt(btnApplyMacroCalcNutr.dataset.carb) || 150,
+            fats: parseInt(btnApplyMacroCalcNutr.dataset.fat) || 88
+        };
+        await window.BodyProDataStore.saveData(userData);
+        renderView();
+        document.getElementById('macroCalcModal').classList.remove('active');
+    });
+}
 
 // --- NAVIGATION LISTENERS ---
 btnPrevDay.addEventListener('click', () => { currentViewDate.setDate(currentViewDate.getDate() - 1); renderView(); });

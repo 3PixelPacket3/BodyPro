@@ -265,12 +265,52 @@ async function renderFeedUI() {
     let unpinnedSyncsHtml = '';
 
     // Harvest MY own events for the feed
+    const myDisplayName = userData.profile.displayName || "Me";
+    const myInitial = myDisplayName.charAt(0).toUpperCase();
+
     (userData.social_posts || []).forEach(p => {
-        if(new Date(p.timestamp) >= cutoffDate) feedEvents.push(createPostHTML(p, userData.profile.displayName || "Me", true));
+        if(new Date(p.timestamp) >= cutoffDate) feedEvents.push(createPostHTML(p, myDisplayName, true));
     });
-    
-    // (Optional) Could harvest my own workouts here too, but usually a feed highlights friends.
-    // We will include friend events below.
+
+    (userData.workouts || []).forEach(w => {
+        if (new Date(w.timestamp) >= cutoffDate) {
+            const totalDur = Math.round(((w.durationLift || 0) + (w.durationCardio || 0)) / 60);
+            const exCount = w.sets ? new Set(w.sets.map(s => s.exercise)).size : 0;
+            const prBadge = w.prCount > 0 ? `<span class="pr-badge" style="margin-left:8px;"><i class="fa-solid fa-trophy"></i> ${w.prCount} PR</span>` : '';
+            let details = "";
+            if (exCount > 0) {
+                const topSet = w.sets.reduce((prev, current) => ((prev.volume || 0) > (current.volume || 0)) ? prev : current, w.sets[0]);
+                details = `Top volume set on ${topSet.exercise} (${topSet.weight} lbs × ${topSet.reps}). Total movements: ${exCount}.`;
+            }
+            const shareText = `💪 Crushed "${w.title || 'Training Session'}" on BodyPro! (${totalDur} mins | ${w.telemetry?.activeCals || 0} kcal${w.prCount > 0 ? ' | 🏆 ' + w.prCount + ' PR!' : ''})`;
+
+            feedEvents.push({
+                type: 'workout',
+                timestamp: w.timestamp,
+                html: `
+                    <div class="feed-event">
+                        <div class="feed-event-header">
+                            <div class="friend-avatar" style="width: 35px; height: 35px; font-size: 1rem; background: var(--bg-surface-elevated); border: 1px solid var(--accent);">${myInitial}</div>
+                            <div>
+                                <div style="font-size: 0.95rem; font-weight: bold; color: var(--text-main);">${myDisplayName} (You)</div>
+                                <div style="font-size: 0.75rem; color: var(--accent);"><i class="fa-solid fa-dumbbell"></i> Logged a Training Session</div>
+                            </div>
+                            <div class="time-ago">${timeAgo(w.timestamp)}</div>
+                        </div>
+                        <div class="feed-event-body">
+                            <h4 class="feed-event-title">${w.title || 'Untitled Session'}${prBadge}</h4>
+                            <div class="feed-event-metrics">
+                                <div class="metric-pill"><i class="fa-regular fa-clock text-muted"></i> ${totalDur} mins</div>
+                                <div class="metric-pill"><i class="fa-solid fa-fire text-accent"></i> ${w.telemetry?.activeCals || 0} kcal</div>
+                            </div>
+                            ${details ? `<div class="feed-event-details">${details}</div>` : ''}
+                        </div>
+                        ${generateReactionBar(w.id, shareText)}
+                    </div>
+                `
+            });
+        }
+    });
 
     for (const friend of activeFriends) {
         const fData = await window.BodyProDataStore.fetchFriendTelemetry(friend.uid);
@@ -279,15 +319,15 @@ async function renderFeedUI() {
         const fName = friend.displayName || 'Unknown';
         const fInitial = fName.charAt(0).toUpperCase();
 
-        // --- 1. Build Head to Head Block ---
+        // --- 1. Build Head to Head Block (Filtered to Today) ---
         const fBio = (fData.biometrics || []).find(b => b.date === todayStr) || {};
         const fWater = fBio.waterOz || fBio.water || 0;
         
-        const fFoods = fData.food_diary || [];
+        const fFoods = (fData.food_diary || []).filter(f => f.date === todayStr);
         let fCals = 0;
         fFoods.forEach(f => { fCals += Number(f.calories || 0); });
 
-        const fWorkouts = fData.workouts || [];
+        const fWorkouts = (fData.workouts || []).filter(w => w.date === todayStr || (w.timestamp && w.timestamp.startsWith(todayStr)));
         let fActiveCals = 0;
         fWorkouts.forEach(w => fActiveCals += Number(w.telemetry?.activeCals || 0));
 
@@ -369,11 +409,11 @@ async function renderFeedUI() {
             if (new Date(w.timestamp) >= cutoffDate) {
                 const totalDur = Math.round(((w.durationLift || 0) + (w.durationCardio || 0)) / 60);
                 const exCount = w.sets ? new Set(w.sets.map(s => s.exercise)).size : 0;
+                const prBadge = w.prCount > 0 ? `<span class="pr-badge" style="margin-left:8px;"><i class="fa-solid fa-trophy"></i> ${w.prCount} PR</span>` : '';
                 let details = "";
                 
-                // Add some rich flavor text
                 if (exCount > 0) {
-                    const topSet = w.sets.reduce((prev, current) => (prev.volume > current.volume) ? prev : current, w.sets[0]);
+                    const topSet = w.sets.reduce((prev, current) => ((prev.volume || 0) > (current.volume || 0)) ? prev : current, w.sets[0]);
                     details = `Moved high volume on ${topSet.exercise.split(' ')[0]}. Total distinct movements: ${exCount}.`;
                 }
 
@@ -391,7 +431,7 @@ async function renderFeedUI() {
                                 <div class="time-ago">${timeAgo(w.timestamp)}</div>
                             </div>
                             <div class="feed-event-body">
-                                <h4 class="feed-event-title">${w.title || 'Untitled Session'}</h4>
+                                <h4 class="feed-event-title">${w.title || 'Untitled Session'}${prBadge}</h4>
                                 <div class="feed-event-metrics">
                                     <div class="metric-pill"><i class="fa-regular fa-clock text-muted"></i> ${totalDur} mins</div>
                                     <div class="metric-pill"><i class="fa-solid fa-fire text-accent"></i> ${w.telemetry?.activeCals || 0} kcal</div>
@@ -447,7 +487,6 @@ async function renderFeedUI() {
             const targetW = fData.settings?.goals?.waterOz || 120;
             const actualW = b.waterOz || b.water || 0;
             if (actualW >= targetW && targetW > 0 && b.date >= cutoffDate.toISOString().split('T')[0]) {
-                // Generate a pseudo timestamp for the milestone (noon of that day)
                 const pseudoStamp = new Date(b.date + "T12:00:00").toISOString();
                 feedEvents.push({
                     type: 'water',
@@ -481,7 +520,6 @@ async function renderFeedUI() {
     // Combine output
     let finalFeedHtml = '';
     
-    // Add unpinned H2H cards if any friends exist
     if (unpinnedSyncsHtml) {
         finalFeedHtml += unpinnedSyncsHtml;
     }
@@ -489,10 +527,10 @@ async function renderFeedUI() {
     if (feedEvents.length > 0) {
         finalFeedHtml += `<div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin: 25px 0 15px 0; letter-spacing: 1px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">Activity Stream</div>`;
         feedEvents.forEach(ev => finalFeedHtml += ev.html);
-    } else if (activeFriends.length > 0) {
+    } else {
         finalFeedHtml += `
             <div style="text-align: center; padding: 30px; margin-top: 20px; border-radius: var(--border-radius-md); background: var(--bg-surface); border: 1px dashed var(--border-color);">
-                <p class="text-muted" style="margin: 0; font-size: 0.9rem;">No recent activities from the squad.</p>
+                <p class="text-muted" style="margin: 0; font-size: 0.9rem;">No recent activities logged yet. Complete a workout or post an update!</p>
             </div>
         `;
     }
@@ -521,31 +559,51 @@ function createPostHTML(post, authorName, isMe) {
                 <div class="feed-event-body">
                     <p style="margin: 0; font-size: 1rem; color: var(--text-main); line-height: 1.5; white-space: pre-wrap;">${post.text}</p>
                 </div>
-                ${generateReactionBar(post.id)}
+                ${generateReactionBar(post.id, post.text)}
             </div>
         `
     };
 }
 
 // Generates interaction buttons for posts/events
-function generateReactionBar(eventId) {
-    return `<div class="feed-action-bar">${generateReactionBarHTMLOnly(eventId)}</div>`;
+function generateReactionBar(eventId, shareText = '') {
+    return `<div class="feed-action-bar">${generateReactionBarHTMLOnly(eventId, shareText)}</div>`;
 }
 
-function generateReactionBarHTMLOnly(eventId) {
+function generateReactionBarHTMLOnly(eventId, shareText = '') {
     const inters = userData.social_interactions || {};
     const state = inters[eventId] || ''; // 'like', 'fire', 'flex'
     
     const likeClass = state === 'like' ? 'active-like' : '';
     const fireClass = state === 'fire' ? 'active-fire' : '';
     const flexClass = state === 'flex' ? 'active-flex' : '';
+    const safeShare = shareText ? shareText.replace(/'/g, "\\'").replace(/\n/g, ' ') : '';
+    const shareBtnHtml = safeShare
+        ? `<button class="feed-btn" style="margin-left:auto;" onclick="window.shareFeedEvent('${safeShare}')" title="Share"><i class="fa-solid fa-share-nodes"></i></button>`
+        : '';
     
     return `
         <button class="feed-btn ${likeClass}" onclick="window.reactToEvent('${eventId}', 'like', this)"><i class="fa-solid fa-thumbs-up"></i></button>
         <button class="feed-btn ${fireClass}" onclick="window.reactToEvent('${eventId}', 'fire', this)">🔥</button>
         <button class="feed-btn ${flexClass}" onclick="window.reactToEvent('${eventId}', 'flex', this)">💪</button>
+        ${shareBtnHtml}
     `;
 }
+
+window.shareFeedEvent = async function(text) {
+    if (navigator.share) {
+        try {
+            await navigator.share({ title: 'BodyPro Telemetry', text });
+            return;
+        } catch (err) { /* user cancelled */ }
+    }
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast("Summary copied to clipboard!", "var(--accent)");
+    } catch (e) {
+        showToast("Unable to share.", "var(--danger)");
+    }
+};
 
 // Local local-only reaction handling (Since we can't reliably write to other users' docs via rules)
 window.reactToEvent = async function(eventId, type, btnEl) {
@@ -913,7 +971,7 @@ window.removeFriend = async function(shortIdToRemove) {
     }
 };
 
-// --- COPY TO CLIPBOARD ---
+// --- COPY TO CLIPBOARD & NATIVE SHARE ---
 btnCopyId.addEventListener('click', () => {
     const idToCopy = myShortIdDisplay.innerText;
     navigator.clipboard.writeText(idToCopy).then(() => {
@@ -929,6 +987,15 @@ btnCopyId.addEventListener('click', () => {
         showToast("Clipboard access denied.", "var(--danger)");
     });
 });
+
+const btnShareInvite = document.getElementById('btnShareInvite');
+if (btnShareInvite) {
+    btnShareInvite.addEventListener('click', () => {
+        const idToShare = myShortIdDisplay.innerText;
+        const msg = `Join my squad on BodyPro! Add my Athlete Link ID: ${idToShare}`;
+        window.shareFeedEvent(msg);
+    });
+}
 
 // --- OUTBOUND REQUEST LOGIC ---
 btnAddFriend.addEventListener('click', async () => {

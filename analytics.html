@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>BodyPro | Telemetry</title>
   
   <link rel="manifest" href="manifest.json">
@@ -24,7 +27,7 @@
     }
 
     .main-content {
-      padding-bottom: 100px;
+      padding-bottom: 110px;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
@@ -41,6 +44,8 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .chart-header select {
@@ -68,7 +73,7 @@
     }
 
     .stat-box .val {
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       font-weight: 800;
       color: var(--text-main);
       font-family: monospace;
@@ -185,6 +190,44 @@
     .summary-card { background: var(--bg-surface-elevated); padding: 15px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); margin-bottom: 15px; }
     .summary-card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px; }
     .summary-card-header h4 { margin: 0; font-size: 1rem; }
+
+    /* Tape & Photo Comparison Styles */
+    .tape-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+    .tape-box {
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      padding: 8px;
+      text-align: center;
+    }
+    .tape-box .lbl { font-size: 0.65rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+    .tape-box .val { font-size: 0.95rem; font-weight: 800; font-family: monospace; margin-top: 2px; }
+
+    .photo-compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .photo-slot {
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      padding: 8px;
+      text-align: center;
+    }
+    .photo-slot img {
+      width: 100%;
+      height: 190px;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-top: 8px;
+      background: #000;
+    }
   </style>
 </head>
 <body>
@@ -228,6 +271,38 @@
         <div>
           <h2 style="margin-bottom: 5px;">Telemetry</h2>
           <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Data & Analytics Center</p>
+        </div>
+      </div>
+
+      <!-- ADAPTIVE TDEE & METABOLIC COACH CARD -->
+      <div class="card" style="border-top: 4px solid var(--accent); margin-bottom: 25px; background: linear-gradient(145deg, rgba(16, 185, 129, 0.08), var(--bg-surface));">
+        <div class="chart-header">
+          <div>
+            <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-brain text-accent"></i> Adaptive Metabolic Coach</h3>
+            <span class="text-muted" id="tdeeConfidenceLbl" style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">Calculating Telemetry...</span>
+          </div>
+          <button class="btn btn-ghost" id="btnSyncTdeeToMacros" style="padding: 5px 10px; font-size: 0.72rem; border-color: var(--accent); color: var(--accent);">
+            <i class="fa-solid fa-rotate"></i> Sync to Targets
+          </button>
+        </div>
+
+        <div class="stat-grid" style="margin-top: 10px;">
+          <div class="stat-box">
+            <div class="val text-accent" id="valAdaptiveTdee">--</div>
+            <div class="lbl">Empirical TDEE</div>
+          </div>
+          <div class="stat-box">
+            <div class="val" id="valAvgDailyIntake">--</div>
+            <div class="lbl">14d Avg Intake</div>
+          </div>
+          <div class="stat-box">
+            <div class="val" id="valWeeklyRate">--</div>
+            <div class="lbl">Weekly Trend</div>
+          </div>
+        </div>
+
+        <div id="metabolicProjectionBanner" style="font-size: 0.8rem; color: var(--text-muted); background: var(--bg-base); padding: 10px 12px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
+          Log daily nutrition and body weight for 4+ days to unlock empirical TDEE and goal date projection.
         </div>
       </div>
 
@@ -316,9 +391,59 @@
         </div>
       </div>
 
+      <!-- CIRCUMFERENCE & PROGRESS PHOTO COMPARISON VAULT -->
+      <div class="card" style="border-top: 4px solid #a855f7;">
+        <div class="chart-header">
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-ruler-combined" style="color: #a855f7;"></i> Physique & Tape Vault</h3>
+          <a href="settings.html" class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.72rem;">+ Log Tape / Photo</a>
+        </div>
+
+        <div class="tape-grid">
+          <div class="tape-box"><div class="lbl">Waist</div><div class="val" id="valTapeWaist">--</div></div>
+          <div class="tape-box"><div class="lbl">Chest</div><div class="val" id="valTapeChest">--</div></div>
+          <div class="tape-box"><div class="lbl">Arms</div><div class="val" id="valTapeBiceps">--</div></div>
+          <div class="tape-box"><div class="lbl">Thighs</div><div class="val" id="valTapeThighs">--</div></div>
+          <div class="tape-box"><div class="lbl">Hips</div><div class="val" id="valTapeHips">--</div></div>
+          <div class="tape-box"><div class="lbl">Neck</div><div class="val" id="valTapeNeck">--</div></div>
+        </div>
+
+        <div id="photoVaultSection" style="border-top: 1px dashed var(--border-color); padding-top: 12px;">
+          <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">
+            <i class="fa-solid fa-camera"></i> Side-by-Side Progress Comparison
+          </div>
+          <div class="photo-compare-grid" id="photoCompareContainer">
+            <div class="photo-slot">
+              <select id="photoSelectBefore" style="width: 100%; font-size: 0.75rem; padding: 4px; background: var(--bg-surface-elevated); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 4px;"></select>
+              <img id="imgPhotoBefore" src="" alt="Before Snapshot" style="display:none;">
+              <div id="metaPhotoBefore" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 5px;">No photos logged yet</div>
+            </div>
+            <div class="photo-slot">
+              <select id="photoSelectAfter" style="width: 100%; font-size: 0.75rem; padding: 4px; background: var(--bg-surface-elevated); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 4px;"></select>
+              <img id="imgPhotoAfter" src="" alt="After Snapshot" style="display:none;">
+              <div id="metaPhotoAfter" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 5px;">Upload in Profile</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLEEP & HYDRATION RECOVERY CONSISTENCY -->
+      <div class="card" style="border-top: 4px solid #6366f1;">
+        <div class="chart-header">
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-bed" style="color: #6366f1;"></i> Sleep & Hydration</h3>
+          <select id="recoveryRangeSelect">
+            <option value="7">7 Days</option>
+            <option value="14" selected>14 Days</option>
+            <option value="30">30 Days</option>
+          </select>
+        </div>
+        <div class="chart-container">
+          <canvas id="sleepHydrationChart"></canvas>
+        </div>
+      </div>
+
       <div class="card" style="border-top: 4px solid var(--danger);">
         <div class="chart-header">
-          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-heart-pulse text-danger"></i> Blood Pressure</h3>
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-heart-pulse text-danger"></i> Cardiovascular Vitals</h3>
           <select id="bpRangeSelect">
             <option value="7">7 Days</option>
             <option value="30" selected>30 Days</option>
@@ -333,12 +458,30 @@
       <div class="card" style="border-top: 4px solid var(--primary);">
         <div class="chart-header">
           <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-arrow-trend-up text-primary"></i> Strength Projection</h3>
-          <select id="liftSelect" style="max-width: 150px;">
-            <option value="">Loading...</option>
-          </select>
+          <div style="display: flex; gap: 6px;">
+            <select id="liftSelect" style="max-width: 140px;">
+              <option value="">Loading...</option>
+            </select>
+            <select id="oneRMRangeSelect">
+              <option value="30" selected>30d</option>
+              <option value="90">90d</option>
+              <option value="180">6m</option>
+            </select>
+          </div>
         </div>
         <div class="chart-container">
           <canvas id="oneRMChart"></canvas>
+        </div>
+      </div>
+
+      <!-- WEEKLY MUSCLE GROUP VOLUME LANDMARKS -->
+      <div class="card" style="border-top: 4px solid #ec4899;">
+        <div class="chart-header">
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-dumbbell" style="color: #ec4899;"></i> Weekly Muscle Volume</h3>
+          <span class="text-muted" style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">Working Sets (7d vs Target 10-20)</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="muscleVolumeChart"></canvas>
         </div>
       </div>
 
@@ -376,7 +519,7 @@
       <div class="card" style="border-top: 4px solid var(--info, #3b82f6);">
         <div class="chart-header">
           <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-microscope" style="color: var(--info, #3b82f6);"></i> Micronutrient Status</h3>
-          <span class="text-muted" style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">Trailing 7 Days</span>
+          <span class="text-muted" style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">Trailing 7 Days (% of Custom Target)</span>
         </div>
         <div class="chart-container" style="height: 300px;">
           <canvas id="microRadarChart"></canvas>
@@ -444,6 +587,6 @@
 
 <footer style="text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: 20px;">
   &copy; 2026 Joshua Michael Smolak. All Rights Reserved. <br>
-  BodyPro System v2.0.0
+  BodyPro System v3.0.0
 </footer>
 </html>

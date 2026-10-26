@@ -1,8 +1,7 @@
-// service-worker.js - BodyPro Background Engine
+// service-worker.js - BodyPro Background Offline & Notification Engine v3.0.0
 
-const CACHE_NAME = 'bodypro-cache-v2.0.0';
+const CACHE_NAME = 'bodypro-cache-v3.0.0';
 
-// We use relative paths ('./') to prevent 404 errors when hosted in subdirectories like GitHub Pages
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -16,6 +15,8 @@ const ASSETS_TO_CACHE = [
   './recipes.js',
   './fitness.html',
   './fitness.js',
+  './analytics.html',
+  './analytics.js',
   './social.html',
   './social.js',
   './settings.html',
@@ -23,64 +24,79 @@ const ASSETS_TO_CACHE = [
   './style.css',
   './data-store.js',
   './manifest.json',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+  './favicon.svg',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+  'https://cdn.jsdelivr.net/npm/chart.js',
+  'https://unpkg.com/html5-qrcode'
 ];
 
-// --- INSTALL EVENT ---
-// Fires when the service worker is first registered. We cache the core shell here.
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log('[BodyPro Service Worker] Caching core assets for offline availability.');
-      return cache.addAll(ASSETS_TO_CACHE);
+      console.log('[BodyPro Service Worker] Caching complete application shell for offline availability.');
+      return Promise.allSettled(ASSETS_TO_CACHE.map(url => cache.add(url)));
     })
   );
-  self.skipWaiting(); // Forces the waiting service worker to become the active service worker.
+  self.skipWaiting();
 });
 
-// --- ACTIVATE EVENT ---
-// Fires after install. Good time to clean up old caches if we update the CACHE_NAME version.
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cache => {
           if (cache !== CACHE_NAME) {
-            console.log('[BodyPro Service Worker] Clearing obsolete cache:', cache);
             return caches.delete(cache);
           }
         })
       );
     })
   );
-  self.clients.claim(); // Take control of all pages immediately.
+  self.clients.claim();
 });
 
-// --- FETCH EVENT ---
-// Intercepts all network requests.
 self.addEventListener('fetch', event => {
-  // Only intercept GET requests
   if (event.request.method !== 'GET') return;
 
-  // Skip cross-origin requests unless they are our specific CDN assets
-  if (!event.request.url.startsWith(self.location.origin) && !event.request.url.includes('cdnjs.cloudflare.com')) {
-      return;
+  const url = event.request.url;
+  const isAllowedCDN = url.includes('cdnjs.cloudflare.com') || url.includes('cdn.jsdelivr.net') || url.includes('unpkg.com') || url.includes('fonts.googleapis.com') || url.includes('fonts.gstatic.com');
+
+  if (!url.startsWith(self.location.origin) && !isAllowedCDN) {
+    return;
   }
 
-  // Network-First Strategy
   event.respondWith(
     fetch(event.request)
       .then(networkResponse => {
-        // If the network request succeeds, clone the response and update the cache
-        return caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, networkResponse.clone());
-          return networkResponse;
-        });
+        if (networkResponse && networkResponse.status === 200) {
+          const cloned = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, cloned));
+        }
+        return networkResponse;
       })
       .catch(() => {
-        // If the network request fails (offline), serve from cache
-        console.log('[BodyPro Service Worker] Network failure detected. Deploying cached fallback for:', event.request.url);
-        return caches.match(event.request);
+        return caches.match(event.request).then(cached => {
+          if (cached) return cached;
+          if (event.request.mode === 'navigate') {
+            return caches.match('./dashboard.html');
+          }
+        });
       })
+  );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if (client.url.includes('fitness.html') && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('./fitness.html');
+      }
+    })
   );
 });

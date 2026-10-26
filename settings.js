@@ -9,6 +9,7 @@ const profAge = document.getElementById('profAge');
 const profSex = document.getElementById('profSex');
 const profHeight = document.getElementById('profHeight');
 const profGoalWeight = document.getElementById('profGoalWeight');
+const lblGoalWeight = document.getElementById('lblGoalWeight');
 const profActivity = document.getElementById('profActivity');
 const profObjective = document.getElementById('profObjective');
 const btnSaveIdentity = document.getElementById('btnSaveIdentity');
@@ -17,14 +18,28 @@ const btnSaveIdentity = document.getElementById('btnSaveIdentity');
 const profSupplements = document.getElementById('profSupplements');
 const btnSaveSupplements = document.getElementById('btnSaveSupplements');
 
-// Section 1.2: Log Health Metrics
+// Section 1.2: Log Health Metrics & Physique
+const lblLogWeight = document.getElementById('lblLogWeight');
 const logWeight = document.getElementById('logWeight');
 const logSys = document.getElementById('logSys');
 const logDia = document.getElementById('logDia');
+const logHR = document.getElementById('logHR');
+const logSleepHrs = document.getElementById('logSleepHrs');
+const logSleepQual = document.getElementById('logSleepQual');
+const logSteps = document.getElementById('logSteps');
+const logWaist = document.getElementById('logWaist');
+const logNeck = document.getElementById('logNeck');
+const logHips = document.getElementById('logHips');
+const logChest = document.getElementById('logChest');
+const logBiceps = document.getElementById('logBiceps');
+const logThighs = document.getElementById('logThighs');
+const btnCalcNavyBF = document.getElementById('btnCalcNavyBF');
 const logPinch1 = document.getElementById('logPinch1');
 const logPinch2 = document.getElementById('logPinch2');
 const logPinch3 = document.getElementById('logPinch3');
 const logBodyFat = document.getElementById('logBodyFat');
+const inputProgressPhoto = document.getElementById('inputProgressPhoto');
+const photoUploadStatus = document.getElementById('photoUploadStatus');
 const btnLogMetrics = document.getElementById('btnLogMetrics');
 const lblPinch1 = document.getElementById('lblPinch1');
 const lblPinch2 = document.getElementById('lblPinch2');
@@ -64,6 +79,8 @@ const goalWater = document.getElementById('goalWater');
 const goalWorkoutDays = document.getElementById('goalWorkoutDays');
 const goalLiftMins = document.getElementById('goalLiftMins');
 const goalCardioMins = document.getElementById('goalCardioMins');
+const goalSleepHrs = document.getElementById('goalSleepHrs');
+const goalSteps = document.getElementById('goalSteps');
 const btnSaveTargets = document.getElementById('btnSaveTargets');
 
 // Section 3: Preferences
@@ -72,6 +89,7 @@ const prefWeight = document.getElementById('prefWeight');
 const prefFluid = document.getElementById('prefFluid');
 const prefTime = document.getElementById('prefTime');
 const prefMeal = document.getElementById('prefMeal');
+const prefActiveBurn = document.getElementById('prefActiveBurn');
 const btnSavePrefs = document.getElementById('btnSavePrefs');
 const btnInstallApp = document.getElementById('btnInstallApp');
 
@@ -84,6 +102,7 @@ const btnSignOut = document.getElementById('btnSignOut');
 
 // --- STATE MANAGEMENT ---
 let userData = null;
+let pendingProgressPhotoDataUrl = null;
 
 // --- THE SECURITY GUARD ---
 onAuthStateChanged(auth, async (user) => {
@@ -102,6 +121,8 @@ onAuthStateChanged(auth, async (user) => {
     if (!userData.settings.goals) userData.settings.goals = {};
     if (!userData.settings.preferences) userData.settings.preferences = {};
     if (!userData.biometrics) userData.biometrics = [];
+    if (!userData.sleep_data) userData.sleep_data = [];
+    if (!userData.progress_photos) userData.progress_photos = [];
 
     populateUI(user);
     updatePinchLabels();
@@ -109,6 +130,10 @@ onAuthStateChanged(auth, async (user) => {
 
 // --- UI POPULATION ---
 function populateUI(user) {
+    const wUnit = window.BodyProUnits?.getWeightUnit(userData) || 'lbs';
+    if (lblLogWeight) lblLogWeight.innerText = `Weight (${wUnit})`;
+    if (lblGoalWeight) lblGoalWeight.innerText = `Goal Weight (${wUnit})`;
+
     // 1. Identity
     profName.value = user.displayName || userData.profile?.displayName || '';
     profAge.value = userData.profile?.age || '';
@@ -117,7 +142,7 @@ function populateUI(user) {
         calcSex.value = userData.profile.sex;
     }
     profHeight.value = userData.profile?.heightInches || '';
-    profGoalWeight.value = userData.profile?.goalWeight || '';
+    profGoalWeight.value = userData.profile?.goalWeight ? window.BodyProUnits.formatWeight(userData.profile.goalWeight, userData, 1) : '';
     if (userData.profile?.activityLevel) {
         profActivity.value = userData.profile.activityLevel;
         calcActivity.value = userData.profile.activityLevel;
@@ -133,7 +158,28 @@ function populateUI(user) {
     calcAge.value = userData.profile?.age || '';
     calcHeight.value = userData.profile?.heightInches || '';
     if (userData.biometrics && userData.biometrics.length > 0) {
-        calcWeight.value = userData.biometrics[userData.biometrics.length - 1].weight || '';
+        const latestBio = userData.biometrics[userData.biometrics.length - 1];
+        calcWeight.value = latestBio.weight || '';
+    }
+
+    // Pre-fill today's logged metrics if already entered today
+    const todayStr = window.BodyProTelemetry ? window.BodyProTelemetry.getLocalISODate() : new Date().toISOString().split('T')[0];
+    const todayBio = (userData.biometrics || []).find(b => b.date === todayStr);
+    if (todayBio) {
+        if (todayBio.weight) logWeight.value = window.BodyProUnits.formatWeight(todayBio.weight, userData, 1);
+        if (todayBio.systolic) logSys.value = todayBio.systolic;
+        if (todayBio.diastolic) logDia.value = todayBio.diastolic;
+        if (todayBio.hr) logHR.value = todayBio.hr;
+        if (todayBio.sleepHrs) logSleepHrs.value = todayBio.sleepHrs;
+        if (todayBio.sleepQuality) logSleepQual.value = todayBio.sleepQuality;
+        if (todayBio.steps) logSteps.value = todayBio.steps;
+        if (todayBio.waist) logWaist.value = todayBio.waist;
+        if (todayBio.neck) logNeck.value = todayBio.neck;
+        if (todayBio.hips) logHips.value = todayBio.hips;
+        if (todayBio.chest) logChest.value = todayBio.chest;
+        if (todayBio.biceps) logBiceps.value = todayBio.biceps;
+        if (todayBio.thighs) logThighs.value = todayBio.thighs;
+        if (todayBio.bodyFat) logBodyFat.value = todayBio.bodyFat;
     }
 
     // 2. Nutritional Targets
@@ -158,6 +204,8 @@ function populateUI(user) {
     goalWorkoutDays.value = userData.settings?.goals?.workoutDaysPerWeek || 6;
     goalLiftMins.value = userData.settings?.goals?.targetLiftingMinutes || 90;
     goalCardioMins.value = userData.settings?.goals?.targetCardioMinutes || 20;
+    if (goalSleepHrs) goalSleepHrs.value = userData.settings?.goals?.sleepHrs || 7.5;
+    if (goalSteps) goalSteps.value = userData.settings?.goals?.dailySteps || 10000;
 
     // 4. Preferences
     if (userData.settings?.preferences?.theme) prefTheme.value = userData.settings.preferences.theme;
@@ -165,6 +213,9 @@ function populateUI(user) {
     if (userData.settings?.preferences?.fluidUnit) prefFluid.value = userData.settings.preferences.fluidUnit;
     if (userData.settings?.preferences?.timeFormat) prefTime.value = userData.settings.preferences.timeFormat;
     if (userData.settings?.preferences?.defaultMeal) prefMeal.value = userData.settings.preferences.defaultMeal;
+    if (prefActiveBurn && userData.settings?.preferences?.includeActiveBurn !== undefined) {
+        prefActiveBurn.value = String(userData.settings.preferences.includeActiveBurn);
+    }
 }
 
 // --- MODULE 1: IDENTITY & HEALTH METRICS ---
@@ -200,15 +251,63 @@ function calculateBodyFat() {
             bd = 1.0994921 - (0.0009929 * sum) + (0.0000023 * sum * sum) - (0.0001392 * age);
         }
         const bf = (495 / bd) - 450;
-        logBodyFat.value = Math.max(2, Math.min(60, bf)).toFixed(1); // Cap between 2% and 60%
-    } else if (p1 === 0 && p2 === 0 && p3 === 0) {
-        // Only clear if all are empty so user can manually type BF%
+        logBodyFat.value = Math.max(2, Math.min(60, bf)).toFixed(1);
     }
 }
 
 logPinch1.addEventListener('input', calculateBodyFat);
 logPinch2.addEventListener('input', calculateBodyFat);
 logPinch3.addEventListener('input', calculateBodyFat);
+
+// U.S. Navy Body Fat % Calculator from Tape Circumference
+if (btnCalcNavyBF) {
+    btnCalcNavyBF.addEventListener('click', () => {
+        const waist = parseFloat(logWaist?.value);
+        const neck = parseFloat(logNeck?.value);
+        const hips = parseFloat(logHips?.value);
+        const height = parseFloat(profHeight.value) || 69;
+        const sex = profSex.value || 'male';
+
+        if (!waist || !neck || waist <= neck) {
+            alert("Please enter valid Waist and Neck circumference measurements (in inches) to calculate U.S. Navy Body Fat %.");
+            return;
+        }
+
+        let bf = 0;
+        if (sex === 'male') {
+            bf = 86.010 * Math.log10(waist - neck) - 70.041 * Math.log10(height) + 36.76;
+        } else {
+            if (!hips) {
+                alert("Female U.S. Navy formula requires Waist, Neck, and Hips measurements.");
+                return;
+            }
+            bf = 163.205 * Math.log10(waist + hips - neck) - 97.684 * Math.log10(height) - 78.387;
+        }
+
+        const clamped = Math.max(3, Math.min(60, bf)).toFixed(1);
+        logBodyFat.value = clamped;
+        window.BodyProHardware?.vibrate(15);
+    });
+}
+
+// Progress Photo Compression Handler
+if (inputProgressPhoto) {
+    inputProgressPhoto.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        photoUploadStatus.style.display = 'block';
+        photoUploadStatus.innerText = 'Compressing snapshot for encrypted vault...';
+
+        try {
+            pendingProgressPhotoDataUrl = await window.BodyProHardware.compressImage(file, 720, 0.72);
+            photoUploadStatus.innerHTML = `<i class="fa-solid fa-circle-check"></i> Snapshot ready! Click "Save Today's Metrics" to commit.`;
+        } catch (err) {
+            console.error('[BodyPro Photo Error]', err);
+            photoUploadStatus.innerText = 'Failed to process image.';
+        }
+    });
+}
 
 btnSaveIdentity.addEventListener('click', async () => {
     btnSaveIdentity.disabled = true;
@@ -219,16 +318,19 @@ btnSaveIdentity.addEventListener('click', async () => {
         await updateProfile(auth.currentUser, { displayName: profName.value.trim() });
     }
 
+    const rawGoalW = parseFloat(profGoalWeight.value);
+    const internalGoalLbs = rawGoalW ? window.BodyProUnits.toInternalLbs(rawGoalW, userData) : null;
+
     userData.profile = {
         displayName: profName.value.trim(),
         age: parseInt(profAge.value) || null,
         sex: profSex.value,
         heightInches: parseInt(profHeight.value) || null,
-        goalWeight: parseInt(profGoalWeight.value) || null,
+        goalWeight: internalGoalLbs,
         activityLevel: parseFloat(profActivity.value),
         objective: profObjective.value,
-        supplements: userData.profile?.supplements || '', // Preserve supplements
-        shortId: userData.profile.shortId // Preserve the Short ID
+        supplements: userData.profile?.supplements || '',
+        shortId: userData.profile.shortId
     };
 
     const success = await window.BodyProDataStore.saveData(userData);
@@ -260,22 +362,31 @@ btnSaveSupplements.addEventListener('click', async () => {
 });
 
 btnLogMetrics.addEventListener('click', async () => {
-    const w = parseFloat(logWeight.value);
+    const rawW = parseFloat(logWeight.value);
+    const w = rawW ? window.BodyProUnits.toInternalLbs(rawW, userData) : null;
     const bf = parseFloat(logBodyFat.value);
     const sys = parseInt(logSys.value);
     const dia = parseInt(logDia.value);
+    const hr = parseInt(logHR?.value);
+    const sleepHrs = parseFloat(logSleepHrs?.value);
+    const sleepQual = parseInt(logSleepQual?.value);
+    const steps = parseInt(logSteps?.value);
+    const waist = parseFloat(logWaist?.value);
+    const neck = parseFloat(logNeck?.value);
+    const hips = parseFloat(logHips?.value);
+    const chest = parseFloat(logChest?.value);
+    const biceps = parseFloat(logBiceps?.value);
+    const thighs = parseFloat(logThighs?.value);
 
-    if(!w && !bf && !sys && !dia) {
-        alert("Please enter at least one metric to log.");
+    if(!w && !bf && !sys && !dia && !hr && !sleepHrs && !steps && !waist && !chest && !biceps && !thighs && !pendingProgressPhotoDataUrl) {
+        alert("Please enter at least one metric, tape measurement, or photo to log.");
         return;
     }
 
     btnLogMetrics.disabled = true;
     btnLogMetrics.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
 
-    const d = new Date();
-    const offset = d.getTimezoneOffset() * 60000;
-    const todayStr = (new Date(d - offset)).toISOString().split('T')[0];
+    const todayStr = window.BodyProTelemetry ? window.BodyProTelemetry.getLocalISODate() : new Date().toISOString().split('T')[0];
 
     let bio = userData.biometrics.find(b => b.date === todayStr);
     if (!bio) {
@@ -287,15 +398,48 @@ btnLogMetrics.addEventListener('click', async () => {
     if(bf) bio.bodyFat = bf;
     if(sys) bio.systolic = sys;
     if(dia) bio.diastolic = dia;
+    if(hr) bio.hr = hr;
+    if(sleepHrs) {
+        bio.sleepHrs = sleepHrs;
+        if(sleepQual) bio.sleepQuality = sleepQual;
+
+        // Also sync to dedicated sleep_data array
+        let sleepEntry = (userData.sleep_data || []).find(s => s.date === todayStr);
+        if (!sleepEntry) {
+            sleepEntry = { id: `slp_${Date.now()}`, date: todayStr };
+            userData.sleep_data.push(sleepEntry);
+        }
+        sleepEntry.hours = sleepHrs;
+        sleepEntry.quality = sleepQual || 8;
+    }
+    if(steps) bio.steps = steps;
+    if(waist) bio.waist = waist;
+    if(neck) bio.neck = neck;
+    if(hips) bio.hips = hips;
+    if(chest) bio.chest = chest;
+    if(biceps) bio.biceps = biceps;
+    if(thighs) bio.thighs = thighs;
+
+    if (pendingProgressPhotoDataUrl) {
+        if (!userData.progress_photos) userData.progress_photos = [];
+        // Replace existing photo for today or push new
+        userData.progress_photos = userData.progress_photos.filter(p => p.date !== todayStr);
+        userData.progress_photos.push({
+            id: `photo_${Date.now()}`,
+            date: todayStr,
+            weight: w || bio.weight || null,
+            bodyFat: bf || bio.bodyFat || null,
+            dataUrl: pendingProgressPhotoDataUrl
+        });
+        pendingProgressPhotoDataUrl = null;
+        if (photoUploadStatus) photoUploadStatus.style.display = 'none';
+    }
 
     const success = await window.BodyProDataStore.saveData(userData);
     
     if (success) {
+        window.BodyProHardware?.vibrate([15, 30, 15]);
         btnLogMetrics.innerHTML = '<i class="fa-solid fa-check"></i> Metrics Saved';
-        logWeight.value = '';
-        logBodyFat.value = '';
-        logSys.value = '';
-        logDia.value = '';
         logPinch1.value = '';
         logPinch2.value = '';
         logPinch3.value = '';
@@ -367,15 +511,18 @@ btnApplyMacros.addEventListener('click', () => {
     goalFat.value = btnApplyMacros.dataset.fat;
     goalCarb.value = btnApplyMacros.dataset.carb;
 
-    // Flash the Target Section to draw attention
-    const targetSection = goalCals.closest('.settings-section');
-    targetSection.style.transition = 'box-shadow 0.3s';
-    targetSection.style.boxShadow = '0 0 15px var(--accent)';
+    // Open & highlight the Target Section
+    const targetSection = document.getElementById('secTargets') || goalCals.closest('.accordion-section');
+    if (targetSection) {
+        targetSection.classList.add('active');
+        targetSection.style.transition = 'box-shadow 0.3s';
+        targetSection.style.boxShadow = '0 0 15px var(--accent)';
+    }
     
     setTimeout(() => {
-        targetSection.style.boxShadow = 'none';
+        if (targetSection) targetSection.style.boxShadow = 'none';
         btnSaveTargets.click(); // Automatically trigger the save routine
-    }, 800);
+    }, 600);
 });
 
 // --- MODULE 2: TARGETS & GOALS ---
@@ -403,10 +550,13 @@ btnSaveTargets.addEventListener('click', async () => {
     };
 
     userData.settings.goals = {
+        ...userData.settings.goals,
         waterOz: parseInt(goalWater.value) || 120,
         workoutDaysPerWeek: parseInt(goalWorkoutDays.value) || 6,
         targetLiftingMinutes: parseInt(goalLiftMins.value) || 90,
-        targetCardioMinutes: parseInt(goalCardioMins.value) || 20
+        targetCardioMinutes: parseInt(goalCardioMins.value) || 20,
+        sleepHrs: parseFloat(goalSleepHrs?.value) || 7.5,
+        dailySteps: parseInt(goalSteps?.value) || 10000
     };
 
     const success = await window.BodyProDataStore.saveData(userData);
@@ -426,11 +576,13 @@ btnSavePrefs.addEventListener('click', async () => {
     btnSavePrefs.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Applying...';
 
     userData.settings.preferences = {
+        ...userData.settings.preferences,
         theme: prefTheme.value,
         weightUnit: prefWeight.value,
         fluidUnit: prefFluid.value,
         timeFormat: prefTime.value,
-        defaultMeal: prefMeal.value
+        defaultMeal: prefMeal.value,
+        includeActiveBurn: prefActiveBurn ? prefActiveBurn.value === 'true' : true
     };
 
     // Apply theme immediately
@@ -444,6 +596,7 @@ btnSavePrefs.addEventListener('click', async () => {
     const success = await window.BodyProDataStore.saveData(userData);
     
     if (success) {
+        populateUI(auth.currentUser);
         btnSavePrefs.innerHTML = '<i class="fa-solid fa-check"></i> Preferences Applied';
         setTimeout(() => {
             btnSavePrefs.disabled = false;
@@ -477,7 +630,7 @@ inputImportData.addEventListener('change', (event) => {
     if (!file) return;
 
     if (!confirm("WARNING: Importing a backup will overwrite your current cloud data. Proceed?")) {
-        inputImportData.value = ''; // Reset input
+        inputImportData.value = '';
         return;
     }
 
@@ -498,7 +651,7 @@ inputImportData.addEventListener('change', (event) => {
             alert("File corruption detected. Cannot parse JSON backup.");
             console.error("Import Error:", error);
         }
-        inputImportData.value = ''; // Reset input
+        inputImportData.value = '';
     };
     reader.readAsText(file);
 });
@@ -511,7 +664,6 @@ btnResetWeek.addEventListener('click', async () => {
     cutoffDate.setDate(cutoffDate.getDate() - 7);
     const cutoffISO = cutoffDate.toISOString().split('T')[0];
 
-    // Filter Arrays
     if (userData.food_diary) {
         userData.food_diary = userData.food_diary.filter(f => f.date < cutoffISO);
     }
@@ -522,7 +674,6 @@ btnResetWeek.addEventListener('click', async () => {
         userData.sleep_data = userData.sleep_data.filter(s => s.date < cutoffISO);
     }
     if (userData.workouts) {
-        // Workouts use timestamp instead of strict date string
         userData.workouts = userData.workouts.filter(w => new Date(w.timestamp) < cutoffDate);
     }
 
@@ -541,22 +692,23 @@ btnWipeAccount.addEventListener('click', async () => {
         return;
     }
 
-    // Reset all arrays while maintaining the core structure and identity parameters
     userData = {
-        profile: userData.profile, // Keep identity/Short ID intact
+        profile: userData.profile,
         settings: {
             macroTargets: { calories: 2200, protein: 200, carbs: 150, fats: 88 },
             microTargets: { sugar: 50, sodium: 2300, iron: 18, potassium: 4700, fiber: 30, vitA: 900, vitC: 90, calcium: 1000, satFat: 20 },
             goals: {
                 waterOz: 120,
-                workoutDaysPerWeek: 6, targetLiftingMinutes: 90, targetCardioMinutes: 20
+                workoutDaysPerWeek: 6, targetLiftingMinutes: 90, targetCardioMinutes: 20,
+                sleepHrs: 7.5, dailySteps: 10000
             },
-            preferences: { theme: 'dark', weightUnit: 'lbs', fluidUnit: 'oz', timeFormat: '12', defaultMeal: 'Snacks' }
+            preferences: { theme: 'dark', weightUnit: 'lbs', fluidUnit: 'oz', timeFormat: '12', defaultMeal: 'Snacks', includeActiveBurn: true }
         },
         friends: [],
         food_diary: [],
         biometrics: [],
         sleep_data: [],
+        progress_photos: [],
         workouts: [],
         custom_recipes: [],
         workout_templates: []
@@ -583,23 +735,18 @@ btnSignOut.addEventListener('click', () => {
 let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {
-    // Prevent the mini-infobar from appearing on mobile
     e.preventDefault();
-    // Stash the event so it can be triggered later.
     deferredPrompt = e;
 });
 
 if (btnInstallApp) {
     btnInstallApp.addEventListener('click', async () => {
         if (deferredPrompt) {
-            // Show the install prompt
             deferredPrompt.prompt();
-            // Wait for the user to respond to the prompt
             const { outcome } = await deferredPrompt.userChoice;
             console.log(`User response to the install prompt: ${outcome}`);
             deferredPrompt = null;
         } else {
-            // Provide explicit instructions for mobile users when prompt API isn't supported (like Safari iOS)
             alert("To install BodyPro as an app:\n\n📱 iOS (Safari): Tap the 'Share' icon at the bottom, scroll down, and select 'Add to Home Screen'.\n\n📱 Android (Chrome): Tap the menu (three dots) and select 'Install app' or 'Add to Home Screen'.");
         }
     });

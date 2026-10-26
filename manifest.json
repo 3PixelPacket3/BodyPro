@@ -1,24 +1,58 @@
 {
+  "id": "com.bodypro.telemetry",
   "name": "BodyPro Telemetry & Nutrition",
   "short_name": "BodyPro",
   "start_url": "./dashboard.html",
+  "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#09090b",
-  "theme_color": "#3b82f6",
-  "description": "Advanced Personal Health, Fitness, and Biometric Telemetry System",
-  "orientation": "portrait",
-"icons": [
-  {
-    "src": "./favicon.svg",
-    "sizes": "any",
-    "type": "image/svg+xml",
-    "purpose": "any"
-  },
-  {
-    "src": "./icon-192.png",
-    "sizes": "192x192",
-    "type": "image/png",
-    "purpose": "any maskable"
-  }
-]
+  "theme_color": "#09090b",
+  "description": "Advanced Personal Health, Fitness, Nutrition OCR, and Biometric Telemetry System for iOS, Android, and Web.",
+  "orientation": "portrait-primary",
+  "categories": ["health", "fitness", "medical", "lifestyle", "sports"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-192.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start Workout",
+      "short_name": "Workout",
+      "description": "Launch Live Training Hub & Rest Timer",
+      "url": "./fitness.html",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Log Nutrition / Scan",
+      "short_name": "Log Food",
+      "description": "Open Nutrition Diary & Barcode/OCR Scanner",
+      "url": "./nutrition.html",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "View Analytics",
+      "short_name": "Analytics",
+      "description": "Inspect TDEE, 1RM & Biometric Telemetry",
+      "url": "./analytics.html",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    }
+  ]
 }

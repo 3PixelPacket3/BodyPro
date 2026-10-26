@@ -1,0 +1,33 @@
+{
+  "appId": "com.bodypro.telemetry",
+  "appName": "BodyPro",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "capacitor"
+  },
+  "plugins": {
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#09090b"
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#3b82f6"
+    },
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#09090b",
+      "showSpinner": false
+    }
+  },
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#09090b"
+  },
+  "android": {
+    "backgroundColor": "#09090b",
+    "allowMixedContent": false
+  }
+}

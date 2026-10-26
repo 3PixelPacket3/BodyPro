@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BodyPro">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>BodyPro | Training Hub</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#09090b">
@@ -12,7 +16,6 @@
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">  
   
 <style>
-    /* Global Mobile Scroll Fixes */
     html, body {
       overflow-x: hidden;
       width: 100%;
@@ -20,7 +23,7 @@
     }
 
     .main-content {
-      padding-bottom: 100px;
+      padding-bottom: 110px;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
@@ -61,7 +64,7 @@
     .time-display {
       font-size: 2rem;
       font-weight: 800;
-      font-family: monospace;
+      font-family: var(--font-mono);
       margin-bottom: 10px;
     }
 
@@ -80,7 +83,7 @@
       padding: 8px;
       border: none;
       border-radius: var(--border-radius-sm);
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       font-size: 0.85rem;
     }
@@ -106,6 +109,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
     }
 
     .exercise-input {
@@ -128,7 +132,7 @@
       border: none;
       color: var(--text-muted);
       cursor: pointer;
-      font-size: 1.1rem;
+      font-size: 1rem;
       transition: color 0.2s;
     }
     .btn-remove-set:hover { color: var(--danger); }
@@ -140,7 +144,7 @@
       color: var(--primary);
       border: none;
       border-top: 1px solid var(--border-color);
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       transition: background 0.2s;
     }
@@ -149,7 +153,7 @@
       background: var(--bg-surface-elevated);
     }
 
-    /* Telemetry Input - Fixed for Mobile */
+    /* Telemetry Input */
     .telemetry-row {
       display: flex;
       flex-direction: row;
@@ -167,11 +171,11 @@
       width: 100%;
     }
 
-    /* Live Log Movement Section Grid */
+    /* Live Log Movement Section Grid (Upgraded with Set Type + Complete Check) */
     .movement-header-row {
       display: flex;
       flex-direction: row;
-      gap: 10px;
+      gap: 8px;
       margin-bottom: 10px;
       align-items: center;
       width: 100%;
@@ -179,7 +183,7 @@
 
     .set-grid-header, .set-row {
       display: grid;
-      grid-template-columns: 30px 1.2fr 1fr 1fr 30px;
+      grid-template-columns: 30px 1.15fr 1fr 0.85fr 32px 26px;
       gap: 6px;
       align-items: center;
       margin-bottom: 8px;
@@ -187,11 +191,11 @@
     }
 
     .set-grid-header {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       text-transform: uppercase;
-      font-weight: 700;
+      font-weight: 800;
       color: var(--text-muted);
-      margin-bottom: 5px;
+      margin-bottom: 6px;
       text-align: center;
       border-bottom: 1px solid var(--border-color);
       padding-bottom: 5px;
@@ -204,9 +208,15 @@
       font-size: 0.9rem;
       width: 100%;
       box-sizing: border-box;
+      font-family: var(--font-mono);
     }
 
-    /* Custom Autocomplete Dropdown - Bypasses Native Keyboard overlap */
+    .set-row.set-done {
+      background: rgba(16, 185, 129, 0.08);
+      border-radius: 6px;
+    }
+
+    /* Custom Autocomplete Dropdown */
     .autocomplete-wrapper {
       position: relative;
       flex: 1 1 auto;
@@ -215,8 +225,8 @@
     }
 
     .autocomplete-wrapper input.ex-name {
-      font-weight: bold;
-      font-size: 1rem;
+      font-weight: 700;
+      font-size: 0.98rem;
       border-color: var(--primary);
       width: 100%;
       box-sizing: border-box;
@@ -241,7 +251,7 @@
       padding: 12px 10px;
       cursor: pointer;
       border-bottom: 1px solid var(--border-color);
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       color: var(--text-main);
       font-weight: 600;
     }
@@ -255,7 +265,7 @@
       color: white;
     }
 
-    /* --- BODY HEATMAP CHART STYLES (SVG UPGRADE) --- */
+    /* --- BODY HEATMAP CHART STYLES --- */
     .body-heatmap-container {
       background: var(--bg-surface);
       border: 1px solid var(--border-color);
@@ -277,7 +287,6 @@
       transition: fill 0.3s, stroke 0.3s;
     }
 
-    /* Heatmap Active States (SVG) */
     .muscle-path[data-level="1"] { fill: #facc15; stroke: #ca8a04; }
     .muscle-path[data-level="2"] { fill: #f97316; stroke: #c2410c; }
     .muscle-path[data-level="3"] { fill: #ef4444; stroke: #b91c1c; }
@@ -302,11 +311,9 @@
       transition: all 0.3s;
     }
     
-    /* Heatmap Active States (Tags) */
     .ancillary-tag[data-level="1"] { background: #facc15; color: #000; border-color: #facc15; }
     .ancillary-tag[data-level="2"] { background: #f97316; color: #fff; border-color: #f97316; }
     .ancillary-tag[data-level="3"] { background: #ef4444; color: #fff; border-color: #ef4444; }
-
 
     /* Modals */
     .modal-overlay {
@@ -330,13 +337,13 @@
 
     .modal-content {
       background: var(--bg-surface);
-      width: 90%;
-      max-width: 500px;
+      width: 92%;
+      max-width: 520px;
       max-height: 90vh;
       overflow-y: auto;
       border-radius: var(--border-radius-md);
       border: 1px solid var(--border-color);
-      padding: 25px;
+      padding: 24px;
       transform: translateY(20px);
       transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
@@ -394,14 +401,19 @@
 
     <main class="main-content">
       
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
         <div>
           <h2 style="margin-bottom: 5px;">Active Protocol</h2>
-          <p class="text-muted" style="font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;" id="currentWorkoutDate">Loading...</p>
+          <p class="text-muted" style="font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;" id="currentWorkoutDate">Loading...</p>
         </div>
-        <button class="btn btn-ghost" style="padding: 8px 15px; font-size: 0.85rem;" onclick="openHistoryModal()">
-          <i class="fa-solid fa-clock-rotate-left"></i> History
-        </button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 8px 14px; font-size: 0.82rem; border-color: var(--warning); color: var(--warning);" onclick="openPlateCalcModal()">
+            <i class="fa-solid fa-Compact-disc fa-circle-dot"></i> Plate Calc
+          </button>
+          <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 8px 14px; font-size: 0.82rem;" onclick="openHistoryModal()">
+            <i class="fa-solid fa-clock-rotate-left"></i> Vault
+          </button>
+        </div>
       </div>
 
       <div class="timer-dashboard">
@@ -425,31 +437,42 @@
       </div>
 
       <div class="card" style="border-top: 4px solid var(--warning);">
-        <h3 style="font-size: 1.1rem; margin-bottom: 10px;"><i class="fa-solid fa-stopwatch-20 text-warning"></i> Rest Engine</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h3 style="font-size: 1.1rem; margin: 0;"><i class="fa-solid fa-stopwatch-20 text-warning"></i> Rest Engine</h3>
+          <label style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700;">
+            <input type="checkbox" id="chkAutoRest" checked style="width: 16px; height: 16px; accent-color: var(--warning);"> Auto-Start on Set ✓
+          </label>
+        </div>
         <div class="time-display t-rest" id="displayRest" style="text-align: center; margin-bottom: 10px;">00:00</div>
         
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-          <button class="btn btn-ghost" onclick="startRestTimer(30)" style="flex: 1;">30s</button>
-          <button class="btn btn-ghost" onclick="startRestTimer(60)" style="flex: 1;">60s</button>
-          <button class="btn btn-ghost" onclick="startRestTimer(90)" style="flex: 1;">90s</button>
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <button class="btn btn-ghost" onclick="startRestTimer(30)" style="flex: 1; min-width: 0; padding: 8px;">30s</button>
+          <button class="btn btn-ghost" onclick="startRestTimer(60)" style="flex: 1; min-width: 0; padding: 8px;">60s</button>
+          <button class="btn btn-ghost" onclick="startRestTimer(90)" style="flex: 1; min-width: 0; padding: 8px;">90s</button>
+          <button class="btn btn-ghost" onclick="startRestTimer(120)" style="flex: 1; min-width: 0; padding: 8px;">120s</button>
         </div>
 
         <div style="display: flex; gap: 10px;">
-          <input type="number" id="customRestInput" name="customRestInput" placeholder="Secs" style="flex: 1;">
-          <button class="btn btn-ghost" onclick="startCustomRest()" style="flex: 1;">Start</button>
-          <button class="btn btn-ghost" style="color: var(--danger); border-color: var(--danger); flex: 1;" onclick="stopRestTimer()">Stop</button>
+          <input type="number" id="customRestInput" name="customRestInput" placeholder="Custom Secs (e.g. 90)" value="90" style="flex: 1;">
+          <button class="btn btn-ghost" onclick="startCustomRest()" style="flex: 1; min-width: 0;">Start</button>
+          <button class="btn btn-ghost" style="color: var(--danger); border-color: var(--danger); flex: 1; min-width: 0;" onclick="stopRestTimer()">Stop</button>
         </div>
       </div>
 
       <div class="card" style="border-top: 4px solid var(--text-main);">
         <div class="card-header">
-          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-folder-open"></i> Routine Templates</h3>
-          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openTemplatesModal()"><i class="fa-solid fa-gear"></i> Manage</button>
+          <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-folder-open"></i> Routine Templates & Split</h3>
+          <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 4px 10px; font-size: 0.75rem;" onclick="openTemplatesModal()"><i class="fa-solid fa-calendar-week"></i> Manage & Split</button>
         </div>
-        <select id="templateSelect" name="templateSelect" style="margin-bottom: 15px; width: 100%;">
-          <option value="">-- Select Template to Load --</option>
-        </select>
-        <button class="btn btn-ghost" id="btnLoadTemplate" style="width: 100%;"><i class="fa-solid fa-download"></i> Load to Live Session</button>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+          <select id="templateSelect" name="templateSelect" style="flex: 1;">
+            <option value="">-- Select Template to Load --</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-ghost" id="btnLoadTemplate" style="flex: 2;"><i class="fa-solid fa-download"></i> Load Protocol</button>
+          <button class="btn btn-ghost" id="btnFitnessTimeCrunch" style="flex: 1; border-color: var(--warning); color: var(--warning);" title="Condense current session into high-intensity supersets"><i class="fa-solid fa-bolt"></i> Time-Crunch</button>
+        </div>
       </div>
 
       <div class="body-heatmap-container" style="border-top: 4px solid var(--primary);">
@@ -522,42 +545,46 @@
         </div>
       </div>
 
-      <h3 style="font-size: 1.1rem; margin: 25px 0 15px 0;"><i class="fa-solid fa-list-check text-primary"></i> Live Log</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin: 25px 0 12px 0;">
+        <h3 style="font-size: 1.1rem; margin: 0;"><i class="fa-solid fa-list-check text-primary"></i> Live Log</h3>
+        <span class="text-muted" style="font-size: 0.72rem; font-weight: 700;">Tap Set # for W/D/F &bull; Tap ✓ to Lock &amp; Rest</span>
+      </div>
       
       <div class="session-logger" id="workoutLogger">
         <div class="logger-header">
           <input type="text" class="exercise-input" id="workoutTitle" name="workoutTitle" placeholder="Workout Title (e.g. Push Day, Pull, Cardio Circuit)" style="font-weight: bold; background: transparent; border: none; font-size: 1.1rem; padding: 0;">
+          <span id="draftSavedIndicator" style="font-size: 0.7rem; color: var(--accent); font-weight: 700; white-space: nowrap;"><i class="fa-solid fa-shield-halved"></i> Draft Auto-Saved</span>
         </div>
         
-        <div id="workoutLogArea" style="padding: 15px; background: var(--bg-surface);">
-          
-        </div>
+        <div id="workoutLogArea" style="padding: 15px; background: var(--bg-surface);"></div>
 
         <button class="add-set-btn" id="btnAddMovement" onclick="handleAddMovement()">
           <i class="fa-solid fa-plus"></i> Add Movement / Activity
         </button>
       </div>
 
-      <div style="margin-top: 25px; margin-bottom: 10px;">
-        <button class="btn btn-ghost" id="btnSaveAsTemplate" style="width: 100%; margin-bottom: 15px;"><i class="fa-solid fa-floppy-disk"></i> Save as Template</button>
+      <div style="margin-top: 25px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px;">
+        <button class="btn btn-ghost" id="btnSaveAsTemplate" style="width: 100%;"><i class="fa-solid fa-floppy-disk"></i> Save as Template</button>
         <button class="btn" id="btnFinishWorkout" style="width: 100%;">
-          <i class="fa-solid fa-check-double"></i> Complete & Save Session
+          <i class="fa-solid fa-check-double"></i> Complete &amp; Save Session
         </button>
       </div>
 
     </main>
   </div>
 
+  <!-- Session Vault History Modal -->
   <div class="modal-overlay" id="historyModal">
     <div class="modal-content">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <h3 style="margin: 0;"><i class="fa-solid fa-clock-rotate-left text-primary"></i> Session Vault</h3>
-        <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="closeModals()"><i class="fa-solid fa-xmark"></i></button>
+        <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 4px 10px; font-size: 0.75rem;" onclick="closeModals()"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div id="historyListContainer"></div>
     </div>
   </div>
 
+  <!-- View Historical Session Modal -->
   <div class="modal-overlay" id="viewSessionModal">
     <div class="modal-content">
       <h3 style="margin-top: 0; margin-bottom: 5px;" id="viewSessionTitle">Session Details</h3>
@@ -578,20 +605,65 @@
       </div>
 
       <div style="display: flex; gap: 10px; margin-top: 20px;">
-        <button class="btn btn-ghost" style="flex: 1;" onclick="closeViewSessionModal()">Close</button>
-        <button class="btn btn-ghost" style="color: var(--primary); border-color: var(--primary); flex: 1;" id="btnEditSession">Edit</button>
-        <button class="btn btn-ghost" style="color: var(--danger); border-color: var(--danger); flex: 1;" id="btnDeleteSession">Delete</button>
+        <button class="btn btn-ghost" style="flex: 1; min-width: 0;" onclick="closeViewSessionModal()">Close</button>
+        <button class="btn btn-ghost" style="color: var(--primary); border-color: var(--primary); flex: 1; min-width: 0;" id="btnEditSession">Edit</button>
+        <button class="btn btn-ghost" style="color: var(--danger); border-color: var(--danger); flex: 1; min-width: 0;" id="btnDeleteSession">Delete</button>
       </div>
     </div>
   </div>
 
+  <!-- Templates & Weekly Split Scheduler Modal -->
   <div class="modal-overlay" id="templatesModal">
     <div class="modal-content">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 style="margin: 0;"><i class="fa-solid fa-folder-open text-accent"></i> My Templates</h3>
-        <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 0.75rem;" onclick="closeModals()"><i class="fa-solid fa-xmark"></i></button>
+        <h3 style="margin: 0;"><i class="fa-solid fa-folder-open text-accent"></i> Templates &amp; Weekly Split</h3>
+        <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 4px 10px; font-size: 0.75rem;" onclick="closeModals()"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <div id="templatesListContainer"></div>
+      <div id="templatesListContainer" style="margin-bottom: 20px;"></div>
+
+      <div style="border-top: 1px dashed var(--border-color); padding-top: 15px;">
+        <h4 style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px;"><i class="fa-solid fa-calendar-week text-primary"></i> Weekly Split Auto-Queue</h4>
+        <div id="weeklySplitSchedulerContainer" style="display: grid; grid-template-columns: 95px 1fr; gap: 8px; align-items: center;"></div>
+        <button class="btn" id="btnSaveWeeklySplit" style="width: 100%; margin-top: 15px; padding: 10px;">Save Weekly Split</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barbell Plate Calculator & Warm-up Generator Modal -->
+  <div class="modal-overlay" id="plateCalcModal">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;"><i class="fa-solid fa-circle-dot text-warning"></i> Plate &amp; Warm-up Engine</h3>
+        <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 4px 10px; font-size: 0.75rem;" onclick="closeModals()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group" style="margin: 0;">
+          <label for="plateTargetWeight">Target Weight</label>
+          <input type="number" id="plateTargetWeight" value="225" step="5">
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label for="plateBarWeight">Barbell Weight</label>
+          <select id="plateBarWeight">
+            <option value="45">45 lbs (Olympic)</option>
+            <option value="35">35 lbs (Women's/ Bella)</option>
+            <option value="25">25 lbs (EZ Curl)</option>
+            <option value="20">20 kg (Olympic Metric)</option>
+            <option value="15">15 kg (Metric Light)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="plate-barbell-visual" id="plateVisualContainer"></div>
+      <div id="plateTextSummary" style="text-align: center; font-weight: 800; font-size: 0.9rem; color: var(--primary); margin-bottom: 15px;"></div>
+
+      <div style="border-top: 1px dashed var(--border-color); padding-top: 15px;">
+        <div style="font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Progressive Warm-up Ramp</div>
+        <div id="warmupRampPreview" style="font-size: 0.85rem; color: var(--text-main); margin-bottom: 12px;"></div>
+        <button class="btn btn-accent" id="btnInjectWarmupSets" style="width: 100%; padding: 10px; font-size: 0.85rem;">
+          <i class="fa-solid fa-Temperature-arrow-up fa-fire"></i> Inject 3 Warm-up Sets into Active Movement
+        </button>
+      </div>
     </div>
   </div>
 
@@ -609,6 +681,14 @@
       document.getElementById('templatesModal').classList.add('active');
     }
 
+    function openPlateCalcModal(prefillWeight) {
+      if (prefillWeight && !isNaN(prefillWeight)) {
+        document.getElementById('plateTargetWeight').value = prefillWeight;
+      }
+      if (window.updatePlateCalculator) window.updatePlateCalculator();
+      document.getElementById('plateCalcModal').classList.add('active');
+    }
+
     function closeViewSessionModal() {
       document.getElementById('viewSessionModal').classList.remove('active');
     }
@@ -620,10 +700,10 @@
 
   <script type="module" src="data-store.js"></script>
   <script type="module" src="fitness.js"></script>
-  </body>
+</body>
 
 <footer style="text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); margin-top: 20px;">
   &copy; 2026 Joshua Michael Smolak. All Rights Reserved. <br>
-  BodyPro System v2.0.0
+  BodyPro System v3.0.0
 </footer>
 </html>

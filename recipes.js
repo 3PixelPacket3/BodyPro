@@ -9,6 +9,7 @@ const emptyIngredientMsg = document.getElementById('emptyIngredientMsg');
 const btnClearRecipe = document.getElementById('btnClearRecipe');
 const btnSaveRecipe = document.getElementById('btnSaveRecipe');
 const savedRecipesList = document.getElementById('savedRecipesList');
+const recipeOcrFileInput = document.getElementById('recipeOcrFileInput');
 
 // Macro Summaries
 const recCals = document.getElementById('recCals');
@@ -55,8 +56,9 @@ const btnExecuteCopy = document.getElementById('btnExecuteCopy');
 // --- STATE MANAGEMENT ---
 let userData = null;
 let currentIngredients = [];
+let editingRecipeId = null;
+let recipeQrScanner = null;
 
-// --- API FETCH ENGINE WITH RETRY LOGIC ---
 async function fetchWithRetry(url, retries = 3, delayMs = 1000) {
     for (let i = 0; i < retries; i++) {
         try {
@@ -64,14 +66,12 @@ async function fetchWithRetry(url, retries = 3, delayMs = 1000) {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             return await response.json();
         } catch (err) {
-            console.warn(`[BodyPro Network] API attempt ${i + 1} failed. Re-engaging...`, err);
             if (i === retries - 1) throw err; 
             await new Promise(resolve => setTimeout(resolve, delayMs)); 
         }
     }
 }
 
-// --- THE SECURITY GUARD ---
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
         window.location.replace('login.html');
@@ -132,20 +132,7 @@ btnRecipeApiSearch.addEventListener('click', async () => {
             `;
             
             div.addEventListener('click', () => {
-                ingName.value = parsed.name;
-                ingCals.value = parsed.cals;
-                ingProt.value = parsed.prot;
-                ingCarb.value = parsed.carb;
-                ingFat.value = parsed.fat;
-                ingSugar.value = parsed.sugar;
-                ingSodium.value = parsed.sodium;
-                ingIron.value = parsed.iron;
-                ingPotassium.value = parsed.potassium;
-                ingFiber.value = parsed.fiber;
-                ingVitA.value = parsed.vitA;
-                ingVitC.value = parsed.vitC;
-                ingCalcium.value = parsed.calcium;
-                ingSatFat.value = parsed.satFat;
+                populateIngredientInputs(parsed);
                 recipeApiSearchResults.innerHTML = '';
                 recipeApiSearchInput.value = '';
             });
@@ -158,6 +145,23 @@ btnRecipeApiSearch.addEventListener('click', async () => {
         recipeApiSearchResults.innerHTML = '<p class="text-danger" style="text-align:center; padding: 10px; font-size: 0.85rem;">Network timeout. API offline.</p>';
     }
 });
+
+function populateIngredientInputs(parsed) {
+    ingName.value = parsed.name || '';
+    ingCals.value = parsed.cals || 0;
+    ingProt.value = parsed.prot || 0;
+    ingCarb.value = parsed.carb || 0;
+    ingFat.value = parsed.fat || 0;
+    ingSugar.value = parsed.sugar || 0;
+    ingSodium.value = parsed.sodium || 0;
+    ingIron.value = parsed.iron || 0;
+    ingPotassium.value = parsed.potassium || 0;
+    ingFiber.value = parsed.fiber || 0;
+    ingVitA.value = parsed.vitA || 0;
+    ingVitC.value = parsed.vitC || 0;
+    ingCalcium.value = parsed.calcium || 0;
+    ingSatFat.value = parsed.satFat || 0;
+}
 
 function parseOpenFoodFactsProduct(p) {
     const nut = p.nutriments || {};
@@ -179,10 +183,60 @@ function parseOpenFoodFactsProduct(p) {
     };
 }
 
-// Override scanner logic to disable it per user instruction for the recipe tab
+// --- OPTICAL BARCODE & OCR SCANNING FOR RECIPE INGREDIENTS ---
 window.openScannerFromRecipe = function() {
-    alert("Barcode scanning is disabled in the Recipe Builder. Please utilize the text registry search.");
+    document.getElementById('scannerModal').classList.add('active');
+    if (!recipeQrScanner) recipeQrScanner = new Html5Qrcode("reader");
+    recipeQrScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 200 } },
+        async (decodedText) => {
+            if (recipeQrScanner && recipeQrScanner.isScanning) await recipeQrScanner.stop();
+            document.getElementById('scannerModal').classList.remove('active');
+            window.BodyProHardware.playCheckSound();
+            try {
+                const data = await fetchWithRetry(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`, 2, 800);
+                if (data && data.status === 1 && data.product) {
+                    populateIngredientInputs(parseOpenFoodFactsProduct(data.product));
+                } else {
+                    alert("Barcode not found in registry. Try OCR Label Scan or enter values manually.");
+                }
+            } catch (e) {
+                alert("Network error querying barcode.");
+            }
+        }
+    ).catch(() => {
+        document.getElementById('reader').innerHTML = '<p style="color:var(--warning); padding:15px; text-align:center;">Camera stream unavailable. Use OCR button or text search.</p>';
+    });
 };
+
+window.closeScannerModal = function() {
+    document.getElementById('scannerModal').classList.remove('active');
+    if (recipeQrScanner && recipeQrScanner.isScanning) recipeQrScanner.stop().catch(() => {});
+};
+
+window.triggerRecipeOCR = function() {
+    if (recipeOcrFileInput) recipeOcrFileInput.click();
+};
+
+if (recipeOcrFileInput) {
+    recipeOcrFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        ingName.value = "Scanning Nutrition Label via OCR...";
+        try {
+            const text = await window.BodyProOCR.scanImage(file);
+            const parsed = window.BodyProOCR.parseNutritionText(text);
+            populateIngredientInputs(parsed);
+            window.BodyProHardware.playCheckSound();
+        } catch (err) {
+            ingName.value = "";
+            alert("OCR scan failed. Please enter values manually.");
+        } finally {
+            recipeOcrFileInput.value = '';
+        }
+    });
+}
 
 // --- RECIPE BUILDER LOGIC ---
 btnAddIngredientToRecipe.addEventListener('click', () => {
@@ -209,7 +263,7 @@ btnAddIngredientToRecipe.addEventListener('click', () => {
 
     currentIngredients.push(newIng);
     updateIngredientList();
-    closeIngredientModal();
+    window.closeIngredientModal();
 });
 
 function updateIngredientList() {
@@ -233,7 +287,7 @@ function updateIngredientList() {
                         <span class="text-danger">${ing.fats}g F</span>
                     </div>
                 </div>
-                <button class="btn btn-ghost" style="padding: 5px; color: var(--danger); border: none;" onclick="removeIngredient('${ing.id}')"><i class="fa-solid fa-xmark"></i></button>
+                <button class="btn btn-ghost" style="width:auto; min-width:0; padding: 5px; color: var(--danger); border: none;" onclick="removeIngredient('${ing.id}')"><i class="fa-solid fa-xmark"></i></button>
             `;
             activeIngredientList.appendChild(div);
         });
@@ -279,8 +333,10 @@ recipeServingsInput.addEventListener('input', calculateRecipeMacros);
 btnClearRecipe.addEventListener('click', () => {
     if(confirm("Clear current recipe build?")) {
         currentIngredients = [];
+        editingRecipeId = null;
         recipeNameInput.value = '';
         recipeServingsInput.value = 1;
+        btnSaveRecipe.innerHTML = '<i class="fa-solid fa-save"></i> Save Recipe';
         updateIngredientList();
     }
 });
@@ -296,7 +352,7 @@ btnSaveRecipe.addEventListener('click', async () => {
     const servings = Math.max(1, Number(recipeServingsInput.value) || 1);
 
     const recipeObj = {
-        id: 'rec_' + Date.now(),
+        id: editingRecipeId || ('rec_' + Date.now()),
         name: name,
         servings: servings,
         ingredients: currentIngredients,
@@ -318,7 +374,14 @@ btnSaveRecipe.addEventListener('click', async () => {
         timestamp: new Date().toISOString()
     };
 
-    userData.custom_recipes.push(recipeObj);
+    if (editingRecipeId) {
+        const idx = userData.custom_recipes.findIndex(r => r.id === editingRecipeId);
+        if (idx !== -1) userData.custom_recipes[idx] = recipeObj;
+        else userData.custom_recipes.push(recipeObj);
+        editingRecipeId = null;
+    } else {
+        userData.custom_recipes.push(recipeObj);
+    }
     await window.BodyProDataStore.saveData(userData);
 
     currentIngredients = [];
@@ -353,11 +416,58 @@ function renderSavedRecipes() {
                     <span class="text-danger">${rec.macrosPerServing.fats}g F</span>
                 </div>
             </div>
-            <button class="btn btn-ghost" style="color: var(--danger); border: none;" onclick="deleteRecipe('${rec.id}')"><i class="fa-solid fa-trash"></i></button>
+            <div style="display: flex; gap: 6px; align-items: center;">
+                <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 6px 10px; font-size: 0.75rem; border-color: var(--accent); color: var(--accent);" onclick="logRecipeServing('${rec.id}')"><i class="fa-solid fa-utensils"></i> Log 1x</button>
+                <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 6px 10px; font-size: 0.75rem; border: none;" onclick="editSavedRecipe('${rec.id}')" title="Edit Recipe"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn btn-ghost" style="width: auto; min-width: 0; padding: 6px 10px; color: var(--danger); border: none;" onclick="deleteRecipe('${rec.id}')" title="Delete Recipe"><i class="fa-solid fa-trash"></i></button>
+            </div>
         `;
         savedRecipesList.appendChild(div);
     });
 }
+
+window.logRecipeServing = async function(id) {
+    const rec = (userData.custom_recipes || []).find(r => r.id === id);
+    if (!rec) return;
+    const meal = userData.settings?.preferences?.defaultMeal || 'Dinner';
+    const m = rec.macrosPerServing || {};
+    userData.food_diary = userData.food_diary || [];
+    userData.food_diary.push({
+        id: 'food_' + Date.now(),
+        date: getLocalISODate(new Date()),
+        meal: meal,
+        name: `${rec.name} (1 serving)`,
+        calories: m.calories || 0,
+        protein: m.protein || 0,
+        carbs: m.carbs || 0,
+        fats: m.fats || 0,
+        sugar: m.sugar || 0,
+        sodium: m.sodium || 0,
+        iron: m.iron || 0,
+        potassium: m.potassium || 0,
+        fiber: m.fiber || 0,
+        vitA: m.vitA || 0,
+        vitC: m.vitC || 0,
+        calcium: m.calcium || 0,
+        satFat: m.satFat || 0,
+        timestamp: new Date().toISOString()
+    });
+    window.BodyProHardware.playCheckSound();
+    await window.BodyProDataStore.saveData(userData);
+    alert(`Logged 1 serving of "${rec.name}" to today's ${meal}!`);
+};
+
+window.editSavedRecipe = function(id) {
+    const rec = (userData.custom_recipes || []).find(r => r.id === id);
+    if (!rec) return;
+    editingRecipeId = rec.id;
+    recipeNameInput.value = rec.name;
+    recipeServingsInput.value = rec.servings || 1;
+    currentIngredients = JSON.parse(JSON.stringify(rec.ingredients || []));
+    btnSaveRecipe.innerHTML = '<i class="fa-solid fa-save"></i> Update Recipe';
+    updateIngredientList();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 
 window.deleteRecipe = async function(id) {
     if (confirm("Delete this recipe from your Vault?")) {
@@ -369,7 +479,7 @@ window.deleteRecipe = async function(id) {
 
 // --- MEAL COPIER LOGIC ---
 btnExecuteCopy.addEventListener('click', async () => {
-    const sourceDate = copySourceDate.value; // YYYY-MM-DD
+    const sourceDate = copySourceDate.value;
     const sourceMeal = copySourceMeal.value;
     
     if(!sourceDate) return alert("Select a valid source date.");
@@ -384,7 +494,7 @@ btnExecuteCopy.addEventListener('click', async () => {
     
     foodsToCopy.forEach((food, index) => {
         const newEntry = { ...food };
-        newEntry.id = 'food_' + Date.now() + '_' + index; // Ensure unique ID
+        newEntry.id = 'food_' + Date.now() + '_' + index;
         newEntry.date = todayStr;
         newEntry.timestamp = new Date().toISOString();
         userData.food_diary.push(newEntry);
@@ -395,6 +505,5 @@ btnExecuteCopy.addEventListener('click', async () => {
 });
 
 function getLocalISODate(dateObj) {
-    const offset = dateObj.getTimezoneOffset() * 60000;
-    return (new Date(dateObj - offset)).toISOString().split('T')[0];
+    return window.BodyProTelemetry.getLocalISODate(dateObj);
 }
